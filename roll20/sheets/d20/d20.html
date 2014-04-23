@@ -10,7 +10,7 @@
                 <tr>
                     <th>HP</th>
                     <td><input type="number" name="attr_HP" value="5"/></td>
-                    <td><input type="number" name="attr_HPMax" value="5"/></td>
+                    <td><input type="number" name="attr_HP_max" value="5"/></td>
                 </tr>
                 <tr>
                     <td colspan="3"><hr/></td>
@@ -62,7 +62,7 @@
                 </tr>
                 <tr>
                     <th>Armour</th>
-                    <td><input type="number" name="attr_Armour" value="10"/></td>
+                    <td><input type="number" name="attr_Armour" value="0"/></td>
                     <td></td>
                 </tr>
                 <tr>
@@ -127,6 +127,7 @@
     <hr/>
 
     <div class='sheet-3colrow'>
+        <h3>Skills</h3>
         <div class='sheet-col'>
             <table>
                 <tr>
@@ -263,5 +264,31 @@
                 </tr>
             </table>
         </div>
+    </div>
+
+    <div>
+        <h3>Combat</h3>
+        <table class="combat">
+            <tr>
+                <th style="width:15em">Attack</th>
+                <th style="width:5em">Bonus</th>
+                <th style="width:5em">Wpn</th>
+                <th style="width:5em">Total</th>
+                <th style="width:5em">Damage</th>
+                <th style="width:5em">Roll</th>
+            </tr>
+        </table>
+            <fieldset class="repeating_attack">
+            <table class="combat">
+                <tr>
+                    <td style="width:15em"><input type="text" name="attr_attackname" value="<attack type>"/></td>
+                    <td style="width:5em"><input type="number" name="attr_attackbonus" value="0"/></td>
+                    <td style="width:5em"><input type="number" name="attr_attackwpn" value="0"/></td>
+                    <td style="width:5em"><input type="number" name="attr_attacktotal" value="@{bab} + @{attackbonus} + @{attackwpn}" disabled="true"/></td>
+                    <td style="width:5em"><input type="text" name="attr_attackdamage" value="0"/></td>
+                    <td style="width:5em"><button type="roll" value="@{attackname} rolling [[1d20 + @{attacktotal}]] doing [[@{attackdamage}]]"/></td>
+                </tr>
+            </table>
+            </fieldset>
     </div>
 </html>

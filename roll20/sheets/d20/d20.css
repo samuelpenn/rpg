@@ -1,3 +1,7 @@
-table tr th {
+.charsheet table tr th {
     text-align: left;
+}
+
+table.combat .attack {
+    width: 15em;
 }
