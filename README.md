@@ -1,4 +1,8 @@
-rpg
+RPG
 ===
 
-Miscellaneous RPG Material
+Repository for miscellaneous RPG Material.
+
+
+Author: Samuel Penn
+License: BSD
