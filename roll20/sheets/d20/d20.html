@@ -97,18 +97,18 @@
                 <tr>
                     <td>Reflex</td>
                     <td><input type="number" name="attr_Ref" value="1"/></td>
-                    <td><button type="roll" value="Reflex [[1d20 + @{Ref} + @{Con}]]"/></td>
+                    <td><button type="roll" value="Reflex [[1d20 + @{Ref} + @{Dex}]]"/></td>
                 </tr>
                 <tr>
                     <td>Will</td>
                     <td><input type="number" name="attr_Will" value="1"/></td>
-                    <td><button type="roll" value="Will [[1d20 + @{Will} + @{Con}]]"/></td>
+                    <td><button type="roll" value="Will [[1d20 + @{Will} + @{Wis}]]"/></td>
                 </tr>
                 <tr><td colspan="3"><hr/></td></tr>
                 <tr>
                     <td>Turn Undead</td>
                     <td><input type="number" name="attr_TurnUndead" value="0"/></td>
-                    <td><button type="roll" value="Will [[1d20 + @{Will} + @{Con}]]"/></td>
+                    <td><button type="roll" value="Will [[1d20 + @{TurnUndead} + @{Cha}]]"/></td>
                 </tr>
                 <tr>
                     <td>Caster Level</td>
@@ -265,7 +265,65 @@
             </table>
         </div>
     </div>
-
+    <div class='sheet-3colrow'>
+        <div class='sheet-col'>
+            <h4>Knowledges</h4>
+            <table>
+                <tr>
+                    <td>Arcana</td><td><input type="number" name="attr_KnArcana" value=""/></td>
+                    <td><button type="roll" value="Knowledge (Arcana) [[1d20 + @{KnArcana} + @{Int}]]"/></td>
+                </tr>
+                <tr>
+                    <td>Architecture</td><td><input type="number" name="attr_KnArchitecture" value=""/></td>
+                    <td><button type="roll" value="Knowledge (Architecture &amp; Engineering) [[1d20 + @{KnArchitecture} + @{Int}]]"/></td>
+                </tr>
+                <tr>
+                    <td>Dungeoneering</td><td><input type="number" name="attr_KnDungeoneering" value=""/></td>
+                    <td><button type="roll" value="Knowledge (Dungeoneering) [[1d20 + @{KnDungeoneering} + @{Int}]]"/></td>
+                </tr>
+                <tr>
+                    <td>Geography</td><td><input type="number" name="attr_KnGeography" value=""/></td>
+                    <td><button type="roll" value="Knowledge (Geography) [[1d20 + @{KnGeography} + @{Int}]]"/></td>
+                </tr>
+                <tr>
+                    <td>History</td><td><input type="number" name="attr_KnHistory" value=""/></td>
+                    <td><button type="roll" value="Knowledge (History) [[1d20 + @{KnHistory} + @{Int}]]"/></td>
+                </tr>
+                <tr>
+                    <td>Local</td><td><input type="number" name="attr_KnLocal" value=""/></td>
+                    <td><button type="roll" value="Knowledge (Local) [[1d20 + @{KnLocal} + @{Int}]]"/></td>
+                </tr>
+                <tr>
+                    <td>Nature</td><td><input type="number" name="attr_KnNature" value=""/></td>
+                    <td><button type="roll" value="Knowledge (Nature) [[1d20 + @{KnNature} + @{Int}]]"/></td>
+                </tr>
+                <tr>
+                    <td>Nobility</td><td><input type="number" name="attr_KnNobility" value=""/></td>
+                    <td><button type="roll" value="Knowledge (Nobility) [[1d20 + @{KnNobility} + @{Int}]]"/></td>
+                </tr>
+                <tr>
+                    <td>Religion</td><td><input type="number" name="attr_KnReligion" value=""/></td>
+                    <td><button type="roll" value="Knowledge (Religion) [[1d20 + @{KnReligion} + @{Int}]]"/></td>
+                </tr>
+                <tr>
+                    <td>The Planes</td><td><input type="number" name="attr_KnPlanes" value=""/></td>
+                    <td><button type="roll" value="Knowledge (The Planes) [[1d20 + @{KnPlanes} + @{Int}]]"/></td>
+                </tr>
+            </table>
+        </div>
+        <div class='sheet-col'>
+            <h4>Crafts</h4>
+            <fieldset class="repeating_craft">
+                <table>
+                    <tr>
+                        <td><input type="text" name="attr_craftname" value=""/></td>
+                        <td><input type="number" name="attr_craftskill" value=""/></td>
+                        <td><button type="roll" value="Craft (@{craftname}) [[1d20 + @{craftskill} + @{Int}]]"/></td>
+                    </tr>
+                </table>
+            </fieldset>
+        </div>
+    </div>
     <div>
         <h3>Combat</h3>
         <table class="combat">
@@ -278,7 +336,7 @@
                 <th style="width:5em">Roll</th>
             </tr>
         </table>
-            <fieldset class="repeating_attack">
+        <fieldset class="repeating_attack">
             <table class="combat">
                 <tr>
                     <td style="width:15em"><input type="text" name="attr_attackname" value="<attack type>"/></td>
@@ -289,6 +347,6 @@
                     <td style="width:5em"><button type="roll" value="@{attackname} rolling [[1d20 + @{attacktotal}]] doing [[@{attackdamage}]]"/></td>
                 </tr>
             </table>
-            </fieldset>
+        </fieldset>
     </div>
 </html>
