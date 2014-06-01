@@ -19,37 +19,37 @@
                     <td>Strength</td>
                     <td><input type="number" name="attr_Strength" value="10"/></td>
                     <td><input type="number" name="attr_Str" value="floor((@{Strength}-10)/2)" disabled="true"/></td>
-                    <td><button type="roll" value="/roll 1d20 + @{Str}"/></td>
+                    <td><button name="Strength" type="roll" value="/roll 1d20 + @{Str}"/></td>
                 </tr>
                 <tr>
                     <td>Dexterity</td>
                     <td><input type="number" name="attr_Dexterity" value="10"/></td>
                     <td><input type="number" name="attr_Dex" value="floor((@{Dexterity}-10)/2)" disabled="true"/></td>
-                    <td><button type="roll" value="/roll 1d20 + @{Dex}"/></td>
+                    <td><button name="Dexterity" type="roll" value="/roll 1d20 + @{Dex}"/></td>
                 </tr>
                 <tr>
                     <td>Constitution</td>
                     <td><input type="number" name="attr_Constitution" value="10"/></td>
                     <td><input type="number" name="attr_Con" value="floor((@{Constitution}-10)/2)" disabled="true"/></td>
-                    <td><button type="roll" value="/roll 1d20 + @{Con}"/></td>
+                    <td><button name="Constitution" type="roll" value="/roll 1d20 + @{Con}"/></td>
                 </tr>
                 <tr>
                     <td>Intelligence</td>
                     <td><input type="number" name="attr_Intelligence" value="10"/></td>
                     <td><input type="number" name="attr_Int" value="floor((@{Intelligence}-10)/2)" disabled="true"/></td>
-                    <td><button type="roll" value="/roll 1d20 + @{Int}"/></td>
+                    <td><button name="Intelligence" type="roll" value="/roll 1d20 + @{Int}"/></td>
                 </tr>
                 <tr>
                     <td>Wisdom</td>
                     <td><input type="number" name="attr_Wisdom" value="10"/></td>
                     <td><input type="number" name="attr_Wis" value="floor((@{Wisdom}-10)/2)" disabled="true"/></td>
-                    <td><button type="roll" value="/roll 1d20 + @{Wis}"/></td>
+                    <td><button name="Wisdom" type="roll" value="/roll 1d20 + @{Wis}"/></td>
                 </tr>
                 <tr>
                     <td>Charisma</td>
                     <td><input type="number" name="attr_Charisma" value="10"/></td>
                     <td><input type="number" name="attr_Cha" value="floor((@{Charisma}-10)/2)" disabled="true"/></td>
-                    <td><button type="roll" value="/roll 1d20 + @{Cha}"/></td>
+                    <td><button name="Charisma" type="roll" value="/roll 1d20 + @{Cha}"/></td>
                 </tr>
             </table>
         </div>
@@ -85,6 +85,11 @@
                     <td><input type="number" name="attr_ArmourCheck" value="0"/></td>
                     <td></td>
                 </tr>
+                <tr>
+                    <th>Initiative</th>
+                    <td><input type="number" name="attr_Initiative" value="0"/></td>
+                    <td><button name="Initiative" class="tokenaction" type="roll" value="Initiative [[1d20 + @{Initiative} &{tracker}]]"/></td>
+                </tr>
             </table>
         </div>
         <div class="sheet-col">
@@ -92,17 +97,17 @@
                 <tr>
                     <td>Fortitude</td>
                     <td><input type="number" name="attr_Fort" value="1"/></td>
-                    <td><button type="roll" value="Fortitude [[1d20 + @{Fort} + @{Con}]]"/></td>
+                    <td><button name="Fortitude" class="tokenaction" type="roll" value="Fortitude [[1d20 + @{Fort} + @{Con}]]"/></td>
                 </tr>
                 <tr>
                     <td>Reflex</td>
                     <td><input type="number" name="attr_Ref" value="1"/></td>
-                    <td><button type="roll" value="Reflex [[1d20 + @{Ref} + @{Dex}]]"/></td>
+                    <td><button name="Reflex" class="tokenaction" type="roll" value="Reflex [[1d20 + @{Ref} + @{Dex}]]"/></td>
                 </tr>
                 <tr>
                     <td>Will</td>
                     <td><input type="number" name="attr_Will" value="1"/></td>
-                    <td><button type="roll" value="Will [[1d20 + @{Will} + @{Wis}]]"/></td>
+                    <td><button name="Will" class="tokenaction" type="roll" value="Will [[1d20 + @{Will} + @{Wis}]]"/></td>
                 </tr>
                 <tr><td colspan="3"><hr/></td></tr>
                 <tr>
@@ -180,43 +185,43 @@
             <table>
                 <tr>
                     <td>Gather Information</td><td><input type="number" name="attr_GatherInformation" value="0"/></td>
-                    <td><button type="roll" value="Gather Information [[1d20 + @{GatherInformation} + @{Cha}]]"/></td>
+                    <td><button name="Gather Information" type="roll" value="Gather Information [[1d20 + @{GatherInformation} + @{Cha}]]"/></td>
                 </tr>
                 <tr>
                     <td>Handle Animal</td><td><input type="number" name="attr_HandleAnimal"/></td>
-                    <td><button type="roll" value="Handle Animal [[1d20 + @{HandleAnimal} + @{Cha}]]"/></td>
+                    <td><button name="Handle Animal" type="roll" value="Handle Animal [[1d20 + @{HandleAnimal} + @{Cha}]]"/></td>
                 </tr>
                 <tr>
                     <td>Heal</td><td><input type="number" name="attr_Heal" value="0"/></td>
-                    <td><button type="roll" value="Heal [[1d20 + @{Heal} + @{Wis}]]"/></td>
+                    <td><button name="Heal" type="roll" value="Heal [[1d20 + @{Heal} + @{Wis}]]"/></td>
                 </tr>
                 <tr>
                     <td>Hide</td><td><input type="number" name="attr_Hide" value="0"/></td>
-                    <td><button type="roll" value="Hide [[1d20 + @{Hide} + @{Dex} + @{ArmourCheck}]]"/></td>
+                    <td><button name="Hide" type="roll" value="Hide [[1d20 + @{Hide} + @{Dex} + @{ArmourCheck}]]"/></td>
                 </tr>
                 <tr>
                     <td>Intimidate</td><td><input type="number" name="attr_Intimidate" value="0"/></td>
-                    <td><button type="roll" value="Intimidate [[1d20 + @{Intimidate} + @{Cha}]]"/></td>
+                    <td><button name="Intimidate" type="roll" value="Intimidate [[1d20 + @{Intimidate} + @{Cha}]]"/></td>
                 </tr>
                 <tr>
                     <td>Jump</td><td><input type="number" name="attr_Jump" value="0"/></td>
-                    <td><button type="roll" value="Jump [[1d20 + @{Jump} + @{Str} + @{ArmourCheck}]]"/></td>
+                    <td><button name="Jump" type="roll" value="Jump [[1d20 + @{Jump} + @{Str} + @{ArmourCheck}]]"/></td>
                 </tr>
                 <tr>
                     <td>Listen</td><td><input type="number" name="attr_Listen" value="0"/></td>
-                    <td><button type="roll" value="Listen [[1d20 + @{Listen} + @{Wis}]]"/></td>
+                    <td><button name="Listen" class="tokenaction" type="roll" value="Listen [[1d20 + @{Listen} + @{Wis}]]"/></td>
                 </tr>
                 <tr>
                     <td>Move Silently</td><td><input type="number" name="attr_MoveSilently" value="0"/></td>
-                    <td><button type="roll" value="Move Silently [[1d20 + @{MoveSilently} + @{Dex}]]"/></td>
+                    <td><button name="Move Silently" type="roll" value="Move Silently [[1d20 + @{MoveSilently} + @{Dex}]]"/></td>
                 </tr>
                 <tr>
                     <td>Open Lock</td><td><input type="number" name="attr_OpenLock"/></td>
-                    <td><button type="roll" value="Open Lock [[1d20 + @{OpenLock} + @{Cha}]]"/></td>
+                    <td><button name="Open Lock" type="roll" value="Open Lock [[1d20 + @{OpenLock} + @{Cha}]]"/></td>
                 </tr>
                 <tr>
                     <td>Ride</td><td><input type="number" name="attr_Ride" value="0"/></td>
-                    <td><button type="roll" value="Ride [[1d20 + @{Ride} + @{Dex}]]"/></td>
+                    <td><button name="Ride" type="roll" value="Ride [[1d20 + @{Ride} + @{Dex}]]"/></td>
                 </tr>
             </table>
         </div>
@@ -240,7 +245,7 @@
                 </tr>
                 <tr>
                     <td>Spot</td><td><input type="number" name="attr_Spot" value="0"/></td>
-                    <td><button type="roll" value="Spot [[1d20 + @{Spot} + @{Wis}]]"/></td>
+                    <td><button name="Spot" class="tokenaction" type="roll" value="Spot [[1d20 + @{Spot} + @{Wis}]]"/></td>
                 </tr>
                 <tr>
                     <td>Survival</td><td><input type="number" name="attr_Survival" value="0"/></td>
@@ -344,7 +349,7 @@
                     <td style="width:5em"><input type="number" name="attr_attackwpn" value="0"/></td>
                     <td style="width:5em"><input type="number" name="attr_attacktotal" value="@{bab} + @{attackbonus} + @{attackwpn}" disabled="true"/></td>
                     <td style="width:5em"><input type="text" name="attr_attackdamage" value="0"/></td>
-                    <td style="width:5em"><button type="roll" value="@{attackname} rolling [[1d20 + @{attacktotal}]] doing [[@{attackdamage}]]"/></td>
+                    <td style="width:5em"><button name="Attack" class="tokenaction" type="roll" value="@{attackname} rolling [[1d20 + @{attacktotal}]] doing [[@{attackdamage}]]"/></td>
                 </tr>
             </table>
         </fieldset>
