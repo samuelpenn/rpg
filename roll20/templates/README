@@ -1,0 +1,10 @@
+Pathfinder Templates for Roll20
+-------------------------------
+
+These templates are designed for use with Pathfinder.
+
+The reach templates use the normal 70px = 5ft scale.
+
+The spell templates use a 140px = 5ft scale. The reason for this is so that after importing into Roll20, and being resized to fit the grid, they still look good when zoomed in at 200%. Though this doesn't affect the base wireframe templates, spell templates with effects graphics added will look better.
+
+These are licensed CC-BY-SA.
