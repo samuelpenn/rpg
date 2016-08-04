@@ -30,8 +30,8 @@ var Describe = Describe || {};
 
 
 Describe.Process = function(msg, player_obj) {
-    var BOX_STYLE="background-color: #BBBB99; color: #000000; padding:0px; border:1px solid black; border-radius: 5px;"
-    var TITLE_STYLE="background-color: #000000; color: #FFFFFF; padding: 1px; text-align: center";
+    var BOX_STYLE="background-color: #DDDDAA; color: #000000; padding:0px; border:1px solid COLOUR; border-radius: 5px;"
+    var TITLE_STYLE="background-color: COLOUR; color: #FFFFFF; padding: 1px; text-align: center";
     var TEXT_STYLE="padding: 5px;"
 
     var n = msg.content.split(" ");
@@ -49,7 +49,8 @@ Describe.Process = function(msg, player_obj) {
         if (character == null) {
             sendChat("", "/w " + player_obj.get("displayname") + " No character found");
         } else {
-            image = getAttrByName(character.id, 'Picture');
+            var colour = getAttrByName(character.id, 'rolltemplate_color');
+            var image = null
             if (image == null || image == "") {
                 image = character.get("avatar");
             }
@@ -58,14 +59,14 @@ Describe.Process = function(msg, player_obj) {
                     sendChat("", "/w " + player_obj.get("displayname") + " No bio defined");
                 } else {
                     bio = bio.replace(/<br>-- <br>.*/, "");
-                    var html = "<div style='" + BOX_STYLE + "'>";
+                    var html = "<div style='" + BOX_STYLE.replace("COLOUR", colour) + "'>";
                     if (title != undefined) {
-                        html += "<div style='" + TITLE_STYLE + "'>" + title + "</div>";
+                        html += "<div style='" + TITLE_STYLE.replace("COLOUR", colour) + "'>" + title + "</div>";
                     }
                     if (image != null) {
                         html += "<img src='"+image+"' width='100%'/>";
                     }
-                    html += "<div style='" + TEXT_STYLE + "'>" + unescape(bio) + "</div>";
+                    html += "<div style='" + TEXT_STYLE.replace(/COLOUR/g, colour) + "'>" + unescape(bio) + "</div>";
 
                     gmnotes = target.get("gmnotes");
                     if (gmnotes != null && gmnotes != "") {
