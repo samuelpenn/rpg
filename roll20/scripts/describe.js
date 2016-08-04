@@ -50,6 +50,9 @@ Describe.Process = function(msg, player_obj) {
             sendChat("", "/w " + player_obj.get("displayname") + " No character found");
         } else {
             var colour = getAttrByName(character.id, 'rolltemplate_color');
+            if (colour == null || colour == "") {
+                colour = "#000000";
+            }
             var image = null
             if (image == null || image == "") {
                 image = character.get("avatar");
