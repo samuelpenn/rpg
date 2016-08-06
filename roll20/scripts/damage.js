@@ -70,6 +70,7 @@ on("chat:message", function(msg) {
         sendChat("", "/w GM " + tokenName + " has no associated character");
         return;
     }
+    var character = getObj("character", character_id);
 
     var hpMax = token.get("bar1_max");
     var hpCurrent = token.get("bar1_value");
@@ -78,7 +79,6 @@ on("chat:message", function(msg) {
     var dead = token.get("status_dead");
 
     var constitution = getAttrByName(character_id, 'CON-mod');
-    log("My CON is " + constitution);
     if (constitution == "") {
         constitution = 0;
     }
@@ -93,20 +93,19 @@ on("chat:message", function(msg) {
     } else {
         var dc = 10 - hpCurrent;
         var check = randomInteger(20) + constitution;
-        log(randomInteger(20));
 
-        if (check >= dc) {
-            sendChat("", "/w GM " + tokenName + " has stabilised with a roll of " + check + ".");
+        if (check >= dc || check == constitution + 20) {
             token.set({
-                status_greenmarker: true
+                status_green: true
             });
+            Damage.update(token, null, "<p><b>" + tokenName + "</b> stops bleeding.</p>");
         } else {
-            sendChat("", "/w GM " + tokenName + " is bleeding on a roll of " + check + " versus DC " + dc + "." );
             hpCurrent -= 1;
             token.set({
-                bar1_value: hpCurrent
+                bar1_value: hpCurrent,
+                status_green: false
             });
-            Damage.update(token);
+            Damage.update(token, null, "<p><b>" + tokenName + "</b> bleeds a bit more.</p>");
         }
     }
     return;
@@ -114,17 +113,54 @@ on("chat:message", function(msg) {
 
 var Damage = Damage || {};
 
-on("change:graphic", function(obj) {
-    Damage.update(obj);
+on("change:graphic", function(obj, prev) {
+    Damage.update(obj, prev, "");
 });
 
-Damage.update = function(obj) {
-    if (obj.get("bar1_max") === "") return;
+Damage.BOX_STYLE="background-color: #DDDDAA; color: #000000; padding:0px; border:1px solid black; border-radius: 5px; padding: 5px";
 
+Damage.line = function(message) {
+    return "<p>" + message + "</p>";
+}
+
+Damage.update = function(obj, prev, message) {
+    if (obj.get("bar1_max") === "") return;
+    if (message == null) {
+        message = "";
+    }
+
+    var takenDamage = false;
     var name = obj.get("name");
     var hpMax = obj.get("bar1_max");
     var hpCurrent = obj.get("bar1_value");
     var nonlethalDamage = obj.get("bar3_value");
+    var stable = obj.get("status_green");
+
+    if (prev != null) {
+        if (hpCurrent == prev["bar1_value"] && hpMax == prev["bar1_max"] && nonlethalDamage == prev["bar3_value"]) {
+            // Whatever has changed is nothing to do with us.
+            return;
+        }
+        if (hpCurrent < prev["bar1_value"]) {
+            takenDamage = true;
+        }
+        if (nonlethalDamage > prev["bar3_value"]) {
+            takenDamage = true;
+        }
+        if (takenDamage) {
+            // Taken damage, so remove stable marker.
+            obj.set({
+                status_green: false
+            });
+            stable = false;
+        } else {
+            // In which case we've probably been healed, so stabilise.
+            obj.set({
+                status_green: true
+            });
+            stable = true;
+        }
+    }
 
     if (nonlethalDamage === "") {
         nonlethalDamage = 0;
@@ -142,7 +178,6 @@ Damage.update = function(obj) {
         type = "";
     }
     var living = true;
-    var message = "";
 
     // Undead have special rules.
     if (type.indexOf("Undead") > -1 || type.indexOf("Construct") > -1 || type.indexOf("Inevitable") > -1 || type.indexOf("Swarm") > -1 ) {
@@ -161,36 +196,41 @@ Damage.update = function(obj) {
             status_pummeled: false,
             status_dead: true,
             status_skull: false,
-            status_redmarker: false,
-            status_brownmarker: false
+            status_red: false,
+            status_brown: false,
+            status_green: false
         });
         if (type.indexOf("Swarm") > -1) {
-            message = name + " is <b>dispersed</b>.";
+            message += Damage.line("<b>" + name + "</b> is <i>dispersed</i>.");
         } else {
-            message = name + " is <b>destroyed</b>.";
+            message += Damage.line("<b>" + name + "</b> is <i>destroyed</i>.");
         }
     } else if (hpCurrent <= 0 - constitution) {
         obj.set({
             status_pummeled: false,
             status_dead: true,
             status_skull: false,
-            status_redmarker: false,
-            status_brownmarker: false
+            status_red: false,
+            status_brown: false,
+            status_green: false
         });
-        message = name + " is <b>dead</b>.";
+        message += Damage.line("<b>" + name + "</b> is <i>dead</i>.");
     } else if (hpActual < 0) {
         obj.set({
             status_pummeled: false,
             status_dead: false,
             status_skull: true,
-            status_redmarker: false,
-            status_brownmarker: false
+            status_red: false,
+            status_brown: false
         });
-        if (hpCurrent < 0) {
-            message = name + " is <b>dying</b>. ";
-            message += "<i>On their next turn, they must make a DC " + (10 - hpCurrent) + " Constitution check or lose 1 hp.</i>";
+        if (hpCurrent < 0 && !stable) {
+            message += Damage.line("<b>" + name + "</b> is <i>dying</i>. On their next " +
+                                   "turn, they must make a DC " + (10 - hpCurrent) +
+                                   " Constitution check or lose 1 hp.");
+        } else if (hpCurrent < 0) {
+            message += Damage.line("<b>" + name + "</b> is <i>dying but stable</i>. No further checks are necessary.");
         } else {
-            message = name + " is <b>unconscious</b>.";
+            message += Damage.line("<b>" + name + "</b> is <i>unconscious</i>.");
         }
     } else if (hpActual == 0) {
         // Staggered. Note that a character is staggered if either
@@ -200,49 +240,58 @@ Damage.update = function(obj) {
             status_pummeled: true,
             status_dead: false,
             status_skull: false,
-            status_redmarker: false,
-            status_brownmarker: false
+            status_red: false,
+            status_brown: false,
+            status_green: false
         });
+        var msg = "They can only make a single standard or move action each round.";
         if (hpCurrent == 0) {
-            message = name + " is <b>disabled</b>. ";
+            message += Damage.line("<b>" + name + "</b> is <i>disabled</i>. " + msg);
         } else {
-            message = name + " is <b>staggered</b>. ";
+            message += Damage.line("<b>" + name + "</b> is <i>staggered</i>. " + msg);
         }
-        message += "<i>They can only make a single standard or move action each round.</i>";
     } else if (hpActual <= hpMax / 3) {
         obj.set({
             status_pummeled: false,
             status_dead: false,
             status_skull: false,
-            status_redmarker: true,
-            status_brownmarker: true
+            status_red: true,
+            status_brown: true,
+            status_green: false
         });
     } else if (hpActual <= hpMax * (2/3)) {
         obj.set({
             status_pummeled: false,
             status_dead: false,
             status_skull: false,
-            status_redmarker: false,
-            status_brownmarker: true
+            status_red: false,
+            status_brown: true,
+            status_green: false
         });
     } else {
         obj.set({
             status_pummeled: false,
             status_dead: false,
             status_skull: false,
-            status_redmarker: false,
-            status_brownmarker: false
+            status_red: false,
+            status_brown: false,
+            status_green: false
         });
     }
     if (message != "") {
-        var BOX_STYLE="background-color: #EEEE99; color: #000000; padding:0px; border:1px solid black; border-radius: 5px; padding: 5px";
+        Damage.message(character, message);
+    }
+}
 
+Damage.message = function(character, message) {
+    if (message != null) {
         var image = character.get("avatar");
-
-        var html = "<div style='" + BOX_STYLE + "'>";
-        html += "<img src='"+image+"' width='64px' style='float:left; padding-right: 5px'/>";
+        var html = "<div style='" + Damage.BOX_STYLE + "'>";
+        html += "<table><tr><td style='width:68px; vertical-align: top'>";
+        html += "<img src='"+image+"' width='64px' style='float:left; padding-right: 5px;'/>";
+        html += "</td><td style='width:auto; vertical-align: top'>";
         html += message;
-        html += "<p style='clear:both'></p>";
+        html += "</td></tr></table>";
         html += "</div>";
 
         sendChat("", html);
