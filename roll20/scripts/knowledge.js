@@ -6,8 +6,8 @@
  * die roll (which is shown first).
  *
  * TODO:
- *   Add in lore skills.
  *   Allow for bards to make untrained knowledge skill checks.
+ *   Allow take 10/20.
  *
  * ISC License
  *
@@ -82,12 +82,14 @@ Knowledge.Process = function(msg, player_obj) {
     }
 
     var template = Knowledge.setupTemplate(title, character);
-
     template += "{{d20 roll=[[d0cs>21 + " + d20roll + "]]}}";
 
+    // Basic intelligence roll.
     var intelligence = getAttrByName(character.id, "INT-mod");
     template += "{{Intelligence (" + intelligence + ")=**" + (d20roll + intelligence) + "**}}";
 
+    // Define all the Knowledge skills, and iterate through the list, outputting
+    // only the ones which the character has ranks in.
     var skills = [ "Knowledge-Arcana", "Knowledge-Dungeoneering",
                    "Knowledge-Engineering", "Knowledge-Geography",
                    "Knowledge-History", "Knowledge-Local",
@@ -105,6 +107,18 @@ Knowledge.Process = function(msg, player_obj) {
             template += "{{"+skill+" (" + score + ")=**" + (d20roll + score) + "**}}";
         }
 
+    }
+
+    // Now find all the lore skills.
+    for (var l=1; l < 11; l++) {
+        var skill = "Lore" + ( (l>1)?l:"" );
+        var ranks = getAttrByName(character.id, skill+"-ranks");
+        if (ranks != "" && ranks > 0) {
+            var score = getAttrByName(character.id, skill);
+            var lore = getAttrByName(character.id, skill+"-name");
+
+            template += "{{*"+lore+"* (" + score + ")=**" + (d20roll + score)  + "**}}";
+        }
     }
 
     sendChat("", template);
