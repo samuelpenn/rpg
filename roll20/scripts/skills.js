@@ -1,17 +1,31 @@
 /**
  * Roll Skills
  *
- * Rolls a given list of skills.
+ * Designed to work with the Pathfinder character sheet for Roll20.
  *
- * Designed to work with the Pathfinder character sheet. Bards and Skalds are
- * automatically detected (by the character classes), and untrained Knowledge
- * skills are allowed in this case.
+ * Given a character and a named list of skills, rolls once and applies that
+ * roll to each of the skills in turn, displaying their total. If the character
+ * has no ranks in a skill, and it requires training, then that skill will not
+ * be listed.
+ *
+ * Can also handle attributes (prefix with '%', e.g. '%Strength') or specialised
+ * skills such as Craft and Profession (suffix with '*', e.g. 'Perform*').
+ *
+ * Allows 'Take 10' and 'Take 20', which can be selected at runtime with a
+ * macro (example given below).
  *
  * Usage:
- *   !skills Movement_Skills @{selected|token_id} [[d20]] Acrobatics,Climb,Escape_Artist,Swim
- *   !knowledge @{selected|token_id} [[10]]
- *   !knowledge @{selected|token_id} [[20]]
- *   !knowledge @{selected|token_id} [[?{Roll|d20,d20|Take 10,10|Take 20,20}]]
+ *   !skills <title> <token_id> <roll> <skills>
+ *     title: Heading to be shown, use hyphens for spaces, e.g. Movement-Skills
+ *     token_id: Usually @{selected|token_id}
+ *     roll: Usually [[d20]], or [[10]] to take 10, or [[20]] to take 20.
+ *     skills: Comma separated list of skills, e.g. Bluff,Sneak,Sleight-of-Hand
+ *
+ * There cannot be any spaces in any of the parameters.
+ *
+ * If you want the player to be able to dynamically select whether to roll,
+ * Take 10 or Take 20, then use something like this for the 'roll' parameter:
+ *   [[?{Roll|d20,d20|Take 10,10|Take 20,20}]]
  *
  * ISC License
  *
@@ -28,7 +42,6 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
  */
 on("chat:message", function(msg) {
     if (msg.type !== "api") return;
@@ -86,7 +99,12 @@ Skills.getAttribute = function(character, attribute, d20roll, name) {
 
 Skills.Process = function(msg, player_obj) {
     var n = msg.content.split(" ");
+    if (n.length != 5) {
+        Skills.usage();
+        return;
+    }
     if (msg.inlinerolls == null) {
+        sendChat("", "Roll parameter must be an inline roll");
         Skills.usage();
         return;
     }
@@ -104,7 +122,7 @@ Skills.Process = function(msg, player_obj) {
     }
     var tokenName = target.get("name");
     if (!isRoll) {
-        tokenName += " (Take " + d20roll + ")";
+        tokenName += " (Takes " + d20roll + ")";
     }
     var character_id = target.get("represents")
     var character = getObj("character", character_id)
@@ -147,8 +165,11 @@ Skills.Process = function(msg, player_obj) {
         }
     }
 
-    sendChat("", template);
+    if (playerIsGM(player_obj.get("id"))) {
+        sendChat(getAttrByName(character.id, "character_name"), "/w " + player_obj.get("displayname") + " " + template);
+    } else {
+        sendChat(getAttrByName(character.id, "character_name"), template);
+    }
 
     return;
-
 };
