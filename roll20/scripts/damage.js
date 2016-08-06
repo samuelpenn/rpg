@@ -1,14 +1,124 @@
 /**
- * Calculates damage and hitpoints for Pathfinder, and updates tokens
- * with current status.
+ * Automated Damage Tracking
  *
- * bar1 is hitpoints, both current hitpoints and maximum. It goes down as
- * a character takes damage.
+ * Designed to work with the Pathfinder character sheet for Roll20.
  *
- * bar3 is nonlethal damage. It goes up as a character takes damage.
+ * Automatically tracks damage and hit points for a character, updating the
+ * token with the current status. It also allows automated stabilisation
+ * checks for creatures on negative hit points.
+ *
+ * Assumptions:
+ *
+ *   bar1 is hitpoints, both current hitpoints and maximum. It goes down as
+ *        a character takes damage.
+ *
+ *   bar3 is nonlethal damage. It goes up as a character takes damage.
+ *
+ * Notes:
+ *
+ * Handles undead, constructs, swarms and other creatures which don't use
+ * negative hit points. These are automatically 'killed' when hitpoints
+ * reach zero. Creature types which ignore nonlethal damage are also handled
+ * correctly.
+ *
+ * Macro Option:
+ *
+ * There is an api command that can be called from a macro as follows:
+ *   !stabilise @{selected|token_id}
+ *
+ * This will automate a constitution check against the current DC for the
+ * character to stabilise. On success, a green marker is placed on the
+ * token, and further attempts to stabilise are ignored. On failure, the
+ * token's hit points are reduced by 1.
+ *
+ *
+ * ISC License
+ *
+ * Copyright (c) 2016, Samuel Penn, sam@glendale.org.uk
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+on("chat:message", function(msg) {
+    if (msg.type !== "api") return;
+    if (msg.content.split(" ", 1)[0] != "!stabilise") return;
+
+    var params = msg.content.split(" ");
+    if (params.length != 2) {
+        return;
+    }
+    var tokenId = params[1];
+    var token = getObj("graphic", tokenId);
+    if (token == null) {
+        sendChat("", "/w GM Token not found");
+        return;
+    }
+
+    var tokenName = token.get("name");
+    var character_id = token.get("represents");
+    if (character_id == null) {
+        sendChat("", "/w GM " + tokenName + " has no associated character");
+        return;
+    }
+
+    var hpMax = token.get("bar1_max");
+    var hpCurrent = token.get("bar1_value");
+    var nonlethalDamage = token.get("bar3_value");
+    var stable = token.get("status_green");
+    var dead = token.get("status_dead");
+
+    var constitution = getAttrByName(character_id, 'CON-mod');
+    log("My CON is " + constitution);
+    if (constitution == "") {
+        constitution = 0;
+    }
+
+    if (dead == true) {
+        sendChat("", "/w GM " + tokenName + " is already dead.");
+    } else if (hpCurrent >= 0) {
+        // Target is healthy, nothing to do.
+        sendChat("", "/w GM " + tokenName + " is healthy.");
+    } else if (stable == true) {
+        sendChat("", "/w GM " + tokenName + " is stable.");
+    } else {
+        var dc = 10 - hpCurrent;
+        var check = randomInteger(20) + constitution;
+        log(randomInteger(20));
+
+        if (check >= dc) {
+            sendChat("", "/w GM " + tokenName + " has stabilised with a roll of " + check + ".");
+            token.set({
+                status_greenmarker: true
+            });
+        } else {
+            sendChat("", "/w GM " + tokenName + " is bleeding on a roll of " + check + " versus DC " + dc + "." );
+            hpCurrent -= 1;
+            token.set({
+                bar1_value: hpCurrent
+            });
+            Damage.update(token);
+        }
+    }
+    return;
+});
+
+var Damage = Damage || {};
+
 on("change:graphic", function(obj) {
+    Damage.update(obj);
+});
+
+Damage.update = function(obj) {
     if (obj.get("bar1_max") === "") return;
 
     var name = obj.get("name");
@@ -21,10 +131,10 @@ on("change:graphic", function(obj) {
     }
     var hpActual = hpCurrent - nonlethalDamage;
 
-    var character_id = obj.get("represents")
+    var character_id = obj.get("represents");
     var character = getObj("character", character_id);
-    var constitution = getAttrByName(character_id, 'CON');
-    if (constitution == "") {
+    var constitution = getAttrByName(character.id, 'CON');
+    if (constitution == null) {
         constitution = 10;
     }
     var type = getAttrByName(character_id, 'npc-type');
@@ -130,11 +240,11 @@ on("change:graphic", function(obj) {
         var image = character.get("avatar");
 
         var html = "<div style='" + BOX_STYLE + "'>";
-        html += "<img src='"+image+"' width='64px' style='float:left'/>";
+        html += "<img src='"+image+"' width='64px' style='float:left; padding-right: 5px'/>";
         html += message;
         html += "<p style='clear:both'></p>";
         html += "</div>";
 
         sendChat("", html);
     }
-});
+}
