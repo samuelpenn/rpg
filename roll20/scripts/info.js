@@ -28,6 +28,13 @@ on("chat:message", function(msg) {
 
 var Info = Info || {};
 
+Info.BOX_STYLE="background-color: #DDDDAA; color: #000000; padding:0px; border:1px solid COLOUR; border-radius: 5px;"
+Info.TITLE_STYLE="background-color: COLOUR; color: #FFFFFF; padding: 1px; text-align: center";
+Info.TEXT_STYLE="padding: 5px; padding-top: 0px; padding-bottom: 0px;"
+Info.PARA_STYLE="padding: 0px; margin: 0px;";
+Info.P = "<p style='"+Info.PARA_STYLE+"'>";
+
+
 Info.cell = function cell(property, value) {
     if (value == undefined || value == "") {
         return "";
@@ -39,21 +46,14 @@ Info.line = function line(property, value) {
     if (value == undefined || value == "") {
         return "";
     }
-    return "<p style='"+PARA_STYLE+"'><b>" + property + "</b> " + value + " </p>";
+    return "<p style='"+Info.PARA_STYLE+"'><b>" + property + "</b> " + value + " </p>";
 }
 
 Info.text = function text(text) {
-    return "<p style='"+PARA_STYLE+"'><b>" + text + "</b></p>";
+    return "<p style='"+Info.PARA_STYLE+"'><b>" + text + "</b></p>";
 }
 
 Info.Process = function(msg, player_obj) {
-    var BOX_STYLE="background-color: #DDDDAA; color: #000000; padding:0px; border:1px solid COLOUR; border-radius: 5px;"
-    var TITLE_STYLE="background-color: COLOUR; color: #FFFFFF; padding: 1px; text-align: center";
-    var TEXT_STYLE="padding: 5px; padding-top: 0px; padding-bottom: 0px;"
-    var PARA_STYLE="padding: 0px; margin: 0px;";
-    var P = "<p style='"+PARA_STYLE+"'>";
-
-
     var n = msg.content.split(" ");
     var target = getObj("graphic", n[1]);
     if (target != undefined) {
@@ -78,12 +78,12 @@ Info.Process = function(msg, player_obj) {
                 image = character.get("avatar");
             }
 
-            var html = "<div style='" + BOX_STYLE.replace("COLOUR", colour) + "'>";
+            var html = "<div style='" + Info.BOX_STYLE.replace("COLOUR", colour) + "'>";
             if (title != undefined) {
-                html += "<div style='" + TITLE_STYLE.replace("COLOUR", colour) + "'>" + title + "</div>";
+                html += "<div style='" + Info.TITLE_STYLE.replace("COLOUR", colour) + "'>" + title + "</div>";
             }
 
-            html += "<div style='" + TEXT_STYLE.replace(/COLOUR/g, colour) + "'>";
+            html += "<div style='" + Info.TEXT_STYLE.replace(/COLOUR/g, colour) + "'>";
             if (image != null) {
                 html += "<table><tr>";
                 html += "<td style='width:110px'><img src='"+image+"' width='100px' align='left'/></td>";
@@ -137,7 +137,7 @@ Info.Process = function(msg, player_obj) {
             } else {
                 html += Info.text("Hitpoints: " + currentHitpoints + " / " + totalHitpoints);
             }
-            html += P;
+            html += Info.P;
             html += Info.cell("AC", ac) + Info.cell("Flat", acFlat) + Info.cell("Touch", acTouch);
             html += "</p>";
 
@@ -145,16 +145,10 @@ Info.Process = function(msg, player_obj) {
                 html += "</td></tr></table>";
             }
 
-
             html += "</div>";
             html += "</div>";
 
-
-            if (playerIsGM(player_obj.get("id"))) {
-                sendChat("", "/direct " + html);
-            } else {
-                sendChat("", "/w " + player_obj.get("displayname") + " " + html);
-            }
+            sendChat("", "/w " + player_obj.get("displayname") + " " + html);
         }
     } else {
         sendChat("", "/w " + player_obj.get("displayname") + " Nothing selected.");
