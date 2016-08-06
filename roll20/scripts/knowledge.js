@@ -5,13 +5,21 @@
  * those skills that a character actually possesses. Every skill uses the same
  * die roll (which is shown first).
  *
+ * Designed to work with the Pathfinder character sheet.
+ *
  * TODO:
  *   Allow for bards to make untrained knowledge skill checks.
  *   Allow take 10/20.
  *
+ * Usage:
+ *   !knowledge @{selected|token_id} [[d20]]
+ *   !knowledge @{selected|token_id} [[10]]
+ *   !knowledge @{selected|token_id} [[20]]
+ *   !knowledge @{selected|token_id} [[?{Roll|d20,d20|Take 10,10|Take 20,20}]]
+ *
  * ISC License
  *
- * Copyright (c) [2016], [Samuel Penn, sam@glendale.org.uk]
+ * Copyright (c) 2016, Samuel Penn, sam@glendale.org.uk
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -63,7 +71,8 @@ Knowledge.Process = function(msg, player_obj) {
         return;
     }
     // Get the result of the die roll.
-    var d20roll = msg.inlinerolls[0].results.rolls[0].results[0].v;
+    var d20roll = msg.inlinerolls[0].results.total;
+    var isRoll = msg.inlinerolls[0].results.rolls[0].dice != null;
 
     var target = getObj("graphic", n[1]);
     if (target == null) {
@@ -82,7 +91,11 @@ Knowledge.Process = function(msg, player_obj) {
     }
 
     var template = Knowledge.setupTemplate(title, character);
-    template += "{{d20 roll=[[d0cs>21 + " + d20roll + "]]}}";
+    if (isRoll) {
+        template += "{{d20 roll=[[d0cs>21 + " + d20roll + "]]}}";
+    } else {
+        template += "{{Take " + d20roll + "=[[d0cs>21 + " + d20roll + "]]}}";
+    }
 
     // Basic intelligence roll.
     var intelligence = getAttrByName(character.id, "INT-mod");
