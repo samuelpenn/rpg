@@ -49,6 +49,37 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/**
+ * Heal all selected tokens to full hit points.
+ */
+on("chat:message", function(msg) {
+    if (msg.type !== "api") return;
+    if (msg.content.split(" ", 1)[0] != "!heal") return;
+
+    if (msg.selected.length > 0) {
+        for (var i=0; i < msg.selected.length; i++) {
+            var tokenId = msg.selected[i]._id;
+            var token = getObj("graphic", tokenId);
+            if (token != null) {
+                token.set("bar1_value", token.get("bar1_max"));
+                token.set("bar3_value", 0);
+                token.set({
+                    status_pummeled: false,
+                    status_dead: false,
+                    status_skull: false,
+                    status_red: false,
+                    status_brown: false,
+                    status_green: false
+                });
+            }
+        }
+    }
+    return;
+});
+
+/**
+ * Check to see if a character stabilises.
+ */
 on("chat:message", function(msg) {
     if (msg.type !== "api") return;
     if (msg.content.split(" ", 1)[0] != "!stabilise") return;
@@ -135,6 +166,7 @@ Damage.update = function(obj, prev, message) {
     var hpCurrent = obj.get("bar1_value");
     var nonlethalDamage = obj.get("bar3_value");
     var stable = obj.get("status_green");
+    var previousHitpoints = hpCurrent;
 
     if (prev != null) {
         if (hpCurrent == prev["bar1_value"] && hpMax == prev["bar1_max"] && nonlethalDamage == prev["bar3_value"]) {
@@ -160,6 +192,8 @@ Damage.update = function(obj, prev, message) {
             });
             stable = true;
         }
+
+        previousHitpoints = prev["bar1_value"] - prev["bar3_value"]
     }
 
     if (nonlethalDamage === "") {
@@ -259,6 +293,9 @@ Damage.update = function(obj, prev, message) {
             status_brown: true,
             status_green: false
         });
+        if (prev != null && previousHitpoints > hpMax / 3) {
+            message += Damage.line("<b>" + name + "</b> is now <i>heavily wounded</i>.");
+        }
     } else if (hpActual <= hpMax * (2/3)) {
         obj.set({
             status_pummeled: false,
@@ -268,6 +305,9 @@ Damage.update = function(obj, prev, message) {
             status_brown: true,
             status_green: false
         });
+        if (prev != null && previousHitpoints > hpMax * (2/3)) {
+            message += Damage.line("<b>" + name + "</b> is now <i>moderately wounded</i>.");
+        }
     } else {
         obj.set({
             status_pummeled: false,
