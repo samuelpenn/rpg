@@ -78,65 +78,113 @@ on("chat:message", function(msg) {
 });
 
 /**
- * Check to see if a character stabilises.
+ * Damage all selected tokens by the given amount.
+ * Damage is either lethal or nonlethal.
+ */
+on("chat:message", function(msg) {
+    if (msg.type !== "api") return;
+    if (msg.content.split(" ", 1)[0] != "!damage") return;
+
+    var damage = 1;
+    var nonlethal = false;
+    n = msg.content.split(" ");
+
+    if (n.length > 1) {
+        damage = parseInt(n[1]);
+        if (damage < 1 || isNaN(damage)) {
+            return;
+        }
+        log("Damage is " + damage);
+    }
+    if (n.length > 2 && n[2] == "nonlethal") {
+        nonlethal = true;
+    }
+
+    if (msg.selected.length > 0) {
+        for (var i=0; i < msg.selected.length; i++) {
+            var tokenId = msg.selected[i]._id;
+            var token = getObj("graphic", tokenId);
+
+            log(token.get("name"));
+
+            var currentHp = parseInt(token.get("bar1_value"));
+            var nonlethalDamage = parseInt(token.get("bar3_value"));
+
+
+
+            if (nonlethal) {
+                token.set("bar3_value", nonlethalDamage + damage);
+            } else {
+                log("Real hp was " + currentHp);
+                currentHp -= damage;
+                log("Real hp is now " + currentHp);
+                token.set("bar1_value", currentHp);
+            }
+            Damage.update(token, null, "");
+        }
+    }
+    return;
+});
+
+/**
+ * Check to see if any of the selected tokens stabilise.
  */
 on("chat:message", function(msg) {
     if (msg.type !== "api") return;
     if (msg.content.split(" ", 1)[0] != "!stabilise") return;
 
-    var params = msg.content.split(" ");
-    if (params.length != 2) {
-        return;
-    }
-    var tokenId = params[1];
-    var token = getObj("graphic", tokenId);
-    if (token == null) {
-        sendChat("", "/w GM Token not found");
-        return;
-    }
+    if (msg.selected.length > 0) {
+        for (var i=0; i < msg.selected.length; i++) {
+            var tokenId = msg.selected[i]._id;
+            var token = getObj("graphic", tokenId);
+            if (token == null) {
+                continue;
+            }
 
-    var tokenName = token.get("name");
-    var character_id = token.get("represents");
-    if (character_id == null) {
-        sendChat("", "/w GM " + tokenName + " has no associated character");
-        return;
-    }
-    var character = getObj("character", character_id);
+            var tokenName = token.get("name");
+            var character_id = token.get("represents");
+            if (character_id == null) {
+                sendChat("", "/w GM " + tokenName + " has no associated character");
+                return;
+            }
+            var character = getObj("character", character_id);
 
-    var hpMax = token.get("bar1_max");
-    var hpCurrent = token.get("bar1_value");
-    var nonlethalDamage = token.get("bar3_value");
-    var stable = token.get("status_green");
-    var dead = token.get("status_dead");
+            var hpMax = token.get("bar1_max");
+            var hpCurrent = token.get("bar1_value");
+            var nonlethalDamage = token.get("bar3_value");
+            var stable = token.get("status_green");
+            var dead = token.get("status_dead");
 
-    var constitution = getAttrByName(character_id, 'CON-mod');
-    if (constitution == "") {
-        constitution = 0;
-    }
+            var constitution = getAttrByName(character_id, 'CON-mod');
+            if (constitution == "") {
+                constitution = 0;
+            }
 
-    if (dead == true) {
-        sendChat("", "/w GM " + tokenName + " is already dead.");
-    } else if (hpCurrent >= 0) {
-        // Target is healthy, nothing to do.
-        sendChat("", "/w GM " + tokenName + " is healthy.");
-    } else if (stable == true) {
-        sendChat("", "/w GM " + tokenName + " is stable.");
-    } else {
-        var dc = 10 - hpCurrent;
-        var check = randomInteger(20) + constitution;
+            if (dead == true) {
+                sendChat("", "/w GM " + tokenName + " is already dead.");
+            } else if (hpCurrent >= 0) {
+                // Target is healthy, nothing to do.
+                sendChat("", "/w GM " + tokenName + " is healthy.");
+            } else if (stable == true) {
+                sendChat("", "/w GM " + tokenName + " is stable.");
+            } else {
+                var dc = 10 - hpCurrent;
+                var check = randomInteger(20) + constitution;
 
-        if (check >= dc || check == constitution + 20) {
-            token.set({
-                status_green: true
-            });
-            Damage.update(token, null, "<p><b>" + tokenName + "</b> stops bleeding.</p>");
-        } else {
-            hpCurrent -= 1;
-            token.set({
-                bar1_value: hpCurrent,
-                status_green: false
-            });
-            Damage.update(token, null, "<p><b>" + tokenName + "</b> bleeds a bit more.</p>");
+                if (check >= dc || check == constitution + 20) {
+                    token.set({
+                        status_green: true
+                    });
+                    Damage.update(token, null, "<p><b>" + tokenName + "</b> stops bleeding.</p>");
+                } else {
+                    hpCurrent -= 1;
+                    token.set({
+                        bar1_value: hpCurrent,
+                        status_green: false
+                    });
+                    Damage.update(token, null, "<p><b>" + tokenName + "</b> bleeds a bit more.</p>");
+                }
+            }
         }
     }
     return;
@@ -220,8 +268,17 @@ Damage.update = function(obj, prev, message) {
                 bar3_value: 0
             });
             nonlethalDamage = 0;
-            hpActual = hpCurrent;
+
         }
+        if (hpCurrent < 0) {
+            hpCurrent = 0;
+            // No point having negative hit points for these types of creatures.
+            hpActual = hpCurrent;
+            obj.set({
+                bar1_value: 0
+            });
+        }
+
         living = false;
     }
 
@@ -258,11 +315,11 @@ Damage.update = function(obj, prev, message) {
             status_brown: false
         });
         if (hpCurrent < 0 && !stable) {
-            message += Damage.line("<b>" + name + "</b> is <i>dying</i>. On their next " +
-                                   "turn, they must make a DC " + (10 - hpCurrent) +
-                                   " Constitution check or lose 1 hp.");
+            message += Damage.line("<b>" + name + "</b> is <i>dying</i>. Each turn " +
+                                   "they must make a DC&nbsp;" + (10 - hpCurrent) +
+                                   " CON check to stop bleeding.");
         } else if (hpCurrent < 0) {
-            message += Damage.line("<b>" + name + "</b> is <i>dying but stable</i>. No further checks are necessary.");
+            message += Damage.line("<b>" + name + "</b> is <i>dying but stable</i>.");
         } else {
             message += Damage.line("<b>" + name + "</b> is <i>unconscious</i>.");
         }
@@ -278,7 +335,7 @@ Damage.update = function(obj, prev, message) {
             status_brown: false,
             status_green: false
         });
-        var msg = "They can only make a single standard or move action each round.";
+        var msg = "They can only make one standard or move action each round.";
         if (hpCurrent == 0) {
             message += Damage.line("<b>" + name + "</b> is <i>disabled</i>. " + msg);
         } else {
@@ -327,8 +384,8 @@ Damage.message = function(character, message) {
     if (message != null) {
         var image = character.get("avatar");
         var html = "<div style='" + Damage.BOX_STYLE + "'>";
-        html += "<table><tr><td style='width:68px; vertical-align: top'>";
-        html += "<img src='"+image+"' width='64px' style='float:left; padding-right: 5px;'/>";
+        html += "<table><tr><td style='width:48px; vertical-align: top'>";
+        html += "<img src='"+image+"' width='40px' style='float:left; padding-right: 5px;'/>";
         html += "</td><td style='width:auto; vertical-align: top'>";
         html += message;
         html += "</td></tr></table>";
