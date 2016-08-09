@@ -53,7 +53,8 @@ on("chat:message", function(msg) {
 });
 
 
-Treasure.BOX_STYLE="background-color: #DDDDAA; color: #000000; padding:0px; border:1px solid black; border-radius: 5px; padding: 5px";
+Treasure.BOX_STYLE="background-color: #DDDDAA; color: #000000; padding:0px; border:1px solid black; border-radius: 5px";
+Treasure.TITLE_STYLE="background-color: #000000; color: #FFFFFF; padding: 1px; text-align: center";
 
 Treasure.line = function(message) {
     return "<p style='margin-bottom: 0px'>" + message + "</p>";
@@ -73,10 +74,12 @@ Treasure.format = function(message) {
 }
 
 Treasure.generate = function(token, character) {
-    var treasureType = getAttrByName(character.id, "treasure_type");
-    var treasureValue = getAttrByName(character.id, "treasure_value");
+    var treasureType = getAttrByName(character.id, "TreasureType");
+    var treasureValue = getAttrByName(character.id, "TreasureType", "max");
 
-    Treasure.format("This is a <simple|complex|hard|wonderful> test");
+    log(treasureType);
+    log(treasureValue);
+
 
     // Treasure types are:
     //   common
@@ -85,12 +88,12 @@ Treasure.generate = function(token, character) {
     //   thug
     //   beggar
     if (treasureType == null) {
-        treasureType = "common";
+        treasureType = "Scum";
     }
     if (treasureValue == null) {
         treasureValue = 1;
     }
-    var items = Treasure.getCommon(treasureValue);
+    var items = Treasure.getRandomTreasure(treasureType, treasureValue);
 
     var message = "";
     if (items.length > 0) {
@@ -100,15 +103,23 @@ Treasure.generate = function(token, character) {
             log(sortedItems[i][0] + " - " + sortedItems[i][1]);
             if (sortedItems[i][0] > dc) {
                 dc = sortedItems[i][0];
-                message += Treasure.line("DC " + dc);
+                message += Treasure.line("<b>DC " + dc + "</b>");
             }
-            message += Treasure.line(Treasure.format(sortedItems[i][1]));
+            var text = Treasure.format(sortedItems[i][1]);
+            if (sortedItems[i].length > 2) {
+                var specialTable = sortedItems[i][2];
+                var special = Treasure.getFromSpecialTable(specialTable);
+                if (special != null) {
+                    text += " <em>" + Treasure.format(special[0]) + "</em>";
+                }
+            }
+            message += Treasure.line(text);
         }
     } else {
         message += Treasure.line("Nothing.");
     }
 
-    Treasure.message(character, message);
+    Treasure.message(character, token.get("name") + ": " + treasureType + " / " + treasureValue, message);
 }
 
 Treasure.getRoll = function(sides, dice) {
@@ -119,72 +130,101 @@ Treasure.getRoll = function(sides, dice) {
     return total;
 }
 
-Treasure.getItems = function(name, number) {
+Treasure.getFromSpecialTable = function(tableName) {
+    var table = Treasure.special[tableName].table;
+
+    if (table == null) {
+        log("No such special table [" + tableName + "]");
+        return null;
+    }
+
+    var size = table.length;
+
+    var item = table[randomInteger(size) - 1]
+
+    return item;
+}
+
+Treasure.getItemFromTable = function(tableName) {
+    var table = Treasure.lists[tableName].table;
+
+    if (table == null) {
+        log("No such treasure table [" + tableName + "]");
+        return null;
+    }
+
+    var size = table.length;
+
+    var item = table[randomInteger(size) - 1]
+
+    if (item[0] == 0) {
+        // Use a different table.
+        item = Treasure.getItemFromTable(item[1])
+    }
+
+    return item;
+}
+
+Treasure.getItems = function(tableName, number) {
     var items = [];
 
-    log("getItems: " + name + ", " + number);
-    if (number > 0) {
-        var list = Treasure.lists[name];
-        var size = list.length;
-        log("" + list + ", " + size);
-        for (var i=0; i < number; i++) {
-            var item = list[randomInteger(size) - 1]
-            items.push ( item );
+    log("getItems: " + tableName + ", " + number);
+    for (var i=0; i < number; i++) {
+        var item = Treasure.getItemFromTable(tableName);
+
+        if (item != null) {
+            items.push(item);
         }
     }
+
     return items;
 }
 
-Treasure.lists = {};
+Treasure.getRandomCoins = function(tableName, value) {
+    var table = Treasure.lists[tableName];
 
-Treasure.lists['tat'] = [
-    [ 9, "A <broken|twisted|plain> copper ring worth [[2d4]] cp." ],
-    [ 9, "A wooden pendant with a <bird|cat|dog|rat> carving worth [[1d6]] cp." ],
-    [ 12, "A piece of <string|wire|chalk|torn paper>." ],
-    [ 12, "A pair of <ivory|wooden|bone> dice [[3d4]] cp." ],
-    [ 15, "A lock of <brown|golden|white> hair <wrapped|tied> around a wooden ring." ],
-    [ 15, "A finger in a small wooden box." ]
-];
+    if (table == null || table.coins == null) {
+        log("No such treasure table [" + tableName + "]");
+        return null;
+    }
+    return table.coins(value);
+}
 
-Treasure.getCommon = function(value) {
+Treasure.getRandomTreasure = function(tableName, value) {
     var items = [];
     var cp = 0, sp = 0, gp = 0; pp = 0;
+
+    var coins = Treasure.getRandomCoins(tableName, value);
+    if (coins != null) {
+        items.push(coins);
+    }
+
     switch (Treasure.getRoll(6, value)) {
-        case 1: case 2: case 3: case 4:
+        case 1: case 2: case 3:
+            items = items.concat(Treasure.getItems(tableName, randomInteger(2)-1));
             break;
-        case 5: case 6:
-            // A few coins.
-            cp += Treasure.getRoll(4, value);
-            items = items.concat(Treasure.getItems("tat", randomInteger(2)-1));
+        case 4: case 5: case 6:
+            items = items.concat(Treasure.getItems(tableName, randomInteger(2)));
             break;
-        case 7: case 8:
-            cp += Treasure.getRoll(4, value);
-            sp += Treasure.getRoll(4, value);
-            items = items.concat(Treasure.getItems("tat", randomInteger(3)-1));
+        case 7: case 8: case 9: case 10:
+            items = items.concat(Treasure.getItems(tableName, randomInteger(4)));
             break;
-        case 9: case 10:
-            cp += Treasure.getRoll(3, 2);
-            sp += Treasure.getRoll(6, value);
-            gp += Treasure.getRoll(4, parseInt(value / 2));
-            items = items.concat(Treasure.getItems("tat", randomInteger(4)));
+        case 11: case 12: case 13: case 14: case 15:
+            items = items.concat(Treasure.getItems(tableName, randomInteger(3) * 2));
             break;
         default:
-            gp += Treasure.getRoll(6, value);
+            items = items.concat(Treasure.getItems(tableName, randomInteger(value) * 2));
             break;
     }
-    if (cp > 0) items.push([ 12, cp + " copper pinches." ]);
-    if (sp > 0) items.push([ 12, sp + " silver shields." ]);
-    if (gp > 0) items.push([ 12, gp + " gold sails." ]);
-    if (pp > 0) items.push([ 12, gp + " platinum crowns." ]);
 
     return items;
 }
 
-
-Treasure.message = function(character, message) {
+Treasure.message = function(character, title, message) {
     if (message != null) {
         var image = character.get("avatar");
-        var html = "<div style='" + Damage.BOX_STYLE + "'>";
+        var html = "<div style='" + Treasure.BOX_STYLE + "'>";
+        html += "<div style='" + Treasure.TITLE_STYLE + "'>" + title + "</div>";
         html += "<table><tr><td style='width:48px; vertical-align: top'>";
         html += "<img src='"+image+"' width='40px' style='float:left; padding-right: 5px;'/>";
         html += "</td><td style='width:auto; vertical-align: top'>";
@@ -195,3 +235,85 @@ Treasure.message = function(character, message) {
         sendChat("", "/w GM " + html);
     }
 }
+
+Treasure.special = {};
+
+Treasure.special['Notes'] = {};
+Treasure.special['Notes'].table = [
+    [ "Meet at a street in Underbridge [[1d4]] nights from now." ],
+    [ "You are so dead." ]
+];
+
+Treasure.special['Maps'] = {};
+Treasure.special['Maps'].table = [
+    [ "Map to a lake in the Mushfens." ],
+    [ "Map of a dungeon." ],
+    [ "Map of what look like sewers." ],
+    [ "<Poorly|Badly|Quickly|Carefully> drawn map of <Magnimar|the Docklands|Naos>." ]
+];
+
+
+Treasure.lists = {};
+
+Treasure.lists['Scum'] = {};
+Treasure.lists['Scum'].coins = function(value) {
+    return [ 12, '[[2d4]] copper pinches.' ];
+};
+Treasure.lists['Scum'].table = [
+    [ 6, "An old <dirty|stained|worn|torn|tattered> patchwork cloak, worth [[1d4+1]] gp." ],
+    [ 6, "An old <dirty|stained|worn|torn|tattered> reversible cloak, worth [[1d4+1]] sp." ],
+    [ 9, "A <broken|twisted|plain> copper ring worth [[2d4]] cp." ],
+    [ 9, "A wooden pendant with a <bird|cat|dog|rat> carving worth [[1d6]] cp." ],
+    [ 9, "A wooden holy symbol of <Desna|Calistria|Abadar|Erastil|Cayden Cailean>, [[1d4+2]] cp." ],
+    [ 9, "A <small|dirty|filthy|cracked> bottle of <rum|wine|spirits> worth [[2d3]] cp." ],
+    [ 12, "A piece of <string|wire|chalk|torn paper>." ],
+    [ 12, "A pair of <ivory|wooden|bone> dice [[3d4]] cp." ],
+    [ 12, "Half a <plain|scratched|twisted> silver ring worth [[1d4+1]] sp." ],
+    [ 12, "A small bag of herbs, worth [[1d12]] cp." ],
+    [ 12, "<Half a|A broken|A|A black> candle, worth [[1d4]] cp." ],
+    [ 15, "A lock of <brown|golden|white> hair <wrapped|tied> around a wooden ring." ],
+    [ 15, "A finger in a small wooden box." ],
+    [ 15, "A set of broken lock picks." ],
+    [ 15, "A <hastily scribbled|finely written|perfumed> note.", "Notes" ],
+    [ 18, "[[2d4]] copper pinches hidden in shoe." ],
+    [ 18, "A rusted blade in the heal of a shoe." ],
+    [ 21, "A <small|tiny> <gemstone|piece of quartz|gem|crystal> worth [[2d4]] gp." ],
+    [ 0, "Common" ]
+];
+
+
+Treasure.lists['Common'] = {};
+Treasure.lists['Common'].coins = function(value) {
+    return [ 12, '[[2d4]] silver shields.' ]
+};
+Treasure.lists['Common'].table = [
+    [ 0, "Scum" ],
+    [ 12, "A <plain|simply carved|scratched> wooden box containing snuff, [[1d4]] sp. " ],
+    [ 12, "An IOU from a local <merchant|shop keeper|noble|person> claiming [[2d4]] gp." ],
+    [ 21, "A small gemstone worth [[3d6]] gp." ],
+    [ 0, "Expert" ]
+];
+
+
+Treasure.lists['Expert'] = {};
+Treasure.lists['Expert'].coins = function(value) {
+    return [ 12, '[[2d6]] gold sails.' ]
+};
+Treasure.lists['Expert'].table = [
+    [ 0, "Common" ],
+    [ 12, "An expert gemstone worth [[4d10]] gp." ],
+    [ 0, "Noble" ]
+];
+
+
+Treasure.lists['Noble'] = {};
+Treasure.lists['Noble'].coins = function(value) {
+    return [ 12, '[[2d8]] platinum crowns.' ]
+};
+Treasure.lists['Noble'].table = [
+    [ 0, "Expert" ],
+    [ 12, "A noble gemstone worth [[4d100]] gp." ]
+];
+
+
+
