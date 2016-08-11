@@ -200,17 +200,17 @@ Treasure.getRandomTreasure = function(tableName, value) {
     }
 
     switch (Treasure.getRoll(6, value)) {
-        case 1: case 2: case 3:
-            items = items.concat(Treasure.getItems(tableName, randomInteger(2)-1));
+        case 1: case 2:
+            // Nothing.
             break;
-        case 4: case 5: case 6:
-            items = items.concat(Treasure.getItems(tableName, randomInteger(2)));
+        case 3: case 4: case 5:
+            items = items.concat(Treasure.getItems(tableName, Treasure.getRoll(2, 1) ));
             break;
-        case 7: case 8: case 9: case 10:
-            items = items.concat(Treasure.getItems(tableName, randomInteger(4)));
+        case 6: case 7: case 8: case 9:
+            items = items.concat(Treasure.getItems(tableName, Treasure.getRoll(3, 1) + 1 ));
             break;
-        case 11: case 12: case 13: case 14: case 15:
-            items = items.concat(Treasure.getItems(tableName, randomInteger(3) * 2));
+        case 10: case 11: case 12: case 13: case 14:
+            items = items.concat(Treasure.getItems(tableName, Treasure.getRoll(3, 2) ));
             break;
         default:
             items = items.concat(Treasure.getItems(tableName, randomInteger(value) * 2));
@@ -255,26 +255,47 @@ Treasure.special['Maps'].table = [
 
 Treasure.lists = {};
 
+Treasure.lists['Cursed'] = {};
+Treasure.lists['Cursed'].coins = function(value) {
+    return null;
+}
+Treasure.lists['Cursed'].table = [
+    [ 6, "A <brass|copper|wooden> <ring|pendent> <carved|inscribed|decorated|embossed> with <cats|dragons|fish|birds>, -1 to all saves." ]
+];
+
 Treasure.lists['Scum'] = {};
 Treasure.lists['Scum'].coins = function(value) {
     return [ 12, '[[2d4]] copper pinches.' ];
 };
 Treasure.lists['Scum'].table = [
+    [ 0, "Cursed" ],
     [ 6, "An old <dirty|stained|worn|torn|tattered> patchwork cloak, worth [[1d4+1]] gp." ],
     [ 6, "An old <dirty|stained|worn|torn|tattered> reversible cloak, worth [[1d4+1]] sp." ],
+    [ 6, "A pigskin flask of <oil|brandy|wine>, [[1d2+3]] cp." ],
     [ 9, "A <broken|twisted|plain> copper ring worth [[2d4]] cp." ],
     [ 9, "A wooden pendant with a <bird|cat|dog|rat> carving worth [[1d6]] cp." ],
     [ 9, "A wooden holy symbol of <Desna|Calistria|Abadar|Erastil|Cayden Cailean>, [[1d4+2]] cp." ],
+    [ 9, "A bronze holy symbol of <Desna|Calistria|Abadar|Cayden Cailean>, [[1d6+3]] cp." ],
     [ 9, "A <small|dirty|filthy|cracked> bottle of <rum|wine|spirits> worth [[2d3]] cp." ],
+    [ 9, "A <copper|bronze|brass> amulet engraved with the image of <an elf|a dryad|an angel>, [[2d6]] cp." ],
     [ 12, "A piece of <string|wire|chalk|torn paper>." ],
+    [ 12, "A <small|long|rusty|large|ornate> <brass|iron|bronze> key, [[1d4]] cp." ],
     [ 12, "A pair of <ivory|wooden|bone> dice [[3d4]] cp." ],
     [ 12, "Half a <plain|scratched|twisted> silver ring worth [[1d4+1]] sp." ],
     [ 12, "A small bag of herbs, worth [[1d12]] cp." ],
     [ 12, "<Half a|A broken|A|A black> candle, worth [[1d4]] cp." ],
+    [ 12, "A <long|scratched|chipped> wooden pipe, worth [[1d3]] cp." ],
+    [ 12, "A <multi-coloured|red|blue|white> feather, worth [[1d2]] cp." ],
+    [ 12, "A glass marble, worth [[1d2+1]] cp." ],
+    [ 12, "A <shark|ogre>'s tooth, [[2d4]] cp." ],
+    [ 12, "A portrait of <a young girl|a woman|a boy|two girls> carved on a wooden disc, [[2d4]] cp." ],
+    [ 15, "A broken wand with no charges, [[1d4]] cp." ],
+    [ 15, "A piece of chalk, worth [[1]] cp." ],
     [ 15, "A lock of <brown|golden|white> hair <wrapped|tied> around a wooden ring." ],
     [ 15, "A finger in a small wooden box." ],
     [ 15, "A set of broken lock picks." ],
     [ 15, "A <hastily scribbled|finely written|perfumed> note.", "Notes" ],
+    [ 15, "A <dirty|tattered> handkerchief with the symbol of the <Pathfinder Society|Aspis Corporation>, [[1d6+2]] cp." ],
     [ 18, "[[2d4]] copper pinches hidden in shoe." ],
     [ 18, "A rusted blade in the heal of a shoe." ],
     [ 21, "A <small|tiny> <gemstone|piece of quartz|gem|crystal> worth [[2d4]] gp." ],
@@ -290,6 +311,7 @@ Treasure.lists['Common'].table = [
     [ 0, "Scum" ],
     [ 12, "A <plain|simply carved|scratched> wooden box containing snuff, [[1d4]] sp. " ],
     [ 12, "An IOU from a local <merchant|shop keeper|noble|person> claiming [[2d4]] gp." ],
+    [ 15, "A wand of acid spray, with one charge [[75]] sp." ],
     [ 21, "A small gemstone worth [[3d6]] gp." ],
     [ 0, "Expert" ]
 ];
