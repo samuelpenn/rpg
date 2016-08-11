@@ -44,7 +44,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 on("chat:message", function(msg) {
-    if (msg.type !== "api") return;
+    if (msg.type !== "api") {
+        return;
+    }
     if (msg.content.split(" ", 1)[0] === "!skills") {
         var player_obj = getObj("player", msg.playerid);
         Skills.Process(msg, player_obj);
@@ -53,10 +55,9 @@ on("chat:message", function(msg) {
 
 var Skills = Skills || {};
 
-
 Skills.usage = function() {
-    sendChat("", "Usage: !skills <title> @{selected|token_id} [[d20]] <list>")
-}
+    sendChat("", "Usage: !skills <title> @{selected|token_id} [[d20]] <list>");
+};
 
 /**
  * Setup the basic header for the character sheet template.
@@ -75,7 +76,7 @@ Skills.setupTemplate = function(name, character, title) {
     template += "{{subtitle=" + title + "}}";
 
     return template;
-}
+};
 
 Skills.getSkill = function(character, skill, d20roll, name) {
     var ranks = getAttrByName(character.id, skill+"-ranks");
@@ -88,14 +89,14 @@ Skills.getSkill = function(character, skill, d20roll, name) {
         return "{{" + name + " (" + score + ")=**" + (d20roll + score) + "**}}";
     }
     return "";
-}
+};
 
 Skills.getAttribute = function(character, attribute, d20roll, name) {
     var score = parseInt(getAttrByName(character.id, attribute+"-mod"));
     var base = parseInt(getAttrByName(character.id, attribute+"-base"));
 
     return "{{" + name + " (" + base + " / " + score + ")=**" + (d20roll + score) + "**}}";
-}
+};
 
 Skills.Process = function(msg, player_obj) {
     var n = msg.content.split(" ");
@@ -124,8 +125,8 @@ Skills.Process = function(msg, player_obj) {
     if (!isRoll) {
         tokenName += " (Takes " + d20roll + ")";
     }
-    var character_id = target.get("represents")
-    var character = getObj("character", character_id)
+    var character_id = target.get("represents");
+    var character = getObj("character", character_id);
 
     if (character == null) {
         sendChat("", "No character found for token.");
