@@ -86,7 +86,7 @@ Info.Process = function(msg, player_obj) {
             html += "<div style='" + Info.TEXT_STYLE.replace(/COLOUR/g, colour) + "'>";
             if (image != null) {
                 html += "<table><tr>";
-                html += "<td style='width:110px'><img src='"+image+"' width='100px' align='left'/></td>";
+                html += "<td style='width:110px; vertical-align: top'><img src='"+image+"' width='100px' align='left'/></td>";
                 html += "<td style='width: auto; vertical-align: top'>";
             }
             var currentHitpoints = target.get("bar1_value");
@@ -141,9 +141,55 @@ Info.Process = function(msg, player_obj) {
             html += Info.cell("AC", ac) + Info.cell("Flat", acFlat) + Info.cell("Touch", acTouch);
             html += "</p>";
 
+            html += Info.P;
+            var babMelee = getAttrByName(character.id, "attk-melee");
+            var babRanged = getAttrByName(character.id, "attk-melee");
+            var cmb = getAttrByName(character.id, "CMB");
+            var cmd = getAttrByName(character.id, "CMD");
+
+            html += Info.cell("BAB", babMelee);
+            if (babRanged != babMelee) {
+                html += Info.cell("Ranged", babRanged)
+            }
+            html += Info.cell("CMB", cmb) + Info.cell("CMD", cmd);
+            html += "</p><br/>";
+
             if (image != null) {
                 html += "</td></tr></table>";
             }
+
+            html += Info.P;
+            var speedBase = getAttrByName(character.id, "speed-base");
+            var speedModified = getAttrByName(character.id, "speed-modified");
+            var speedFly = getAttrByName(character.id, "speed-fly");
+            var speedSwim = getAttrByName(character.id, "speed-swim");
+            var speedClimb = getAttrByName(character.id, "speed-climb");
+            var speedMisc = getAttrByName(character.id, "speed-misc");
+            var speedMult = getAttrByName(character.id, "speed-run-mult");
+            var speedRun = getAttrByName(character.id, "speed-run");
+
+            html += Info.P;
+            html += Info.cell("Move", speedModified) + Info.cell("Run", speedRun);
+            html += "</p>";
+
+            if (speedFly > 0 || speedSwim > 0 || speedClimb > 0) {
+                html += Info.P;
+                if (speedFly > 0) html += Info.cell("Fly", speedFly);
+                if (speedSwim > 0) html += Info.cell("Swim", speedSwim);
+                if (speedClimb > 0) html += Info.cell("Climb", speedClimb);
+                html += "</p>";
+            }
+
+            var dr = getAttrByName(character.id, "DR");
+            var resistences = getAttrByName(character.id, "resistances");
+            var immunities = getAttrByName(character.id, "immunities");
+            var sr = getAttrByName(character.id, "SR");
+            var weaknesses = getAttrByName(character.id, "weaknesses");
+
+            html += Info.P + Info.cell("DR", dr) + Info.cell("SR", sr) + "</p>";
+            html += Info.line("Resistences", resistences);
+            html += Info.line("Immunities", immunities);
+            html += Info.line("Weaknesses", weaknesses);
 
             html += "</div>";
             html += "</div>";
