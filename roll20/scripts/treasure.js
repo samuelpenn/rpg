@@ -241,6 +241,8 @@ Treasure.special = {};
 Treasure.special['Notes'] = {};
 Treasure.special['Notes'].table = [
     [ "Meet at a street in Underbridge [[1d4]] nights from now." ],
+    [ "A list of [[2d4 + 5]] names on a scrap of parchment. The last [[1d3]] have not had a line drawn through them. " ],
+    [ "<A crude|An erotic|A hastily drawn> portrait of <a young woman|an elf maiden|an orc|two coupling halflings>, with '<To Be Killed|Stupid Whore|My Love|Where are you?|Beloved>' <scrawled|written> <underneath|alongside|above>." ],
     [ "You are so dead." ]
 ];
 
@@ -289,6 +291,11 @@ Treasure.lists['Scum'].table = [
     [ 12, "A glass marble, worth [[1d2+1]] cp." ],
     [ 12, "A <shark|ogre>'s tooth, [[2d4]] cp." ],
     [ 12, "A portrait of <a young girl|a woman|a boy|two girls> carved on a wooden disc, [[2d4]] cp." ],
+    [ 12, "A <crudely|partially> carved piece of wood that <looks like|might represent|appears to be vaguely> a <cat|dog|goblin|horse>, [[1d2]] cp." ],
+    [ 12, "<Two|Three|Four|Five> <worn|scratched> and <bent|chipped|shaved> <silver|electrum> coins of <apparently|obviously|possibly> ancient origin. The details on the coins faces cannot be made out, worth [[2d4]] sp." ],
+    [ 12, "An empty <ebony|bone> scroll tube missing both its stoppers." ],
+    [ 12, "A small, <mud-stained|blood-stained|water-stained> book. The pages <appear to be blank|are covered in some unreadable script|contain poor quality sketches>, worth [[2d6]] cp."],
+    [ 15, "Two <plain|rusty|small|bent> keys tied together with a short length of <fraying twine|rusty wire>." ],
     [ 15, "A broken wand with no charges, [[1d4]] cp." ],
     [ 15, "A piece of chalk, worth [[1]] cp." ],
     [ 15, "A lock of <brown|golden|white> hair <wrapped|tied> around a wooden ring." ],
