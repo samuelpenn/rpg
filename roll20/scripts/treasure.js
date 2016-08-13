@@ -241,8 +241,14 @@ Treasure.special = {};
 Treasure.special['Notes'] = {};
 Treasure.special['Notes'].table = [
     [ "Meet at a street in Underbridge [[1d4]] nights from now." ],
-    [ "A list of [[2d4 + 5]] names on a scrap of parchment. The last [[1d3]] have not had a line drawn through them. " ],
+    [ "A list of [[2d4 + 5]] names on a scrap of parchment. All but the last [[1d3]] have had a line drawn through them. " ],
     [ "<A crude|An erotic|A hastily drawn> portrait of <a young woman|an elf maiden|an orc|two coupling halflings>, with '<To Be Killed|Stupid Whore|My Love|Where are you?|Beloved>' <scrawled|written> <underneath|alongside|above>." ],
+    [ "A list of [[1d4 + 3]] women, each with <a number written|some hearts drawn> next to her name." ],
+    [ "A list of <wizard|cleric|druid> spells, with prices." ],
+    [ "<Under|By|In> the <rotten|fallen|burnt> tree, by the gate to <Docklands|Lowcleft|Naos|Capital|Alabaster|Keystone|Beacon's Point|Ordellia>." ],
+    [ "<Conso|Serana|Petru> <5|6|7|8>in; <Filiu|Marku|Gillac> <5|6|7|8|9>in; <Boian|Adamu|Costol|Tawno> <5|6|7>in; <Besnik|Casamir|Jibben>, <6|7|8|9|10>in; <Cataril|Soare|Saban> <4|5|6|7|8>in;" ],
+    [ "<Afina|Flavi|Orchili> <7|8|9>; <Alafarea|Helga|Pabay> <5|6|7>; <Alika|Iolana|Sorica> <8|9|10|10!!>; <Belinza|Irine|Teodora> <5|6|7>; <Cojinia|Kostela|Tas> <9|10>; <Daciana |Laurelica|Ujaritza> <2|3|4>; <Damaria|Lyuba|Vasildi> <3|4|5>" ],
+    [ "A <detailed|rough|crude> recipe for <rat|apple|gooseberry|cherry|lemon|goblin|crow|chicken> pie." ],
     [ "You are so dead." ]
 ];
 
@@ -265,47 +271,111 @@ Treasure.lists['Cursed'].table = [
     [ 6, "A <brass|copper|wooden> <ring|pendent> <carved|inscribed|decorated|embossed> with <cats|dragons|fish|birds>, -1 to all saves." ]
 ];
 
+Treasure.lists['Cheap Clothing'] = { 'table': [
+    [ 6, "An old <dirty|stained|worn|torn|tattered> patchwork cloak, worth [[1d4+1]] gp." ],
+    [ 6, "An old <dirty|stained|worn|torn|tattered> reversible cloak, worth [[1d4+1]] sp." ],
+    [ 15, "A <dirty|tattered> handkerchief with the symbol of the <Pathfinder Society|Aspis Corporation>, [[1d6+2]] cp." ],
+]};
+
+Treasure.lists['Cheap Tools'] = { 'table': [
+    [ 9, "A <box|leather bag> containing flint and steel" ],
+    [ 9, "A small jar of <dried|smelly|blackened> glue" ],
+    [ 12, "A <box|leather bag> containing a blade sharpening kit" ],
+    [ 12, "A <small|long|rusty|large|ornate> <brass|iron|bronze> key, [[1d4]] cp." ],
+    [ 12, "A small bag containing fish hooks and maggots." ],
+    [ 12, "A <sharp|rusty|blood stained|chipped> razor, [[1d8]] cp." ],
+    [ 12, "A silver razor, [[2d4]] sp." ],
+    [ 12, "A flute, [[1d4+3]] cp." ],
+    [ 12, "Some <blood stained|shiny|rusty> meat hooks." ],
+    [ 12, "A <rusty|scratched|bloodstained|dirty|clean|bent> crowbar." ],
+    [ 12, "A <long|scratched|chipped> wooden pipe, worth [[1d3]] cp." ],
+    [ 12, "A broken compass." ],
+    [ 12, "A small bronze mirror", ],
+    [ 12, "A small <iron|bronze> hammer" ],
+    [ 12, "A sewing kit, [[2d4]]cp." ],
+    [ 15, "Two <plain|rusty|small|bent> keys tied together with a short length of <fraying twine|rusty wire>." ],
+    [ 15, "A set of broken lock picks." ],
+    [ 18, "A rusted blade in the heal of a shoe." ],
+    [ 18, "A set of [[2d6]] <small|iron|bronze> needles, [[2d4]]cp." ]
+    [ 21, "[2|3|4|5] <short|long>bow strings hidden in <underwear|shoe|lining of jacket>." ]
+]};
+
+Treasure.lists['Toys'] = { 'table': [
+    [ 12, "A pair of <ivory|wooden|bone> dice [[3d4]] cp." ],
+    [ 12, "A glass marble, worth [[1d2+1]] cp." ],
+    [ 12, "A set of <plain|dog-eared|stained|sticky> playing cards, worth [[2d4]]cp." ],
+    [ 12, "A set of <5|6|7|8|9|10> knucklebones, [[2d4]]cp." ],
+]};
+
+Treasure.lists['Trinkets'] = { 'table': [
+    [ 9, "A <broken|twisted|plain> copper ring worth [[2d4]] cp." ],
+    [ 9, "A wooden pendant with a <bird|cat|dog|rat> carving worth [[1d6]] cp." ],
+    [ 9, "A wooden holy symbol of <Desna|Calistria|Abadar|Erastil|Cayden Cailean>, [[1d4+2]] cp." ],
+    [ 9, "A bronze holy symbol of <Desna|Calistria|Abadar|Cayden Cailean>, [[1d6+3]] cp." ],
+    [ 9, "A <copper|bronze|brass> amulet engraved with the image of <an elf|a dryad|an angel>, [[2d6]] cp." ],
+    [ 12, "Half a <plain|scratched|twisted> silver ring worth [[1d4+1]] sp." ],
+    [ 12, "A tarnished silver bell, [[2d4]]sp." ],
+    [ 12, "A <multi-coloured|red|blue|white> feather, worth [[1d2]] cp." ],
+    [ 12, "A portrait of <a young girl|a woman|a boy|two girls> carved on a wooden disc, [[2d4]] cp." ],
+    [ 12, "A <crudely|partially> carved piece of wood that <looks like|might represent|appears to be vaguely> a <cat|dog|goblin|horse>, [[1d2]] cp." ],
+    [ 12, "<Two|Three|Four|Five> <worn|scratched> and <bent|chipped|shaved> <silver|electrum> coins of <apparently|obviously|possibly> ancient origin. The details on the coins faces cannot be made out, worth [[2d4]] sp." ],
+    [ 12, "<3|4|5|6|7> 1 inch tall intricately carved wooden figures of a <goblin|orc|man|woman>. Worth [[2d4]] gp, or 100 times this to a collector." ],
+    [ 12, "A <shard|fragment> of porcelain <decorated|painted> with <tiny|delicate> <dancers|trees|animals|flowers|boats|houses>." ],
+    [ 15, "A lock of <brown|golden|white> hair <wrapped|tied> around a wooden ring." ],
+    [ 15, "A small <sliver|fragment|shard> of <glass|crystal> that reflects different colours of light." ],
+    [ 21, "A <small|tiny> <gemstone|piece of quartz|gem|crystal> worth [[2d4]] gp." ],
+    [ 21, "A <long|thick> <silver|gold> needle with carven symbols of <Asmodeous|Abadar|Desna|Torag|Rovagug|Lamashtu> on it, [[2d4]]sp." ],
+]};
+
+Treasure.lists['Cheap Food'] = { 'table': [
+    [ 6, "A pigskin flask of <oil|brandy|wine>, [[1d2+3]] cp." ],
+    [ 9, "A <small|dirty|filthy|cracked> bottle of <rum|wine|spirits> worth [[2d3]] cp." ],
+    [ 12, "A small clay jar containing honey, worth [[1d4]] cp." ],
+    [ 12, "A bag of dried herbs, [[1d6]] cp." ],
+    [ 12, "A small bag of herbs, worth [[1d12]] cp." ],
+]};
+
+Treasure.lists['Tat'] = { 'table': [
+    [ 9, "A <smelly|red dyed|blue dyed|blood stained> rabbit's foot, on a string." ],
+    [ 9, "A <dirty|tattered|torn|short> <silk|cloth> neck tie with the words '<Lucky me|Love me|Great Fuck|This is mine>' painted on." ],
+    [ 9, "A leather belt with <skulls|animal heads|a woman's face> marked on it." ],
+    [ 12, "A piece of <string|wire|chalk|torn paper>." ],
+    [ 12, "<Half a|A broken|A|A black> candle, worth [[1d4]] cp." ],
+    [ 12, "A <shark|ogre>'s tooth on a <wire|string>, [[2d4]] cp." ],
+    [ 12, "A pass to visit the Hells." ],
+    [ 12, "An empty <ebony|bone> scroll tube missing both its stoppers." ],
+    [ 15, "A broken wand with no charges, [[1d4]] cp." ],
+    [ 15, "A piece of chalk, worth [[1]] cp." ],
+    [ 15, "A <hastily scribbled|finely written|perfumed> note.", "Notes" ],
+    [ 18, "[[2d4]] copper pinches hidden in shoe." ],
+    [ 18, "Several locks of hair <twisted|tied|entwined|knotted> together." ],
+    [ 18, "A silver coin bitten in two, 1sp" ],
+]};
+
+Treasure.lists['Eww'] = { 'table': [
+    [ 9, "A <dried|mummified|skeletal> <human|monkey's|child's|delicate> hand on a string." ],
+    [ 9, "A <straw|sack|feather> doll with needles stuck into it. <It has a woman's face painted on it.|It is stained with blood.|It's head is almost detatched.>" ],
+    [ 12, "A <small|smelly|blood stained> bag full of <human|goblin|dog|orc|shark|elf|dwarf|children's|wooden> teeth." ],
+    [ 12, "A <small bag|wrapped sheet of cloth> containing <children's|human|dwarven|elven> fingernails." ],
+    [ 12, "A dried eyeball wrapped in cloth." ],
+    [ 15, "A finger in a small wooden box." ],
+    [ 21, "A piece of dried skin with a tattoo of <Lamashtu|Rovagug|Zon-Kuthon> on it." ],
+]};
+
+
 Treasure.lists['Scum'] = {};
 Treasure.lists['Scum'].coins = function(value) {
     return [ 12, '[[2d4]] copper pinches.' ];
 };
 Treasure.lists['Scum'].table = [
     [ 0, "Cursed" ],
-    [ 6, "An old <dirty|stained|worn|torn|tattered> patchwork cloak, worth [[1d4+1]] gp." ],
-    [ 6, "An old <dirty|stained|worn|torn|tattered> reversible cloak, worth [[1d4+1]] sp." ],
-    [ 6, "A pigskin flask of <oil|brandy|wine>, [[1d2+3]] cp." ],
-    [ 9, "A <broken|twisted|plain> copper ring worth [[2d4]] cp." ],
-    [ 9, "A wooden pendant with a <bird|cat|dog|rat> carving worth [[1d6]] cp." ],
-    [ 9, "A wooden holy symbol of <Desna|Calistria|Abadar|Erastil|Cayden Cailean>, [[1d4+2]] cp." ],
-    [ 9, "A bronze holy symbol of <Desna|Calistria|Abadar|Cayden Cailean>, [[1d6+3]] cp." ],
-    [ 9, "A <small|dirty|filthy|cracked> bottle of <rum|wine|spirits> worth [[2d3]] cp." ],
-    [ 9, "A <copper|bronze|brass> amulet engraved with the image of <an elf|a dryad|an angel>, [[2d6]] cp." ],
-    [ 12, "A piece of <string|wire|chalk|torn paper>." ],
-    [ 12, "A <small|long|rusty|large|ornate> <brass|iron|bronze> key, [[1d4]] cp." ],
-    [ 12, "A pair of <ivory|wooden|bone> dice [[3d4]] cp." ],
-    [ 12, "Half a <plain|scratched|twisted> silver ring worth [[1d4+1]] sp." ],
-    [ 12, "A small bag of herbs, worth [[1d12]] cp." ],
-    [ 12, "<Half a|A broken|A|A black> candle, worth [[1d4]] cp." ],
-    [ 12, "A <long|scratched|chipped> wooden pipe, worth [[1d3]] cp." ],
-    [ 12, "A <multi-coloured|red|blue|white> feather, worth [[1d2]] cp." ],
-    [ 12, "A glass marble, worth [[1d2+1]] cp." ],
-    [ 12, "A <shark|ogre>'s tooth, [[2d4]] cp." ],
-    [ 12, "A portrait of <a young girl|a woman|a boy|two girls> carved on a wooden disc, [[2d4]] cp." ],
-    [ 12, "A <crudely|partially> carved piece of wood that <looks like|might represent|appears to be vaguely> a <cat|dog|goblin|horse>, [[1d2]] cp." ],
-    [ 12, "<Two|Three|Four|Five> <worn|scratched> and <bent|chipped|shaved> <silver|electrum> coins of <apparently|obviously|possibly> ancient origin. The details on the coins faces cannot be made out, worth [[2d4]] sp." ],
-    [ 12, "An empty <ebony|bone> scroll tube missing both its stoppers." ],
-    [ 12, "A small, <mud-stained|blood-stained|water-stained> book. The pages <appear to be blank|are covered in some unreadable script|contain poor quality sketches>, worth [[2d6]] cp."],
-    [ 15, "Two <plain|rusty|small|bent> keys tied together with a short length of <fraying twine|rusty wire>." ],
-    [ 15, "A broken wand with no charges, [[1d4]] cp." ],
-    [ 15, "A piece of chalk, worth [[1]] cp." ],
-    [ 15, "A lock of <brown|golden|white> hair <wrapped|tied> around a wooden ring." ],
-    [ 15, "A finger in a small wooden box." ],
-    [ 15, "A set of broken lock picks." ],
-    [ 15, "A <hastily scribbled|finely written|perfumed> note.", "Notes" ],
-    [ 15, "A <dirty|tattered> handkerchief with the symbol of the <Pathfinder Society|Aspis Corporation>, [[1d6+2]] cp." ],
-    [ 18, "[[2d4]] copper pinches hidden in shoe." ],
-    [ 18, "A rusted blade in the heal of a shoe." ],
-    [ 21, "A <small|tiny> <gemstone|piece of quartz|gem|crystal> worth [[2d4]] gp." ],
+    [ 0, "Cheap Clothing" ],
+    [ 0, "Cheap Tools" ],
+    [ 0, "Toys" ],
+    [ 0, "Trinkets" ], [ 0, "Trinkets" ],
+    [ 0, "Tat" ], [ 0, "Tat" ], [ 0, "Tat" ],
+    [ 0, "Cheap Food" ], [ 0, "Cheap Food" ], [ 0, "Cheap Food" ],
+    [ 0, "Eww" ],
     [ 0, "Common" ]
 ];
 
@@ -318,6 +388,10 @@ Treasure.lists['Common'].table = [
     [ 0, "Scum" ],
     [ 12, "A <plain|simply carved|scratched> wooden box containing snuff, [[1d4]] sp. " ],
     [ 12, "An IOU from a local <merchant|shop keeper|noble|person> claiming [[2d4]] gp." ],
+    [ 12, "A small, <mud-stained|blood-stained|water-stained> book. The pages <appear to be blank|are covered in some unreadable script|contain poor quality sketches>, worth [[2d6]] cp."],
+    [ 12, "A good quality paint brush, made of <human|elf|horse> hair, [[2d6]] cp. " ],
+    [ 12, "A set of playing cards, decorated with <erotic art|goblins|animals|weapons|gods|abstract patterns> worth [[2d4]] sp." ],
+    [ 15, "A <copper|bronze> <acorn|walnut> worth [[1d4]] sp. " ],
     [ 15, "A wand of acid spray, with one charge [[75]] sp." ],
     [ 21, "A small gemstone worth [[3d6]] gp." ],
     [ 0, "Expert" ]
