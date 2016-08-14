@@ -175,14 +175,14 @@ on("chat:message", function(msg) {
                     token.set({
                         status_green: true
                     });
-                    Damage.update(token, null, "<p><b>" + tokenName + "</b> stops bleeding.</p>");
+                    Damage.update(token, null, Damage.line("<b>" + tokenName + "</b> stops bleeding.</p>"));
                 } else {
                     hpCurrent -= 1;
                     token.set({
                         bar1_value: hpCurrent,
                         status_green: false
                     });
-                    Damage.update(token, null, "<p><b>" + tokenName + "</b> bleeds a bit more.</p>");
+                    Damage.update(token, null, Damage.line("<b>" + tokenName + "</b> bleeds a bit more."));
                 }
             }
         }
@@ -196,10 +196,10 @@ on("change:graphic", function(obj, prev) {
     Damage.update(obj, prev, "");
 });
 
-Damage.BOX_STYLE="background-color: #DDDDAA; color: #000000; padding:0px; border:1px solid black; border-radius: 5px; padding: 5px";
+Damage.BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px";
 
 Damage.line = function(message) {
-    return "<p>" + message + "</p>";
+    return "<p style='margin:0px; padding:0px; padding-bottom: 2px'>" + message + "</p>";
 }
 
 Damage.update = function(obj, prev, message) {
@@ -385,12 +385,12 @@ Damage.message = function(character, message) {
         var image = character.get("avatar");
         var html = "<div style='" + Damage.BOX_STYLE + "'>";
         html += "<table><tr><td style='width:48px; vertical-align: top'>";
-        html += "<img src='"+image+"' width='40px' style='float:left; padding-right: 5px;'/>";
+        html += "<img src='"+image+"' width='40px' style='float:left; margin: 0px; padding: 0px; padding-right: 3px;'/>";
         html += "</td><td style='width:auto; vertical-align: top'>";
         html += message;
         html += "</td></tr></table>";
         html += "</div>";
 
-        sendChat("", html);
+        sendChat("", "/desc " + html);
     }
 }
