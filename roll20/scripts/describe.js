@@ -30,9 +30,9 @@ var Describe = Describe || {};
 
 
 Describe.Process = function(msg, player_obj) {
-    var BOX_STYLE="background-color: #DDDDAA; color: #000000; padding:0px; border:1px solid COLOUR; border-radius: 5px;"
-    var TITLE_STYLE="background-color: COLOUR; color: #FFFFFF; padding: 1px; text-align: center";
-    var TEXT_STYLE="padding: 5px;"
+    var BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px solid COLOUR; border-radius: 5px 5px 10px 10px;"
+    var TITLE_STYLE="background-color: COLOUR; color: #FFFFFF; padding: 1px; font-style: normal; text-align: center; border-radius: 5px 5px 0px 0px;";
+    var TEXT_STYLE="padding: 5px; text-align: left; font-weight: normal; font-style: normal";
 
     var n = msg.content.split(" ");
     var target = getObj("graphic", n[1]);
@@ -86,7 +86,7 @@ Describe.Process = function(msg, player_obj) {
                         }
                     }
                     if (playerIsGM(player_obj.get("id"))) {
-                        sendChat("", "/direct " + html);
+                        sendChat("", "/desc " + html);
                     } else {
                         sendChat("", "/w " + player_obj.get("displayname") + " " + html);
                     }

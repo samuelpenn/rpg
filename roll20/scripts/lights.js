@@ -33,7 +33,7 @@ on("chat:message", function(msg) {
             token = getObj("graphic", token_id);
         }
 
-        var BOX_STYLE="background-color: #EEEE99; color: #000000; padding:0px; border:1px solid black; border-radius: 5px; padding: 5px";
+        var BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px";
 
         var message = "";
         if (duration < 1) {
@@ -44,7 +44,7 @@ on("chat:message", function(msg) {
             } else {
                 message = "" + duration + " minutes pass.";
             }
-            sendChat("", "<div style='" + BOX_STYLE + "'>" + message + "</div>");
+            sendChat("", "/desc <div style='" + BOX_STYLE + "'>" + message + "</div>");
         }
 
         var objects = null;
