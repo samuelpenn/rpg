@@ -1,0 +1,26 @@
+{
+    "name": "PfDamage",
+    "script": "pfdamage.js",
+    "version": "1.0",
+    "previousversions": [ ],
+    "description": "This script tracks and manages damage to creatures, providing both visual feedback on tokens and output to the chat windows. It tracks both lethal and non-lethal damage. It handles creatures that don't suffer nonlethal damage, and automatically calculates stabilising at negative hitpoints.",
+    "authors": "Steve K.",
+    "roll20userid": "85252",
+    "useroptions": [
+        {
+            "name": "chat",
+            "type": "number",
+            "default": "1",
+            "description": "By default, changes to a token's status are output to the chat window for all to see."
+        }
+    ],
+    "dependencies": ["Red","Flight"],
+    "modifies": {
+        "state.autoStaggered": "read,write",
+        "state.autoRecovery": "read,write",
+        "token.bar1_link": "read,write",
+        "token.bar3_link": "read,write",
+        "attribute.id": "read,write"
+    },
+    "conflicts": [ ]
+}
