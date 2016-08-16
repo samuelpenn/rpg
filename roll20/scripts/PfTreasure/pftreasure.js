@@ -350,6 +350,7 @@ Treasure.special['Notes'].table = [
     [ "<<Conso|Serana|Petru>> <<5|6|7|8>>in; <<Filiu|Marku|Gillac>> <<5|6|7|8|9>>in; <<Boian|Adamu|Costol|Tawno>> <<5|6|7>>in; <<Besnik|Casamir|Jibben>>, <<6|7|8|9|10>>in; <<Cataril|Soare|Saban>> <<4|5|6|7|8>>in;" ],
     [ "<<Afina|Flavi|Orchili>> <<7|8|9>>; <<Alafarea|Helga|Pabay>> <<5|6|7>>; <<Alika|Iolana|Sorica>> <<8|9|10|10!!>>; <<Belinza|Irine|Teodora>> <<5|6|7>>; <<Cojinia|Kostela|Tas>> <<9|10>>; <<Daciana |Laurelica|Ujaritza>> <<2|3|4>>; <<Damaria|Lyuba|Vasildi>> <<3|4|5>>" ],
     [ "A <<detailed|rough|crude>> recipe for <<rat|apple|gooseberry|cherry|lemon|goblin|crow|chicken>> pie." ],
+    [ "A crop is due to arrive at the docks tomorrow morning, reading for plucking." ],
     [ "You are so dead." ]
 ];
 
@@ -388,21 +389,31 @@ Treasure.lists['Cursed'].table = [
 Treasure.lists['Clothing A'] = { 'table': [
     [ 9, "An old <<dirty|dusty|muddy|torn|>> cloak, with bloodstains and filled with arrow holes." ],
     [ 9, "An old <<dirty|dusty|muddy|torn|>> cloak, with a handful of <<black|green|blue|red|white>> dragon scales (DC 20) stitched on the shoulders." ],
-    [ 9, "An old <<dirty|dusty|muddy|torn|>> cloak, with a handful of <<lizardfolk|troglodyte>> scales (DC 20) stitched on the shoulders." ],
+    [ 9, "An old <<dirty|dusty|muddy|torn|>> cloak, with a handful of <<lizard folk|troglodyte>> scales (DC 20) stitched on the shoulders." ],
     [ 9, "An old <<dirty|dusty|muddy|torn|>> cloak, with bloodstains and filled with arrow holes." ],
     [ 9, "An old cloak with a silk patch showing a symbol of <<Achaekek|Norgorber|Calistria>>." ],
     [ 9, "A <<red|black>> scarf with <<Abyssal|Necril|Infernal>> writing stitched along one edge, detailing an <<ancient|unholy|evil>> <<blessing|curse|prayer|ritual>>." ],
-    [ 15, "A pair of dirty fingerless gloves with a set of lockpicks hidden inside." ],
+    [ 12, "A <<dark|bright>> <<brown|red>> <<neck scarf|handkerchief>> with dwarven runes and an image of a <<dwarven werebear|bulette>> stitched into it." ],
+    [ 12, "There are symbols of <<Abadar|the Aspis Consortium|The Exchange|Liberty's Edge|the Dark Archive>> on the lapel of the jacket." ],
+    [ 12, "The jacket has the crest of <<the Arcanamirium|Absalom|Bellflower Network>> on it." ],
+    [ 12, "Hidden in a <<shoe|belt|sleeve|wristband>> is a <<grubby|dirty|torn>> note.", "Notes" ],
+    [ 12, "Hidden in a <<shoe|wristband|belt|sleeve>> is a picture of <<a young woman|an old woman|an old man|two girls|a boy|a dog>>." ],
+    [ 12, "<<A steel|An iron>> manacle still attached to one <<leg|wrist>>." ],
+    [ 12, "A <<green|brown|blue>> sash with 'Rise of the green world' written in Druidic." ],
+    [ 12, "A hat with <<bright green|bright yellow|golden>> feathers from a baby Roc, [[3d4]]cp." ],
+    [ 15, "A pair of dirty fingerless gloves with a set of lock picks hidden inside." ],
+    [ 15, "A leather belt with a <<lock pick|garotte|small blade>> hidden in the buckle." ],
     [ 15, "A <<quite|relatively>> clean cloak, with 'This belongs to <<Barsali|Silvui|Marino|Catalin|Angelo|Dukker>> of <<Abadar|Nethys|Desna|Erastil|Sarenrae>>' stitched into it." ],
     [ 18, "Foot wrappings hide necrotic flesh, showing signs of ghoul fever." ],
     [ 18, "A pair of <<heavy|dirty|tough>> leather boots with a blade hidden in the heel." ],
+    [ 18, "The buttons on the jacket are actually hiding silver shields, [[1d4+1]]sp." ],
 ]};
 
 Treasure.lists['Clothing B'] = { 'table': [
     [ 6, "An old <<dirty|stained|worn|torn|tattered>> reversible cloak, worth [[1d4+1]] sp." ],
     [ 12, "A set of clothes designed to easily tear." ],
     [ 15, "A leather belt hiding a <<short blade|garotte|set of lockpicks>>, [[1d4]]cp." ],
-    [ 15, "A handkerchief with the symbol of the <<Pathfinder Society|Aspis Corporation>>, [[1d6+2]] cp." ],
+    [ 15, "A handkerchief with the symbol of the <<Pathfinder Society|Aspis Consortium|Bellflower Network>>, [[1d6+2]] cp." ],
     [ 18, "A boot heel with [[1d4]]sp hidden inside it." ],
 ]};
 
@@ -411,7 +422,7 @@ Treasure.lists['Clothing C'] = { 'table': [
     [ 6, "An old <<dirty|stained|worn|torn|tattered>> reversible cloak, worth [[1d4+1]] sp." ],
     [ 6, "An old <<dirty|stained|worn|torn|tattered>> patchwork cloak, worth [[1d4+1]] gp." ],
     [ 15, "A boot heel with [[1d4]]gp hidden inside it." ],
-    [ 15, "A <<dirty|tattered>> handkerchief with the symbol of the <<Pathfinder Society|Aspis Corporation>>, [[1d6+2]] cp." ],
+    [ 15, "A <<dirty|tattered>> handkerchief with the symbol of the <<Pathfinder Society|Aspis Consortium>>, [[1d6+2]] cp." ],
 ]};
 
 Treasure.lists['Clothing D'] = { 'table': [
