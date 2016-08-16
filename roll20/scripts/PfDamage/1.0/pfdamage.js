@@ -174,8 +174,8 @@ on("chat:message", function(msg) {
                 sendChat("", "/w GM " + tokenName + " is stable.");
             } else {
                 var dc = 10 - hpCurrent;
-                var check = randomInteger(20) + constitution;
-
+                var check = randomInteger(20) + parseInt(constitution);
+                log(tokenName + " rolls " + check + " to stabilise.");
                 if (check >= dc || check == constitution + 20) {
                     token.set({
                         status_green: true
@@ -204,7 +204,7 @@ on("change:graphic", function(obj, prev) {
 Damage.BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px";
 
 Damage.line = function(message) {
-    return "<p style='margin:0px; padding:0px; padding-bottom: 2px'>" + message + "</p>";
+    return "<p style='margin:0px; padding:0px; padding-bottom: 2px; font-weight: normal; font-style: normal; text-align: left'>" + message + "</p>";
 }
 
 Damage.update = function(obj, prev, message) {
