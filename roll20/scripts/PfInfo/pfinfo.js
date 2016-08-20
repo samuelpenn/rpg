@@ -75,6 +75,46 @@ Info.text = function text(text) {
     return "<p style='"+Info.PARA_STYLE+"'><b>" + text + "</b></p>";
 }
 
+Info.status = function( token, symbol, name, text) {
+    var html = "";
+    var statuses = [
+        'red', 'blue', 'green', 'brown', 'purple', 'pink', 'yellow', // 0-6
+        'skull', 'sleepy', 'half-heart', 'half-haze', 'interdiction',
+        'snail', 'lightning-helix', 'spanner', 'chained-heart',
+        'chemical-bolt', 'death-zone', 'drink-me', 'edge-crack',
+        'ninja-mask', 'stopwatch', 'fishing-net', 'overdrive', 'strong',
+        'fist', 'padlock', 'three-leaves', 'fluffy-wing', 'pummeled',
+        'tread', 'arrowed', 'aura', 'back-pain', 'black-flag',
+        'bleeding-eye', 'bolt-shield', 'broken-heart', 'cobweb',
+        'broken-shield', 'flying-flag', 'radioactive', 'trophy',
+        'broken-skull', 'frozen-orb', 'rolling-bomb', 'white-tower',
+        'grab', 'screaming', 'grenade', 'sentry-gun', 'all-for-one',
+        'angel-outfit', 'archery-target'
+    ];
+
+    var value = token.get("status_" + symbol);
+    if (value) {
+        var i = _.indexOf(statuses, symbol);
+        var number = parseInt(value);
+
+        if (number > 0) {
+            number = "<span style='color:#ff0000; background-color: white; font-weight: bold; font-size: 120%; text-align: right; vertical-align: bottom;'>" + number + "</span>";
+        } else {
+            number = "";
+        }
+
+        if (i > 6) {
+            html += '<div style="float: left; width: 24px; height: 24px; display: inline-block; margin: 0; border: 0; cursor: pointer; padding: 0px 3px; background: url(\'https://app.roll20.net/images/statussheet.png\'); background-repeat: no-repeat; background-position: '+((-34)*(i-7))+'px 0px;">'+number+'</div>';
+
+            html += Info.line(name, text);
+        }
+
+        return html;
+    }
+
+    return "";
+}
+
 Info.Process = function(msg, player_obj) {
     var n = msg.content.split(" ");
     var target = getObj("graphic", n[1]);
@@ -212,6 +252,42 @@ Info.Process = function(msg, player_obj) {
             html += Info.line("Resistences", resistences);
             html += Info.line("Immunities", immunities);
             html += Info.line("Weaknesses", weaknesses);
+
+            // Token statuses
+            html += Info.status(target, "bleeding-eye", "Blind", "-2 penalty to AC; loses Dex bonus to AC; -4 penalty of most Dex and Str checks and opposed Perception checks; Opponents have 50% concealment; Acrobatics DC 10 if move faster than half speed, or prone.");
+
+            html += Info.status(target, "screaming", "Confused", "01-25: Act Normally; 26-50: Babble; 51-75: 1d8 + Str damage to self; 76-100: Attack nearest.");
+
+            html += Info.status(target, "fishing-net", "Entangled", "No movement if anchored, otherwise half speed. -2 attack, -4 Dex. Concentration check to cast spells.");
+
+            html += Info.status(target, "sleepy", "Exhausted", "Half-speed, -6 to Str and Dex. Rest 1 hour to become fatigued.");
+
+            html += Info.status(target, "half-haze", "Fatigued", "Cannot run or charge; -2 to Str and Dex. Rest 8 hours to recover.");
+
+            html += Info.status(target, "broken-heart", "Frightened", "-2 attacks, saves, skills and ability checks; must flee from source.");
+
+            html += Info.status(target, "padlock", "Grappled", "Cannot move or take actions that require hands. -4 Dex, -2 attacks and combat maneuvers except to escape. Concentration to cast spells, do not threaten.");
+
+            html += Info.status(target, "radioactive", "Nauseated", "Can only take a single move action, no spells attacks or concentration.");
+
+            html += Info.status(target, "half-heart", "Panicked", "-2 attacks, saves, skills and ability checks; drops items and must flee from source.");
+
+            html += Info.status(target, "cobweb", "Paralyzed", "Str and Dex reduced to zero. Flyers fall. Helpless.");
+
+            html += Info.status(target, "chained-heart", "Shaken", "-2 penalty on all attacks, saves, skills and ability checks.");
+
+            html += Info.status(target, "drink-me", "Sickened", "-2 penalty on all attacks, damage, saves, skills and ability checks.");
+
+            html += Info.status(target, "pummeled", "Staggered", "Only a move or standard action (plus swift and immediate).");
+
+            html += Info.status(target, "interdiction", "Stunned", "Cannot take actions, drops everything held, takes a -2 penalty to AC, loses its Dex bonus to AC.");
+
+
+            html += Info.status(target, "fist", "Power Attack", "Penalty to hit and bonus to damage based on BAB. Lasts until start of next turn.");
+
+            html += Info.status(target, "skull", "Unconscious", "Creature is unconscious and possibly dying.");
+
+            html += Info.status(target, "dead", "Dead", "Creature is dead. Gone. Destroyed.");
 
             html += "</div>";
             html += "</div>";
