@@ -69,13 +69,169 @@ on("chat:message", function(msg) {
                 token.set("bar1_value", token.get("bar1_max"));
                 token.set("bar3_value", 0);
                 token.set({
-                    status_pummeled: false,
-                    status_dead: false,
-                    status_skull: false,
-                    status_red: false,
-                    status_brown: false,
-                    status_green: false
+                    'status_pummeled': false,
+                    'status_dead': false,
+                    'status_skull': false,
+                    'status_red': false,
+                    'status_brown': false,
+                    'status_green': false,
+                    'status_bleeding-eye': false,
+                    'status_screaming': false,
+                    'status_flying-flag': false,
+                    'status_fishing-net': false,
+                    'status_sleepy': false,
+                    'status_half-haze': false,
+                    'status_broken-heart': false,
+                    'status_padlock': false,
+                    'status_radioactive': false,
+                    'status_half-heart': false,
+                    'status_cobweb': false,
+                    'status_chained-heart': false,
+                    'status_drink-me': false,
+                    'status_interdiction': false,
+                    'status_fist': false
                 });
+            }
+        }
+    }
+    return;
+});
+
+on("chat:message", function(msg) {
+    if (msg.type !== "api") return;
+    if (msg.content.split(" ", 1)[0] != "!pfsaves") return;
+
+    var params = msg.content.split(" ");
+    if (params.length < 3) {
+        sendChat("", "Format: !pfsaves <Ref|Fort|Will> <DC>");
+        return;
+    }
+    var saveType = (""+params[1]).toLowerCase();
+    var saveName = "";
+    var dc = parseInt(params[2]);
+    var setDamage = false;
+    var setStatus = false;
+
+    var damage = 0, halfDamage = 0, status = null;
+
+    if (params.length > 3) {
+        setDamage = true;
+        damage = parseInt(params[3]);
+    }
+    if (params.length > 4) {
+        setDamage = true;
+        halfDamage = parseInt(params[4]);
+    }
+    if (params.length > 5) {
+        status = params[5].replace(/-/, " ");
+        if (Damage.status[status] == null) {
+            log("Unrecognised status " + status);
+            setStatus = false;
+            status = null;
+        } else {
+            setStatus = true;
+        }
+    }
+
+    log(status);
+
+
+    if (saveType.indexOf("ref") == 0) {
+        saveType = "Ref";
+        saveName = "Reflex";
+    } else if (saveType.indexOf("for") == 0) {
+        saveType = "Fort";
+        saveName = "Fortitude";
+    } else if (saveType.indexOf("wil") == 0) {
+        saveType = "Will";
+        saveName = "Will";
+    } else {
+        sendChat("", "Unrecognised saving throw type " + saveType);
+        return;
+    }
+
+    if (msg != null && msg.selected != null && msg.selected.length > 0) {
+        var tokenList = [];
+        for (var i=0; i < msg.selected.length; i++) {
+            tokenList.push(msg.selected[i]._id);
+        }
+        for (var i=0; i < tokenList.length; i++) {
+            var tokenId = tokenList[i];
+            var token = getObj("graphic", tokenId);
+
+            var character_id = token.get("represents");
+            if (character_id == null) {
+                sendChat("", "/w GM " + token.get("name") + " has no associated character");
+                return;
+            }
+            var character = getObj("character", character_id);
+
+            var score = getAttrByName(character_id, saveType);
+            if (score == null) {
+                sendChat("", "/w GM " + token.get("name") + " has no associated save attribute");
+                return;
+            }
+            var check = randomInteger(20) + parseInt(score);
+
+            var message = "";
+            var flags = [];
+            if (check >= dc) {
+                flags['status_flying-flag'] = false;
+                var text = "Succeeds on a " + saveName + " DC " + dc + " check.";
+                if (setDamage && halfDamage > 0) {
+                    var currentHp = parseInt(token.get("bar1_value"));
+                    currentHp -= halfDamage;
+
+                    token.set("bar1_value", currentHp);
+                    text += " They take " + halfDamage + "hp damage.";
+                }
+                message = Damage.line(text);
+            } else {
+                if (setDamage || setStatus) {
+                    var text = "Fails a " + saveName + " DC " + dc + " check.";
+                    if (setDamage) {
+                        var currentHp = parseInt(token.get("bar1_value"));
+                        currentHp -= damage;
+
+                        token.set("bar1_value", currentHp);
+                        text += " They take " + damage + "hp damage.";
+                    }
+                    if (setStatus) {
+                        var symbol = Damage.status[status].status;
+                        var effect = Damage.status[status].description;
+
+                        var statuses = [
+                            'red', 'blue', 'green', 'brown', 'purple', 'pink', 'yellow', // 0-6
+                            'skull', 'sleepy', 'half-heart', 'half-haze', 'interdiction',
+                            'snail', 'lightning-helix', 'spanner', 'chained-heart',
+                            'chemical-bolt', 'death-zone', 'drink-me', 'edge-crack',
+                            'ninja-mask', 'stopwatch', 'fishing-net', 'overdrive', 'strong',
+                            'fist', 'padlock', 'three-leaves', 'fluffy-wing', 'pummeled',
+                            'tread', 'arrowed', 'aura', 'back-pain', 'black-flag',
+                            'bleeding-eye', 'bolt-shield', 'broken-heart', 'cobweb',
+                            'broken-shield', 'flying-flag', 'radioactive', 'trophy',
+                            'broken-skull', 'frozen-orb', 'rolling-bomb', 'white-tower',
+                            'grab', 'screaming', 'grenade', 'sentry-gun', 'all-for-one',
+                            'angel-outfit', 'archery-target'
+                        ];
+                        var i = _.indexOf(statuses, symbol);
+
+                        flags["status_" + symbol] = true;
+                        message += '<div style="float: left; width: 24px; height: 24px; display: inline-block; margin: 0; border: 0; cursor: pointer; padding: 0px 3px; background: url(\'https://app.roll20.net/images/statussheet.png\'); background-repeat: no-repeat; background-position: '+((-34)*(i-7))+'px 0px;"></div>';
+
+                        text += " They are now " + status + ".";
+                        message += Damage.line(text);
+                    }
+                } else {
+                    message = Damage.line("Fails a " + saveName + " DC " + dc + " check.");
+                    flags['status_flying-flag'] = true;
+                }
+            }
+            token.set( flags );
+            if (setDamage) {
+                Damage.update(token, null, message);
+            } else {
+                Damage.message(token, message);
             }
         }
     }
@@ -99,7 +255,6 @@ on("chat:message", function(msg) {
         if (damage < 1 || isNaN(damage)) {
             return;
         }
-        log("Damage is " + damage);
     }
     if (n.length > 2 && n[2] == "nonlethal") {
         nonlethal = true;
@@ -114,8 +269,6 @@ on("chat:message", function(msg) {
 
             var currentHp = parseInt(token.get("bar1_value"));
             var nonlethalDamage = parseInt(token.get("bar3_value"));
-
-
 
             if (nonlethal) {
                 token.set("bar3_value", nonlethalDamage + damage);
@@ -200,6 +353,27 @@ var Damage = Damage || {};
 on("change:graphic", function(obj, prev) {
     Damage.update(obj, prev, "");
 });
+
+
+Damage.status = {
+    'Blind': { status: "bleeding-eye", description: "-2 penalty to AC; loses Dex bonus to AC; -4 penalty of most Dex and Str checks and opposed Perception checks; Opponents have 50% concealment; Acrobatics DC 10 if move faster than half speed, or prone." },
+    'Confused': { status: "screaming", description: "01-25: Act Normally; 26-50: Babble; 51-75: 1d8 + Str damage to self; 76-100: Attack nearest." },
+    'Entangled': { status: "fishing-net", description: "No movement if anchored, otherwise half speed. -2 attack, -4 Dex. Concentration check to cast spells." },
+    'Exhausted': { status: "sleepy", description: "Half-speed, -6 to Str and Dex. Rest 1 hour to become fatigued." },
+    'Fatigued': { status: "half-haze", description: "Cannot run or charge; -2 to Str and Dex. Rest 8 hours to recover." },
+    'Frightened': { status: "broken-heart", description: "-2 attacks, saves, skills and ability checks; must flee from source." },
+    'Grappled': { status: "padlock", description: "Cannot move or take actions that require hands. -4 Dex, -2 attacks and combat maneuvers except to escape. Concentration to cast spells, do not threaten." },
+    'Nauseated': { status: "radioactive", description: "Can only take a single move action, no spells attacks or concentration." },
+    'Panicked': { status: "half-heart", description: "-2 attacks, saves, skills and ability checks; drops items and must flee from source." },
+    'Paralyzed': { status: "cobweb", description: "Str and Dex reduced to zero. Flyers fall. Helpless." },
+    'Shaken': { status: "chained-heart", description: "-2 penalty on all attacks, saves, skills and ability checks." },
+    'Sickened': { status: "drink-me", description: "-2 penalty on all attacks, damage, saves, skills and ability checks." },
+    'Staggered': { status: "pummeled", description: "Only a move or standard action (plus swift and immediate)." },
+    'Stunned': { status: "interdiction", description: "Cannot take actions, drops everything held, takes a -2 penalty to AC, loses its Dex bonus to AC." },
+    'Power Attack': { status: "fist", description: "Penalty to hit and bonus to damage based on BAB. Lasts until start of next turn." },
+    'Unconscious': { status: "skull", description: "Creature is unconscious and possibly dying." },
+    'Dead': { status: "dead", description: "Creature is dead. Gone. Destroyed." }
+};
 
 Damage.BOX_STYLE="background-color: #EEEEDD; color: #000000; margin-top: 30px; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px";
 
