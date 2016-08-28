@@ -89,7 +89,8 @@ on("chat:message", function(msg) {
                     'status_chained-heart': false,
                     'status_drink-me': false,
                     'status_interdiction': false,
-                    'status_fist': false
+                    'status_fist': false,
+                    'status_snail': false
                 });
             }
         }
@@ -103,38 +104,45 @@ on("chat:message", function(msg) {
 
     var params = msg.content.split(" ");
     if (params.length < 3) {
-        sendChat("", "Format: !pfsaves <Ref|Fort|Will> <DC>");
+        Damage.usageSaves(msg, "Must specify at least a save type and DC.");
         return;
     }
     var saveType = (""+params[1]).toLowerCase();
     var saveName = "";
     var dc = parseInt(params[2]);
-    var setDamage = false;
-    var setStatus = false;
 
-    var damage = 0, halfDamage = 0, status = null;
+    var setDamage = false, setStatus = false;
+    var damage = null, halfDamage = null, status = null;
 
-    if (params.length > 3) {
-        setDamage = true;
-        damage = parseInt(params[3]);
-    }
-    if (params.length > 4) {
-        setDamage = true;
-        halfDamage = parseInt(params[4]);
-    }
-    if (params.length > 5) {
-        status = params[5].replace(/-/, " ");
-        if (Damage.status[status] == null) {
-            log("Unrecognised status " + status);
-            setStatus = false;
-            status = null;
+    for (var i=3; i < params.length; i++) {
+        var arg = params[i];
+
+        if (arg == "0" || parseInt(arg) > 0) {
+            if (damage == null) {
+                damage = parseInt(arg);
+                log("Setting damage to " + damage);
+                setDamage = true;
+            } else if (halfDamage == null) {
+                halfDamage = parseInt(arg);
+                log("Setting half damage to " + halfDamage);
+            } else {
+                Damage.usageSaves(msg, "Can only specify two damages.");
+                return;
+            }
+        } else if (status == null) {
+            status = arg.replace(/-/, " ");
+            if (Damage.status[status] == null) {
+                Damage.usageSaves(msg, "Unrecognised token state " + arg + ".");
+                return;
+            } else {
+                log("Setting status to " + status);
+                setStatus = true;
+            }
         } else {
-            setStatus = true;
+            Damage.usageSaves(msg, "Too many arguments.");
+            return;
         }
     }
-
-    log(status);
-
 
     if (saveType.indexOf("ref") == 0) {
         saveType = "Ref";
@@ -146,7 +154,7 @@ on("chat:message", function(msg) {
         saveType = "Will";
         saveName = "Will";
     } else {
-        sendChat("", "Unrecognised saving throw type " + saveType);
+        Damage.usageSaves(msg, "Unrecognised saving throw type " + saveType);
         return;
     }
 
@@ -219,7 +227,7 @@ on("chat:message", function(msg) {
                         flags["status_" + symbol] = true;
                         message += '<div style="float: left; width: 24px; height: 24px; display: inline-block; margin: 0; border: 0; cursor: pointer; padding: 0px 3px; background: url(\'https://app.roll20.net/images/statussheet.png\'); background-repeat: no-repeat; background-position: '+((-34)*(i-7))+'px 0px;"></div>';
 
-                        text += " They are now " + status + ".";
+                        text += "<br/>They are now <b>" + status + "</b>.";
                         message += Damage.line(text);
                     }
                 } else {
@@ -354,6 +362,18 @@ on("change:graphic", function(obj, prev) {
     Damage.update(obj, prev, "");
 });
 
+
+Damage.usageSaves = function(msg, errorText) {
+    var text = "<i>" + errorText + "</i><br/>";
+    text += "Use !pfsaves &lt;Ref|Fort|Will&gt; &lt;DC&gt; [&lt;Damage&gt; [&lt;Half-Damage&gt;]] [&lt;Effect&gt;]<br/>";
+    text += "Allowed effects: ";
+    for (var s in Damage.status) {
+        text += s.replace(/ /, "-") + ", ";
+    }
+    text = text.replace(/, $/, ".");
+
+    sendChat("PfDamage", "/w " + msg.who + " " + text);
+}
 
 Damage.status = {
     'Blind': { status: "bleeding-eye", description: "-2 penalty to AC; loses Dex bonus to AC; -4 penalty of most Dex and Str checks and opposed Perception checks; Opponents have 50% concealment; Acrobatics DC 10 if move faster than half speed, or prone." },
