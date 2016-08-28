@@ -201,7 +201,7 @@ on("change:graphic", function(obj, prev) {
     Damage.update(obj, prev, "");
 });
 
-Damage.BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px";
+Damage.BOX_STYLE="background-color: #EEEEDD; color: #000000; margin-top: 30px; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px";
 
 Damage.line = function(message) {
     return "<p style='margin:0px; padding:0px; padding-bottom: 2px; font-weight: normal; font-style: normal; text-align: left'>" + message + "</p>";
@@ -381,19 +381,18 @@ Damage.update = function(obj, prev, message) {
         });
     }
     if (message != "") {
-        Damage.message(character, message);
+        Damage.message(obj, message);
     }
 }
 
-Damage.message = function(character, message) {
+Damage.message = function(token, message) {
     if (message != null) {
-        var image = character.get("avatar");
+        var image = token.get("imgsrc");
+        var name = token.get("name");
         var html = "<div style='" + Damage.BOX_STYLE + "'>";
-        html += "<table><tr><td style='width:48px; vertical-align: top'>";
-        html += "<img src='"+image+"' width='40px' style='float:left; margin: 0px; padding: 0px; padding-right: 3px;'/>";
-        html += "</td><td style='width:auto; vertical-align: top'>";
-        html += message;
-        html += "</td></tr></table>";
+        html += "<img src='"+image+"' width='50px' style='position: absolute; top: 5px; left: 30px; background-color: white; border-radius: 25px'/>";
+        html += "<div style='position: absolute; top: 22px; left: 90px; border: 1px solid black; background-color: white; padding: 0px 5px 0px 5px'>" + name + "</div>";
+        html += "<div style='margin-top: 20px; padding-left: 5px'>" + message + "</div>";
         html += "</div>";
 
         sendChat("", "/desc " + html);
