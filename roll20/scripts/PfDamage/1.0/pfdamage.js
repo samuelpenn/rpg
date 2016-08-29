@@ -357,7 +357,7 @@ on("chat:message", function(msg) {
                     token.set({
                         status_green: true
                     });
-                    Damage.update(token, null, Damage.line("<b>" + tokenName + "</b> stops bleeding.</p>"));
+                    Damage.update(token, null, Damage.getSymbolHtml("green") + Damage.line("<b>" + tokenName + "</b> stops bleeding.</p>"));
                 } else {
                     hpCurrent -= 1;
                     token.set({
@@ -395,7 +395,14 @@ Damage.getSymbolHtml = function(symbol) {
     ];
     var i = _.indexOf(statuses, symbol);
 
-    return '<div style="float: left; width: 24px; height: 24px; display: inline-block; margin: 0; border: 0; cursor: pointer; padding: 0px 3px; background: url(\'https://app.roll20.net/images/statussheet.png\'); background-repeat: no-repeat; background-position: '+((-34)*(i-7))+'px 0px;"></div>';
+    if (i < 0) {
+        return "";
+    } else if (i < 7) {
+        var colours = [ '#ff0000', '#0000ff', '#00ff00', '#ff7700', '#ff00ff', '#ff7777', '#ffff00' ];
+        return "<div style='float: left; background-color: " + colours[i] + "; border-radius: 12px; width: 12px; height: 18px; display: inline-block; margin: 0; border: 0; padding: 0px 3px; margin-right: 6px'></div>";
+    } else {
+        return '<div style="float: left; width: 24px; height: 24px; display: inline-block; margin: 0; border: 0; cursor: pointer; padding: 0px 3px; background: url(\'https://app.roll20.net/images/statussheet.png\'); background-repeat: no-repeat; background-position: '+((-34)*(i-7))+'px 0px;"></div>';
+    }
 }
 
 Damage.usageSaves = function(msg, errorText) {
@@ -572,8 +579,10 @@ Damage.update = function(obj, prev, message) {
         });
         var msg = "They can only make one standard or move action each round.";
         if (hpCurrent == 0) {
+            message += Damage.getSymbolHtml("pummeled");
             message += Damage.line("<b>" + name + "</b> is <i>disabled</i>. " + msg);
         } else {
+            message += Damage.getSymbolHtml("pummeled");
             message += Damage.line("<b>" + name + "</b> is <i>staggered</i>. " + msg);
         }
     } else if (hpActual <= hpMax / 3) {
@@ -586,6 +595,7 @@ Damage.update = function(obj, prev, message) {
             status_green: false
         });
         if (prev != null && previousHitpoints > hpMax / 3) {
+            message += Damage.getSymbolHtml("red");
             message += Damage.line("<b>" + name + "</b> is now <i>heavily wounded</i>.");
         }
     } else if (hpActual <= hpMax * (2/3)) {
@@ -598,6 +608,7 @@ Damage.update = function(obj, prev, message) {
             status_green: false
         });
         if (prev != null && previousHitpoints > hpMax * (2/3)) {
+            message += Damage.getSymbolHtml("brown");
             message += Damage.line("<b>" + name + "</b> is now <i>moderately wounded</i>.");
         }
     } else {
