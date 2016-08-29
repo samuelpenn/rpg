@@ -120,11 +120,10 @@ on("chat:message", function(msg) {
         if (arg == "0" || parseInt(arg) > 0) {
             if (damage == null) {
                 damage = parseInt(arg);
-                log("Setting damage to " + damage);
+
                 setDamage = true;
             } else if (halfDamage == null) {
                 halfDamage = parseInt(arg);
-                log("Setting half damage to " + halfDamage);
             } else {
                 Damage.usageSaves(msg, "Can only specify two damages.");
                 return;
@@ -135,7 +134,6 @@ on("chat:message", function(msg) {
                 Damage.usageSaves(msg, "Unrecognised token state " + arg + ".");
                 return;
             } else {
-                log("Setting status to " + status);
                 setStatus = true;
             }
         } else {
@@ -163,8 +161,8 @@ on("chat:message", function(msg) {
         for (var i=0; i < msg.selected.length; i++) {
             tokenList.push(msg.selected[i]._id);
         }
-        for (var i=0; i < tokenList.length; i++) {
-            var tokenId = tokenList[i];
+        for (var tIdx=0; tIdx < tokenList.length; tIdx++) {
+            var tokenId = tokenList[tIdx];
             var token = getObj("graphic", tokenId);
 
             var character_id = token.get("represents");
@@ -183,6 +181,14 @@ on("chat:message", function(msg) {
 
             var message = "";
             var flags = [];
+            var prev = [];
+            prev["bar1_value"] = token.get("bar1_value");
+            prev["bar1_max"] = token.get("bar1_max");
+            prev["bar3_value"] = token.get("bar3_value");
+            prev["bar3_max"] = token.get("bar3_max");
+
+            log("Doing " + token.get("name"));
+
             if (check >= dc) {
                 flags['status_flying-flag'] = false;
                 var text = "Succeeds on a " + saveName + " DC " + dc + " check.";
@@ -207,25 +213,9 @@ on("chat:message", function(msg) {
                     if (setStatus) {
                         var symbol = Damage.status[status].status;
                         var effect = Damage.status[status].description;
-
-                        var statuses = [
-                            'red', 'blue', 'green', 'brown', 'purple', 'pink', 'yellow', // 0-6
-                            'skull', 'sleepy', 'half-heart', 'half-haze', 'interdiction',
-                            'snail', 'lightning-helix', 'spanner', 'chained-heart',
-                            'chemical-bolt', 'death-zone', 'drink-me', 'edge-crack',
-                            'ninja-mask', 'stopwatch', 'fishing-net', 'overdrive', 'strong',
-                            'fist', 'padlock', 'three-leaves', 'fluffy-wing', 'pummeled',
-                            'tread', 'arrowed', 'aura', 'back-pain', 'black-flag',
-                            'bleeding-eye', 'bolt-shield', 'broken-heart', 'cobweb',
-                            'broken-shield', 'flying-flag', 'radioactive', 'trophy',
-                            'broken-skull', 'frozen-orb', 'rolling-bomb', 'white-tower',
-                            'grab', 'screaming', 'grenade', 'sentry-gun', 'all-for-one',
-                            'angel-outfit', 'archery-target'
-                        ];
-                        var i = _.indexOf(statuses, symbol);
-
                         flags["status_" + symbol] = true;
-                        message += '<div style="float: left; width: 24px; height: 24px; display: inline-block; margin: 0; border: 0; cursor: pointer; padding: 0px 3px; background: url(\'https://app.roll20.net/images/statussheet.png\'); background-repeat: no-repeat; background-position: '+((-34)*(i-7))+'px 0px;"></div>';
+
+                        message += Damage.getSymbolHtml(symbol);
 
                         text += "<br/>They are now <b>" + status + "</b>.";
                         message += Damage.line(text);
@@ -237,7 +227,7 @@ on("chat:message", function(msg) {
             }
             token.set( flags );
             if (setDamage) {
-                Damage.update(token, null, message);
+                Damage.update(token, prev, message);
             } else {
                 Damage.message(token, message);
             }
@@ -362,6 +352,25 @@ on("change:graphic", function(obj, prev) {
     Damage.update(obj, prev, "");
 });
 
+Damage.getSymbolHtml = function(symbol) {
+    var statuses = [
+        'red', 'blue', 'green', 'brown', 'purple', 'pink', 'yellow', // 0-6
+        'skull', 'sleepy', 'half-heart', 'half-haze', 'interdiction',
+        'snail', 'lightning-helix', 'spanner', 'chained-heart',
+        'chemical-bolt', 'death-zone', 'drink-me', 'edge-crack',
+        'ninja-mask', 'stopwatch', 'fishing-net', 'overdrive', 'strong',
+        'fist', 'padlock', 'three-leaves', 'fluffy-wing', 'pummeled',
+        'tread', 'arrowed', 'aura', 'back-pain', 'black-flag',
+        'bleeding-eye', 'bolt-shield', 'broken-heart', 'cobweb',
+        'broken-shield', 'flying-flag', 'radioactive', 'trophy',
+        'broken-skull', 'frozen-orb', 'rolling-bomb', 'white-tower',
+        'grab', 'screaming', 'grenade', 'sentry-gun', 'all-for-one',
+        'angel-outfit', 'archery-target'
+    ];
+    var i = _.indexOf(statuses, symbol);
+
+    return '<div style="float: left; width: 24px; height: 24px; display: inline-block; margin: 0; border: 0; cursor: pointer; padding: 0px 3px; background: url(\'https://app.roll20.net/images/statussheet.png\'); background-repeat: no-repeat; background-position: '+((-34)*(i-7))+'px 0px;"></div>';
+}
 
 Damage.usageSaves = function(msg, errorText) {
     var text = "<i>" + errorText + "</i><br/>";
@@ -514,6 +523,7 @@ Damage.update = function(obj, prev, message) {
             status_brown: false
         });
         if (hpCurrent < 0 && !stable) {
+            message += Damage.getSymbolHtml("skull");
             message += Damage.line("<b>" + name + "</b> is <i>dying</i>. Each turn " +
                                    "they must make a DC&nbsp;" + (10 - hpCurrent) +
                                    " CON check to stop bleeding.");
