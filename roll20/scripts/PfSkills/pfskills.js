@@ -100,6 +100,9 @@ Skills.getSkill = function(character, skill, d20roll, name) {
 Skills.getAttribute = function(character, attribute, d20roll, name) {
     var score = parseInt(getAttrByName(character.id, attribute+"-mod"));
     var base = parseInt(getAttrByName(character.id, attribute+"-base"));
+    var cond = parseInt(getAttrByName(character.id, "checks-cond"));
+
+    score = score + cond;
 
     return "{{" + name + " (" + base + " / " + score + ")=**" + (d20roll + score) + "**}}";
 };
