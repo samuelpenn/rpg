@@ -21,15 +21,41 @@
  * reach zero. Creature types which ignore nonlethal damage are also handled
  * correctly.
  *
- * Macro Option:
+ * Macro Options:
  *
- * There is an api command that can be called from a macro as follows:
+ * There are a number of chat commands that can be used as well.
+ *
+ * Automatic check to stabilise:
  *   !stabilise @{selected|token_id}
  *
- * This will automate a constitution check against the current DC for the
- * character to stabilise. On success, a green marker is placed on the
- * token, and further attempts to stabilise are ignored. On failure, the
- * token's hit points are reduced by 1.
+ *   This will automate a constitution check against the current DC for the
+ *   character to stabilise. On success, a green marker is placed on the
+ *   token, and further attempts to stabilise are ignored. On failure, the
+ *   token's hit points are reduced by 1.
+ *
+ * Heal:
+ *   !heal
+ *
+ *   Heals all selected tokens up to maximum hitpoints, removes non-lethal
+ *   damage and removes most status flags. Mostly used to reset tokens
+ *   during testing, but might be useful in a game.
+ *
+ * Damage:
+ *   !damage <hitpoints> [nonlethal]
+ *
+ *   Does the indicated damage to all selected tokens. If the 'nonlethal'
+ *   flag is set, then the damage is nonlethal.
+ *
+ * Saving Throws:
+ *   !pfsaves <Fort|Ref|Will> <DC> [<damage> [<halfdamage>]] [<Effect>]
+ *
+ *   All selected tokens make a saving throw against the given DC. If
+ *   no other parameters are supplied, those that fail have a flying-flag
+ *   status symbol applied to them.
+ *
+ *   If damage or effect are specified, then damage and the effect is
+ *   applied to those that failed, and half damage to those that succeeded.
+ *
  *
  * The MIT License (MIT)
  *
