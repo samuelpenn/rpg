@@ -213,8 +213,6 @@ on("chat:message", function(msg) {
             prev["bar3_value"] = token.get("bar3_value");
             prev["bar3_max"] = token.get("bar3_max");
 
-            log("Doing " + token.get("name"));
-
             if (check >= dc) {
                 flags['status_flying-flag'] = false;
                 var text = "Succeeds on a " + saveName + " DC " + dc + " check.";
@@ -235,6 +233,7 @@ on("chat:message", function(msg) {
 
                         token.set("bar1_value", currentHp);
                         text += " They take " + damage + "hp damage.";
+                        message += Damage.line(text);
                     }
                     if (setStatus) {
                         var symbol = Damage.status[status].status;
