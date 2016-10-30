@@ -126,6 +126,66 @@ on("chat:message", function(msg) {
 
 on("chat:message", function(msg) {
     if (msg.type !== "api") return;
+    if (msg.content.split(" ", 1)[0] != "!pfinit") return;
+
+    if (msg != null && msg.selected != null && msg.selected.length > 0) {
+        var tokenList = [];
+        var turnOrder = [];
+        if (Campaign().get("turnorder") != "") {
+            turnOrder = JSON.parse(Campaign().get("turnorder"));
+        }
+        for (var i=0; i < msg.selected.length; i++) {
+            tokenList.push(msg.selected[i]._id);
+            for (var ti=0; ti < turnOrder.length; ti++) {
+                if (turnOrder[ti].id == msg.selected[i]._id) {
+                    turnOrder.splice(ti, 1);
+                }
+            }
+        }
+        for (var tIdx=0; tIdx < tokenList.length; tIdx++) {
+            var tokenId = tokenList[tIdx];
+            var token = getObj("graphic", tokenId);
+
+            var character_id = token.get("represents");
+            if (character_id == null) {
+                return;
+            }
+            var character = getObj("character", character_id);
+            var init = getAttrByName(character_id, "init");
+            var dex = getAttrByName(character_id, "DEX-base");
+            if (parseInt(dex) < 10) {
+                dex = ("0" + dex);
+            }
+            var message = "Initiative is [[d20 + " + init + " + 0." + dex + "]]";
+            var message = Damage.line(message);
+            Damage.message(token, message, initiativeMsgCallback(tokenId, turnOrder, token));
+        }
+    }
+
+    return;
+});
+
+/**
+ * Needed when setting the turn order. Otherwise by the time the callback
+ * is executed, the value of tokenId that is in scope has changed, and we
+ * just end up adding the last token multiple times.
+ */
+function initiativeMsgCallback(tokenId, turnOrder, token) {
+    return function(ops) {
+        var rollresult = ops[0];
+        var result = rollresult.inlinerolls[0].results.total;
+
+        turnOrder.push({
+            id: tokenId,
+            pr: result
+        });
+        Campaign().set("turnorder", JSON.stringify(turnOrder));
+        Damage.message(token, Damage.line("Joins combat on initiative [[d0 + " + result + "]]"));
+    };
+}
+
+on("chat:message", function(msg) {
+    if (msg.type !== "api") return;
     if (msg.content.split(" ", 1)[0] != "!pfsaves") return;
 
     var params = msg.content.split(" ");
@@ -443,7 +503,7 @@ Damage.line = function(message) {
 }
 
 Damage.update = function(obj, prev, message) {
-    if (obj.get("bar1_max") === "") return;
+    if (obj == null || obj.get("bar1_max") === "") return;
     if (message == null) {
         message = "";
     }
@@ -490,7 +550,13 @@ Damage.update = function(obj, prev, message) {
     var hpActual = hpCurrent - nonlethalDamage;
 
     var character_id = obj.get("represents");
+    if (character_id == null) {
+        return;
+    }
     var character = getObj("character", character_id);
+    if (character == null) {
+        return;
+    }
     var constitution = getAttrByName(character.id, 'CON');
     if (constitution == null) {
         constitution = 10;
@@ -625,7 +691,7 @@ Damage.update = function(obj, prev, message) {
     }
 }
 
-Damage.message = function(token, message) {
+Damage.message = function(token, message, func) {
     if (message != null) {
         var image = token.get("imgsrc");
         var name = token.get("name");
@@ -635,6 +701,10 @@ Damage.message = function(token, message) {
         html += "<div style='margin-top: 20px; padding-left: 5px'>" + message + "</div>";
         html += "</div>";
 
-        sendChat("", "/desc " + html);
+        if (func == null) {
+            sendChat("", "/desc " + html);
+        } else {
+            sendChat("", "/desc " + html, func);
+        }
     }
 }
