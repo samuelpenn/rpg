@@ -586,6 +586,12 @@ Damage.update = function(obj, prev, message) {
         }
 
         living = false;
+    } else if (nonlethalDamage > hpMax) {
+        // NonLethal Damage greater than maximum hitpoints, does lethal damage.
+        hpCurrent -= (nonlethalDamage - hpMax);
+        nonlethalDamage = hpMax;
+        obj.set("bar1_value", hpCurrent);
+        obj.set("bar3_value", nonlethalDamage);
     }
 
     if (!living && hpCurrent < 1) {
