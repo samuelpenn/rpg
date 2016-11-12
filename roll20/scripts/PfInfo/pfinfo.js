@@ -50,10 +50,10 @@ on("chat:message", function(msg) {
 
 var Info = Info || {};
 
-Info.BOX_STYLE="background-color: #DDDDAA; color: #000000; padding:0px; border:1px solid COLOUR; border-radius: 5px;"
+Info.BOX_STYLE="background-color: #DDDDAA; color: #000000; padding:0px; margin-top: -10px; border:1px solid COLOUR; border-radius: 5px;"
 Info.TITLE_STYLE="background-color: COLOUR; color: #FFFFFF; padding: 1px; text-align: center";
 Info.TEXT_STYLE="padding: 5px; padding-top: 0px; padding-bottom: 0px;"
-Info.PARA_STYLE="padding: 0px; margin: 0px;";
+Info.PARA_STYLE="padding: 0px; margin: 0px; text-align: left;";
 Info.P = "<p style='"+Info.PARA_STYLE+"'>";
 
 
@@ -61,18 +61,21 @@ Info.cell = function cell(property, value) {
     if (value == undefined || value == "") {
         return "";
     }
-    return "<b>" + property + "</b> " + value + " ";
+    if (value == "0") {
+        return "";
+    }
+    return "<b>" + property + "</b>: " + value + " ";
 }
 
 Info.line = function line(property, value) {
     if (value == undefined || value == "") {
         return "";
     }
-    return "<p style='"+Info.PARA_STYLE+"'><b>" + property + "</b> " + value + " </p>";
+    return "<p style='"+Info.PARA_STYLE+"'><b>" + property + "</b>: " + value + " </p>";
 }
 
 Info.text = function text(text) {
-    return "<p style='"+Info.PARA_STYLE+"'><b>" + text + "</b></p>";
+    return "<p style='"+Info.PARA_STYLE+"'>" + text + "</p>";
 }
 
 Info.status = function( token, symbol, name, text) {
@@ -140,17 +143,7 @@ Info.Process = function(msg, player_obj) {
                 image = character.get("avatar");
             }
 
-            var html = "<div style='" + Info.BOX_STYLE.replace("COLOUR", colour) + "'>";
-            if (title != undefined) {
-                html += "<div style='" + Info.TITLE_STYLE.replace("COLOUR", colour) + "'>" + title + "</div>";
-            }
-
-            html += "<div style='" + Info.TEXT_STYLE.replace(/COLOUR/g, colour) + "'>";
-            if (image != null) {
-                html += "<table><tr>";
-                html += "<td style='width:110px; vertical-align: top'><img src='"+image+"' width='100px' align='left'/></td>";
-                html += "<td style='width: auto; vertical-align: top'>";
-            }
+            var html = "";
             var currentHitpoints = target.get("bar1_value");
             var totalHitpoints = target.get("bar1_max");
             var nonlethalDamage = target.get("bar3_value");
@@ -194,10 +187,10 @@ Info.Process = function(msg, player_obj) {
 
             if (nonlethalDamage > 0) {
                 var hp = currentHitpoints - nonlethalDamage;
-                html += Info.text("Hitpoints: (" + hp + ") " +
+                html += Info.line("Hitpoints", "(" + hp + ") " +
                         currentHitpoints + " / " + totalHitpoints);
             } else {
-                html += Info.text("Hitpoints: " + currentHitpoints + " / " + totalHitpoints);
+                html += Info.line("Hitpoints", currentHitpoints + " / " + totalHitpoints);
             }
             html += Info.P;
             html += Info.cell("AC", ac) + Info.cell("Flat", acFlat) + Info.cell("Touch", acTouch);
@@ -215,10 +208,6 @@ Info.Process = function(msg, player_obj) {
             }
             html += Info.cell("CMB", cmb) + Info.cell("CMD", cmd);
             html += "</p><br/>";
-
-            if (image != null) {
-                html += "</td></tr></table>";
-            }
 
             html += Info.P;
             var speedBase = getAttrByName(character.id, "speed-base");
@@ -290,11 +279,34 @@ Info.Process = function(msg, player_obj) {
             html += Info.status(target, "dead", "Dead", "Creature is dead. Gone. Destroyed.");
 
             html += "</div>";
+
             html += "</div>";
 
-            sendChat("", "/w " + player_obj.get("displayname") + " " + html);
+            Info.message(""+player_obj.get("displayname"), target, html);
         }
     } else {
         sendChat("", "/w " + player_obj.get("displayname") + " Nothing selected.");
     }
 };
+
+Info.message = function(displayName, token, message, func) {
+    if (message != null) {
+        var image = token.get("imgsrc");
+        var name = token.get("name");
+        var html = "<div style='" + Damage.BOX_STYLE + "'>";
+        html += "<div style='margin-top: 0px; padding-left: 5px; font-weight: normal; font-style: normal;'>";
+        html += "<div style='font-weight: bold; font-size: larger; padding: 0px 0px 0px 0px'>" + name + "</div>";
+        html += "<img style='float:right' width='64' src='" + image + "'>";
+        html += message;
+        html += "</div>";
+
+        html += "</div>";
+        log(displayName);
+        if (func == null) {
+            sendChat(name, "/w \"" + displayName + "\" " + html);
+        } else {
+            sendChat(name, "/w \"" + displayName + "\" " + html, func);
+        }
+    }
+}
+
