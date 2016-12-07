@@ -487,6 +487,7 @@ Damage.status = {
     'Nauseated': { status: "radioactive", description: "Can only take a single move action, no spells attacks or concentration." },
     'Panicked': { status: "half-heart", description: "-2 attacks, saves, skills and ability checks; drops items and must flee from source." },
     'Paralyzed': { status: "cobweb", description: "Str and Dex reduced to zero. Flyers fall. Helpless." },
+    'Prone': { status: "arrowed", description: "-4 penalty to attack roles and can't use most ranged weapons. Has +4 AC bonus against ranged, but -4 AC against melee." },
     'Shaken': { status: "chained-heart", description: "-2 penalty on all attacks, saves, skills and ability checks." },
     'Sickened': { status: "drink-me", description: "-2 penalty on all attacks, damage, saves, skills and ability checks." },
     'Staggered': { status: "pummeled", description: "Only a move or standard action (plus swift and immediate)." },
@@ -502,6 +503,12 @@ Damage.line = function(message) {
     return "<p style='margin:0px; padding:0px; padding-bottom: 2px; font-weight: normal; font-style: normal; text-align: left'>" + message + "</p>";
 }
 
+/**
+ * Called when a token is updated. We check the damage values (bar1 and bar3)
+ * and set status on the token depending on results.
+ * The prev object contains a map of previous values prior to the token changing,
+ * so we can tell how much damage the token has just taken.
+ */
 Damage.update = function(obj, prev, message) {
     if (obj == null || obj.get("bar1_max") === "") return;
     if (message == null) {
@@ -573,6 +580,7 @@ Damage.update = function(obj, prev, message) {
             obj.set({
                 bar3_value: 0
             });
+            hpActual += nonlethalDamage;
             nonlethalDamage = 0;
 
         }
@@ -584,7 +592,6 @@ Damage.update = function(obj, prev, message) {
                 bar1_value: 0
             });
         }
-
         living = false;
     } else if (nonlethalDamage > hpMax) {
         // NonLethal Damage greater than maximum hitpoints, does lethal damage.

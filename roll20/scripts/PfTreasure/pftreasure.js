@@ -401,7 +401,8 @@ Treasure.special['Notes'].table = [
     [ "<<Afina|Flavi|Orchili>> <<7|8|9>>; <<Alafarea|Helga|Pabay>> <<5|6|7>>; <<Alika|Iolana|Sorica>> <<8|9|10|10!!>>; <<Belinza|Irine|Teodora>> <<5|6|7>>; <<Cojinia|Kostela|Tas>> <<9|10>>; <<Daciana |Laurelica|Ujaritza>> <<2|3|4>>; <<Damaria|Lyuba|Vasildi>> <<3|4|5>>" ],
     [ "A <<detailed|rough|crude>> recipe for <<rat|apple|gooseberry|cherry|lemon|goblin|crow|chicken>> pie." ],
     [ "A crop is due to arrive at the docks tomorrow morning, reading for plucking." ],
-    [ "You are so dead." ]
+    [ "You are so dead." ],
+    [ "By the third strike after noon, the <<dragon|dove|bird>> will <<fly|crawl|cry>> for freedom." ],
 ];
 
 Treasure.special['Maps'] = {};
@@ -591,33 +592,49 @@ Treasure.lists['Trinkets A'] = { 'table': [
     [ 15, "A glass marble, worth [[1d2+1]]cp." ],
 ]};
 
+// Silver pieces.
 Treasure.lists['Trinkets B'] = { 'table': [
+    [ 9, "A small battered eyeglass, missing any glass. [[1d4]]sp." ],
+    [ 9, "<<Four|Three>> vials of differently coloured <<sand|dirt|crushed rock|crushed leaves>>." ],
+    [ 9, "A pair of wooden sticks, about 9inches long, slightly tapering at one end. They have Tian writing on them, 1d3sp." ],
+    [ 9, "<<Seven|Six|Five>> small scented candles, each different [[1d4]]sp." ],
+    [ 9, "<<Seven|Six|Five>> small scented candles, each with an erotic carving of <<a woman|a man|two women|two men>> <<on|and a horse|and a dog|and a serpent>>, [[1d6]]sp." ],
     [ 12, "A pair of <<ivory|wooden|bone>> dice [[3d4]]cp." ],
     [ 12, "A set of glass marbles, worth [[1d2+1]]sp." ],
     [ 12, "A set of playing cards, decorated with <<erotic art|goblins|animals|weapons|gods|abstract patterns>> worth [[2d4]]sp." ],
     [ 12, "Half a <<plain|scratched|twisted>> silver ring worth [[1d4+1]]sp." ],
     [ 12, "<<Two|Three|Four|Five>> <<worn|scratched>> and <<bent|chipped|shaved>> <<silver|electrum>> coins of <<apparently|obviously|possibly>> ancient origin. The details on the coins faces cannot be made out, worth [[2d4]]sp." ],
-    [ 21, "A <<long|thick>> <<silver|gold>> needle with carven symbols of <<Asmodeous|Abadar|Desna|Torag|Rovagug|Lamashtu>> on it, [[2d4]]sp." ]
+    [ 15, "A folded up sheet of paper listing <<dwarven|orcish|elven|giantish>> curses." ],
+    [ 21, "A <<long|thick>> <<silver|gold>> needle with carven symbols of <<Asmodeous|Abadar|Desna|Torag|Rovagug|Lamashtu>> on it, [[2d4]]sp." ],
+    [ 21, "A small sheet of paper with invisible ink written on it.", "Notes" ],
 ]};
 
+// Gold pieces.
 Treasure.lists['Trinkets C'] = { 'table': [
-    [ 12, "A full set of Harrow cards." ],
+    [ 12, "A full set of Harrow cards, [[2d4]]gp." ],
     [ 12, "A gold ring with a <<horse|serpent|dragon|abstract pattern>> engraved on it, [[2d4]]gp." ],
     [ 12, "A single small firecracker." ],
     [ 15, "A small <<bead|shard>> of <<glass|crystal>> that <<glows|flickers>> with an internal light, like a candle." ],
-    [ 21, "A <<small|tiny>> <<gemstone|piece of quartz|gem|crystal>> worth [[2d4]] gp." ],
+    [ 21, "A <<small|tiny>> <<gemstone|piece of quartz|gem|crystal>> worth [[2d4]]gp." ],
 ]};
 
+// Up to 30gp.
 Treasure.lists['Trinkets D'] = { 'table': [
-    [ 12, "A pair of ivory dice studded with a small gemstone on the '1' [[5d6]] gp." ],
-    [ 12, "A high quality set of Harrow Cards, worth [[10d6]]gp." ],
+    [ 12, "A pair of ivory dice studded with a small gemstone on the '1' [[5d6]]gp." ],
+    [ 12, "A high quality set of Harrow Cards, worth [[8d6]]gp." ],
     [ 12, "A small <<worthless|cracked|dull>> gemstone that floats around your head like an ioun stone, but otherwise does nothing." ],
     [ 12, "<<3|4|5|6|7>> 1 inch tall intricately carved wooden figures of a <<goblin|orc|man|woman>>. Worth [[2d4]] gp, or 100 times this to a collector." ],
+    [ 15, "A small silver locket with a portrait of <<Queen Ileosa Arabasti|Queen Domina Arabasti|Lady Eliasia Leroung|the Harlot Queen of Geb>> inside, [[4d6]]gp." ],
+    [ 15, "A small silver locket with a portrait of a noble <<man|woman|lady>> and <<two|three|four|five>> children inside, [[3d6]]gp." ],
+    [ 18, "A golden disc sewn into the clothing, showing a <<detailed|stylised|high quality|faint>> portrait of <<Urgathoa|Zon-Kuthon|Lamashtu|Asmodeus|Norgorber>> on one side and the number <<5|7|11|13|17|19>> on the other, [[2d4]]gp." ],
+    [ 21, "A small crushable glass bead which contains <<Black Lotus Extract, 2250gp|Sassone leaf residue, 150gp|Tears of death, 3250gp>>." ],
 ]};
 
+// Up to 100gp.
 Treasure.lists['Trinkets E'] = { 'table': [
     [ 9, "A <<tiny|miniature|pocket-sized>> <<ivory|wooden|brass> chess set, <<fully|mostly>> intact, worth [[6d10+40]]gp." ],
-    [ 12, "A high quality set of Harrow Cards, worth [[10d6]]gp." ]
+    [ 12, "A high quality set of Harrow Cards, worth [[10d6]]gp." ],
+    [ 12, "A set of platinum jacks, decorated with <<elven|dwarven|draconic>> symbology, worth [[20d6]]gp." ],
 ]};
 
 

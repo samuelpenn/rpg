@@ -15,7 +15,7 @@
  * are all output on separate lines.
  *
  * All HTML formatting is preserved.
- * 
+ *
  * The MIT License (MIT)
  *
  * Copyright (c) 2016, Samuel Penn, sam@glendale.org.uk
@@ -84,8 +84,14 @@ Describe.Process = function(msg, player_obj) {
                     sendChat("", "/w " + player_obj.get("displayname") + " No bio defined");
                 } else {
                     bio = bio.replace(/<br>-- <br>.*/, "");
+                    colour = "black";
                     var html = "<div style='" + BOX_STYLE.replace("COLOUR", colour) + "'>";
                     if (title != undefined) {
+                        var size = getAttrByName(character.id, "size_display");
+                        if (size != null && size != "" && size != "Medium") {
+                            title += "<br/>(" + size + ")";
+                        }
+
                         html += "<div style='" + TITLE_STYLE.replace("COLOUR", colour) + "'>" + title + "</div>";
                     }
                     if (image != null) {
@@ -107,6 +113,12 @@ Describe.Process = function(msg, player_obj) {
                             html += "</div>";
                         }
                     }
+
+                    var statusText = Info.getStatusText(target);
+                    if (statusText != "") {
+                        html += "<div style='" + TEXT_STYLE + "'>" + statusText + "</div>";
+                    }
+
                     if (playerIsGM(player_obj.get("id"))) {
                         sendChat("", "/desc " + html);
                     } else {
