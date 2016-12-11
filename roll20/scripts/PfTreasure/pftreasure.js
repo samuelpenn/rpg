@@ -69,12 +69,9 @@ Treasure.line = function(message) {
 
 Treasure.format = function(message) {
     while (message.indexOf("<<") > -1) {
-        log("Formatting: " + message);
         var left = message.substring(0, message.indexOf("<<") );
         var right = message.substring(message.indexOf(">>") + 2);
-        log("Formatting: [" + left + "] and [" + right + "]");
         var array = message.substring(message.indexOf("<<") + 2, message.indexOf(">>") ).split("|");
-        log("Formatting: Choice " + array);
         var chosen = array[randomInteger(array.length - 1)];
 
         message = left + chosen + right;
@@ -86,10 +83,6 @@ Treasure.format = function(message) {
 Treasure.generate = function(token, character, store) {
     var treasureType = getAttrByName(character.id, "TreasureType");
     var treasureValue = getAttrByName(character.id, "TreasureType", "max");
-
-    log(treasureType);
-    log(treasureValue);
-
 
     // Treasure types are:
     //   common
@@ -113,11 +106,7 @@ Treasure.generate = function(token, character, store) {
             var sortedItems = items.sort(function(a, b) { return a[0] - b[0] } );
             var dc = 0;
             for (var i = 0; i < sortedItems.length; i++) {
-                log(sortedItems[i][0] + " - " + sortedItems[i][1]);
                 if (sortedItems[i][0] > dc) {
-                    if (dc > 0) {
-                        //message += "<hr style='padding:0px; margin: 1px; border-bottom: 1px dashed #555555; width: 100%'/>";
-                    }
                     dc = sortedItems[i][0];
                     message += Treasure.line("<span style='font-weight: bold; border: 1pt solid black; border-radius: 3px; padding: 0px 3px 0px 3px; background-color: #DDCC77'>DC " + dc + "</span>");
                 }
@@ -136,7 +125,7 @@ Treasure.generate = function(token, character, store) {
         }
         if (store) {
             token.set({
-                gmnotes: gmnotes + "<b>TREASURE</b>\n" + message + "\n---"
+                gmnotes: gmnotes + escape("<b>TREASURE</b>\n" + message + "\n---")
             });
         }
     } else {
@@ -169,7 +158,6 @@ Treasure.inlineRolls = function(message) {
     }
     while (message.indexOf("[[") > -1) {
         var inline = message.substring(message.indexOf("[[")+2, message.indexOf("]]")).replace(/ /g, "");
-        log("Inline: " + inline);
         var total = 0;
         if (inline.indexOf("d")) {
             var number = parseInt(inline.replace(/d.*/, ""));
@@ -245,8 +233,6 @@ Treasure.getItemFromTable = function(tableName) {
 Treasure.getItems = function(tableName, number) {
     var items = [];
 
-    log("getItems: " + tableName + ", " + number);
-
     if (tableName == null || number == null || number < 1) {
         return [];
     }
@@ -256,7 +242,7 @@ Treasure.getItems = function(tableName, number) {
         var subTables = "ABCDEFG";
         var baseName = tableName.replace(/(.*) [A-G]$/, "$1");
         var suffix = tableName.replace(/.* ([A-G])$/, "$1");
-        log(suffix);
+
         if (suffix != null && suffix.length == 1) {
             if (subTables.indexOf(suffix) == 0) {
                 return Treasure.getItems(baseName, number);
@@ -422,7 +408,8 @@ Treasure.lists['Cursed'].coins = function(value) {
 }
 Treasure.lists['Cursed'].table = [
     [ 6, "A <<brass|copper|wooden>> <<ring|pendent>> <<carved|inscribed|decorated|embossed>> with <<cats|dragons|fish|birds>>, -1 to all saves." ],
-    [ 6, "A <<dog's|cat's>> mummified head that makes a sound when it is petted." ]
+    [ 6, "A <<dog's|cat's|rat's>> <<stuffed|mummified>> head that makes a <<hiss|scream|sound>> when it is <<squeezed|kissed|petted|given water>>." ],
+    [ 6, "A miniature skull with drops of water around its teeth, -10 to swim checks." ],
 ];
 
 /*
@@ -439,11 +426,12 @@ Treasure.lists['Cursed'].table = [
  *   E - Fine quality.
  */
 Treasure.lists['Clothing A'] = { 'table': [
-    [ 9, "An old <<dirty|dusty|muddy|torn|>> cloak, with bloodstains and filled with arrow holes." ],
-    [ 9, "An old <<dirty|dusty|muddy|torn|>> cloak, with a handful of <<black|green|blue|red|white>> dragon scales (DC 20) stitched on the shoulders." ],
-    [ 9, "An old <<dirty|dusty|muddy|torn|>> cloak, with a handful of <<lizard folk|troglodyte>> scales (DC 20) stitched on the shoulders." ],
-    [ 9, "An old <<dirty|dusty|muddy|torn|>> cloak, with bloodstains and filled with arrow holes." ],
-    [ 9, "An old cloak with a silk patch showing a symbol of <<Achaekek|Norgorber|Calistria>>." ],
+    [ 6, "A <<quite|relatively>> clean cloak, with 'This belongs to <<Barsali|Silvui|Marino|Catalin|Angelo|Dukker>> of <<Abadar|Nethys|Desna|Erastil|Sarenrae>>' stitched into it." ],
+    [ 6, "An old <<dirty|dusty|muddy|torn|>> cloak, with bloodstains and filled with arrow holes." ],
+    [ 6, "An old <<dirty|dusty|muddy|torn|>> cloak, with a handful of <<black|green|blue|red|white>> dragon scales (DC 20) stitched on the shoulders." ],
+    [ 6, "An old <<dirty|dusty|muddy|torn|>> cloak, with a handful of <<lizard folk|troglodyte>> scales (DC 20) stitched on the shoulders." ],
+    [ 6, "An old <<dirty|dusty|muddy|torn|>> cloak, with bloodstains and filled with arrow holes." ],
+    [ 6, "An old cloak with a silk patch showing a symbol of <<Achaekek|Norgorber|Calistria>>." ],
     [ 9, "A <<red|black>> scarf with <<Abyssal|Necril|Infernal>> writing stitched along one edge, detailing an <<ancient|unholy|evil>> <<blessing|curse|prayer|ritual>>." ],
     [ 12, "A <<dark|bright>> <<brown|red>> <<neck scarf|handkerchief>> with dwarven runes and an image of a <<dwarven werebear|bulette>> stitched into it." ],
     [ 12, "There are symbols of <<Abadar|the Aspis Consortium|The Exchange|Liberty's Edge|the Dark Archive>> on the lapel of the jacket." ],
@@ -455,7 +443,6 @@ Treasure.lists['Clothing A'] = { 'table': [
     [ 12, "A hat with <<bright green|bright yellow|golden>> feathers from a baby Roc, [[3d4]]cp." ],
     [ 15, "A pair of dirty fingerless gloves with a set of lock picks hidden inside." ],
     [ 15, "A leather belt with a <<lock pick|garotte|small blade>> hidden in the buckle." ],
-    [ 15, "A <<quite|relatively>> clean cloak, with 'This belongs to <<Barsali|Silvui|Marino|Catalin|Angelo|Dukker>> of <<Abadar|Nethys|Desna|Erastil|Sarenrae>>' stitched into it." ],
     [ 18, "Foot wrappings hide necrotic flesh, showing signs of ghoul fever." ],
     [ 18, "A pair of <<heavy|dirty|tough>> leather boots with a blade hidden in the heel." ],
     [ 18, "The buttons on the jacket are actually hiding silver shields, [[1d4+1]]sp." ]
@@ -568,7 +555,7 @@ Treasure.lists['Trinkets A'] = { 'table': [
     [ 9, "A bronze holy symbol of <<Desna|Calistria|Abadar|Cayden Cailean>>, [[1d6+3]]cp." ],
     [ 9, "A <<copper|bronze|brass>> amulet engraved with the image of <<an elf|a dryad|an angel>>, [[2d6]]cp." ],
     [ 9, "A miniature <<copper|bronze|tin>> <<hammer and anvil|bow and arrow|skull|rose>> on a pendant, [[2d4]]cp." ],
-    [ 12, "A knife with a blade on one end and fork tines on the other, [[1d4+1]]cp." ],
+    [ 12, "A knife with a blade on one end and a fork on the other, [[1d4+1]]cp." ],
     [ 12, "A small piece of flint." ],
     [ 12, "A clean bandage." ],
     [ 12, "A <<large|red|oily>> feather." ],
@@ -598,14 +585,17 @@ Treasure.lists['Trinkets B'] = { 'table': [
     [ 9, "<<Four|Three>> vials of differently coloured <<sand|dirt|crushed rock|crushed leaves>>." ],
     [ 9, "A pair of wooden sticks, about 9inches long, slightly tapering at one end. They have Tian writing on them, 1d3sp." ],
     [ 9, "<<Seven|Six|Five>> small scented candles, each different [[1d4]]sp." ],
-    [ 9, "<<Seven|Six|Five>> small scented candles, each with an erotic carving of <<a woman|a man|two women|two men>> <<on|and a horse|and a dog|and a serpent>>, [[1d6]]sp." ],
+    [ 9, "<<Seven|Six|Five>> small scented candles, each with an erotic carving of <<a woman|a man|two women|two men>> <<on a bed|and a horse|and a dog|and a serpent>>, [[1d6]]sp." ],
     [ 12, "A pair of <<ivory|wooden|bone>> dice [[3d4]]cp." ],
     [ 12, "A set of glass marbles, worth [[1d2+1]]sp." ],
+    [ 12, "A set of coloured <<stone|glass>> beads, worth [[1d2]]sp." ],
     [ 12, "A set of playing cards, decorated with <<erotic art|goblins|animals|weapons|gods|abstract patterns>> worth [[2d4]]sp." ],
     [ 12, "Half a <<plain|scratched|twisted>> silver ring worth [[1d4+1]]sp." ],
     [ 12, "<<Two|Three|Four|Five>> <<worn|scratched>> and <<bent|chipped|shaved>> <<silver|electrum>> coins of <<apparently|obviously|possibly>> ancient origin. The details on the coins faces cannot be made out, worth [[2d4]]sp." ],
     [ 15, "A folded up sheet of paper listing <<dwarven|orcish|elven|giantish>> curses." ],
+    [ 15, "A single glass <<bead|marble|fragment>> with a small carved metal <<goblin|woman|cat|sword|crown>> inside, worth [[3d6]]sp." ],
     [ 21, "A <<long|thick>> <<silver|gold>> needle with carven symbols of <<Asmodeous|Abadar|Desna|Torag|Rovagug|Lamashtu>> on it, [[2d4]]sp." ],
+    [ 21, "A single bullet from a handgun." ],
     [ 21, "A small sheet of paper with invisible ink written on it.", "Notes" ],
 ]};
 
@@ -614,6 +604,7 @@ Treasure.lists['Trinkets C'] = { 'table': [
     [ 12, "A full set of Harrow cards, [[2d4]]gp." ],
     [ 12, "A gold ring with a <<horse|serpent|dragon|abstract pattern>> engraved on it, [[2d4]]gp." ],
     [ 12, "A single small firecracker." ],
+    [ 12, "A small silver bell carved with a <<faun|centaur|dryad|mermaid>>, worth [[1d6+3]]gp." ],
     [ 15, "A small <<bead|shard>> of <<glass|crystal>> that <<glows|flickers>> with an internal light, like a candle." ],
     [ 21, "A <<small|tiny>> <<gemstone|piece of quartz|gem|crystal>> worth [[2d4]]gp." ],
 ]};
@@ -651,6 +642,8 @@ Treasure.lists['Food A'] = { 'table': [
     [ 12, "A bag of dried herbs, [[1d6]] cp." ],
     [ 12, "A small bag of herbs, worth [[1d12]] cp." ],
     [ 12, "Some strips of beef jerky." ],
+    [ 12, "A slightly mouldy <<orange|lemon|apple>>." ],
+    [ 12, "A tomato wrapped in cloth." ],
     [ 12, "A <<small pouch|bag|pouch|handkerchief>> containing some nuts and berries." ]
 ]};
 Treasure.lists['Food B'] = { 'table': [
@@ -667,6 +660,7 @@ Treasure.lists['Food C'] = { 'table': [
     [ 12, "A corked vial containing a <<spicy|hot|sweet>> sauce, [[2d4]]gp." ],
     [ 12, "A <<beef|pork>> pasty decorated with <<animals|plants|a ship|a mug of ale>>." ],
     [ 12, "A small flask of good quality wine." ],
+    [ 12, "A fresh orange." ],
     [ 12, "A small <<brass|copper>> box containing <<2|3|4>> doses of <i>Bachelor snuff</i>." ],
     [ 12, "A small <<brass|copper>> box containing <<2|3|4>> doses of <i>snuff</i>." ],
     [ 12, "A small pouch containing <<3|4|5|6|7>> doses of powdered <i>Thileu bark</i>." ],
@@ -694,10 +688,22 @@ Treasure.lists['Tat'] = { 'table': [
     [ 9, "A <<smelly|red dyed|blue dyed|blood stained>> rabbit's foot, on a string." ],
     [ 9, "A <<dirty|tattered|torn|short>> <<silk|cloth>> neck tie with the words '<<Lucky me|Love me|Great Fuck|This is mine>>' painted on." ],
     [ 9, "A leather belt with <<skulls|animal heads|a woman's face>> marked on it." ],
+    [ 9, "A fist-sized <<grey|black>> flat rock, smooth and round." ],
+    [ 9, "A <<scratched|twisted|partially melted>> <<brass|copper|iron>> ring, missing all of its precious stones." ],
+    [ 9, "A locket, with a drawing of a <<young girl|old woman|noble looking woman>> which has been defaced with <<a moustache|a beard|blacked out eyes>>." ],
+    [ 9, "An empty brass locket on a <<broken|tangled|short>> chain, worth [[1d6]]cp." ],
+    [ 9, "A wooden earring stud, with a carved <<goblin face|dog's head|skull|seven pointed star|angel>> on it." ],
+    [ 9, "A set of small <<rusty|locked|dirty|blood stained>> iron shackles, sized for a halfling or a child." ],
+    [ 9, "A small <<cloth|dirty|smelly|torn>> bag with half a set of <<crude|worn|chipped|burnt>> <<black|white>> chess pieces." ],
+    [ 9, "Several <<grubby|bent|moldy>> sheets of paper, with <<bad|crude|detailed|well drawn|quickly sketched>> drawings of <<elven women|halfing women|hairy dwarf women|naked men|giant cocks|buildings|the coast|swords|ears|landscapes>>." ],
+    [ 9, "A <<red|blue|orange|yellow|green>> rabbit's foot." ],
     [ 12, "Half of a <<polished|scratched|burnt>> wooden <<flute|pipe>>." ],
+    [ 12, "A heavily used fork, bent out of shape." ],
+    [ 12, "About <<two|three|four|five>> feet of <<knotted|tangled>> string with a <<small stone|large needle>> at one end." ],
+    [ 12, "A small harmonica with only a couple of working reeds." ],
     [ 12, "A piece of <<string|wire|chalk|torn paper>>." ],
-    [ 12, "<<Half a|A broken|A|A black>> candle, worth [[1d4]] cp." ],
-    [ 12, "A <<shark|ogre>>'s tooth on a <<wire|string>>, [[2d4]] cp." ],
+    [ 12, "<<Half a|A broken|A|A black>> candle, worth [[1d4]]cp." ],
+    [ 12, "A <<shark|ogre>>'s tooth on a <<wire|string>>, [[2d4]]cp." ],
     [ 12, "A pass to visit the Hells." ],
     [ 12, "An empty <<ebony|bone>> scroll tube missing both its stoppers." ],
     [ 12, "A fistfull of tinder scrap." ],
@@ -706,13 +712,24 @@ Treasure.lists['Tat'] = { 'table': [
     [ 12, "A <<cracked|small|grimy>> mirror and <<blunt|chipped|sharp>> shaving razor." ],
     [ 12, "A sewing kit of <<four|five|three>> needles and <<black|red|knotted>> thread." ],
     [ 12, "A ball of yarn, marked off at regular intervals with chalk." ],
-    [ 15, "A broken wand with no charges, [[1d4]] cp." ],
-    [ 15, "A piece of chalk, worth [[1]] cp." ],
+    [ 12, "A cracked and almost useless small magnifying glass." ],
+    [ 12, "<<One half of a|A bloodstained>> bootlace." ],
+    [ 12, "A copper disc with a symbol of a <<stag|rearing stag|galloping horse|charging boar|hawk|goblin|dragon|wyvern|sea monster|mermaid>>." ],
+    [ 12, "A seashell that sounds like the sea when held to the ear." ],
+    [ 12, "A single small <<iron|copper|brass|wooden>> horseshoe." ],
+    [ 12, "A sketch map of a sailing ship with a big cross in one of the cabins. The sketch is titled The <<Flying|White|Lucky|Blue|Quick|Old|Silver|Black|Red|Sea>> <<Wasp|Lady|Lamia|Maid|Hawk|Serpent|Harlot|Snake|Merchant|Sorceress|Goblin|Dodger>>." ],
+    [ 15, "A broken wand with no charges, [[1d4]]cp." ],
+    [ 15, "A piece of chalk, worth [[1]]cp." ],
     [ 15, "A <<hastily scribbled|finely written|perfumed>> note.", "Notes" ],
     [ 15, "A bundle of a half dozen toothpicks." ],
     [ 15, "A knotted ball of strings of varying lengths." ],
+    [ 15, "A heavily filed iron key, which is probably now useless." ],
+    [ 15, "A single six-sided <<wooden|bone|stone>> die, with <<a grinning skull|a heart|an apple|an eye|a pair of crossed swords>> in place of the <<one|six>>." ],
+    [ 15, "A single twenty-sided <<wooden|bone|stone>> die, terribly balanced and most likely to roll a <<2|5|7|13|15|16|17>> than anything else." ],
+    [ 15, "A single six-sided <<wooden|bone|stone>> die, weighted to roll a <<1|2|3|4|5|6>> about half the time." ],
     [ 18, "[[2d4]] copper pinches hidden in shoe." ],
     [ 18, "Several locks of hair <<twisted|tied|entwined|knotted>> together." ],
+    [ 18, "A single <<melted|bent|chewed>> copper coin." ],
     [ 18, "A silver coin bitten in two, 1sp" ]
 ]};
 
@@ -723,12 +740,26 @@ Treasure.lists['Eww'] = { 'table': [
     [ 9, "A <<dried|mummified|skeletal>> <<human|monkey's|child's|delicate>> hand on a string." ],
     [ 9, "A mummified cat's head." ],
     [ 9, "A <<straw|sack|feather>> doll with needles stuck into it. <<It has a woman's face painted on it.|It is stained with blood.|It's head is almost detatched.>>" ],
+    [ 9, "A dried-out <<dead snake|tentacle>> <<skewered on|wrapped around a>> <<gnarled branch|thick iron wire>>." ],
+    [ 9, "A bracelet of <<fingernails|fish fins|knucklebones>> threaded with copper wire. " ],
+    [ 9, "A <<dog's|cat's>> paw necklace." ],
+    [ 9, "A small piece of wood carved into a crude penis." ],
     [ 12, "A <<small|smelly|blood stained>> bag full of <<human|goblin|dog|orc|shark|elf|dwarf|children's|wooden>> teeth." ],
     [ 12, "A <<small bag|wrapped sheet of cloth>> containing <<children's|human|dwarven|elven>> fingernails." ],
     [ 12, "A dried eyeball wrapped in cloth." ],
     [ 12, "Several chess pieces carved from <<human|elvish|goblin>> finger bones." ],
+    [ 12, "<<Half a dozen|Three|Four>> <<fish|rat|mouse>> skeletons wrapped in paper." ],
+    [ 12, "A tangled ball of pigeon feathers, stuck together with <<blood|glue>>." ],
+    [ 12, "A soiled handkerchief, covered in <<moist|dried|aromatic>> green and brown stains." ],
+    [ 12, "A squashed and dried eyeball, in a folded sheet of paper." ],
+    [ 12, "A handful of dried and half-eaten beetles." ],
+    [ 12, "A small dead <<mouse|rat>> stuffed with rags." ],
+    [ 12, "Several <<ears|nipples|noses>> threaded on a wire necklace." ],
+    [ 12, "A small blackened and shrivelled hand, probably from a small baby." ],
     [ 15, "A finger in a small wooden box." ],
+    [ 15, "A collection of <<dog|cat>> claws." ],
     [ 15, "A torn scrap of skin with a tattoo of a <<Sihedron Rune|nipple|eyeball|penis|vagina|skull|scar>>." ],
+    [ 15, "A large bundle of short coarse <<black|red|blonde|brown>> hair." ],
     [ 18, "A small collection of <<toe|finger>> nails." ],
     [ 21, "A scrap of parchment sewn into jacket, with a <<detailed|badly drawn|cartoonish>> sketch of a naked and mutilated <<man's|woman's>> corpse." ],
     [ 21, "A piece of dried skin with a tattoo of <<Lamashtu|Rovagug|Zon-Kuthon>> on it." ],
@@ -799,11 +830,11 @@ Treasure.lists['Common'].coins = function(value) {
     return { 'cp': cp, 'sp': sp, 'gp': gp, 'pp': pp };
 };
 Treasure.lists['Common'].table = [
-    [ 12, "A <<plain|simply carved|scratched>> wooden box containing snuff, [[1d4]]sp. " ],
+    [ 12, "A <<plain|simply carved|scratched>> wooden box containing snuff, [[1d4]]sp." ],
     [ 12, "An IOU from a local <<merchant|shop keeper|noble|person>> claiming [[2d4]]gp." ],
     [ 12, "A small, <<mud-stained|blood-stained|water-stained>> book. The pages <<appear to be blank|are covered in some unreadable script|contain poor quality sketches>>, worth [[2d6]]cp."],
-    [ 12, "A good quality paint brush, made of <<human|elf|horse>> hair, [[2d6]]cp. " ],
-    [ 15, "A <<copper|bronze>> <<acorn|walnut>> worth [[1d4]]sp. " ],
+    [ 12, "A good quality paint brush, made of <<human|elf|horse>> hair, [[2d6]]cp." ],
+    [ 15, "A <<copper|bronze>> <<acorn|walnut>> worth [[1d4]]sp." ],
     [ 15, "A wand of acid spray, with one charge [[75]]sp." ],
     [ 21, "A small gemstone worth [[3d6]]gp." ]
 ];
@@ -923,3 +954,44 @@ Treasure.lists['Aristocrat E'] = { 'table': [
     [ 0, "Jewellery D" ], [ 0, "Jewellery E" ], [ 0, "Jewellery E" ]
 ]};
 
+
+Treasure.lists['Goblin'] = {};
+Treasure.lists['Goblin'].coins = function(value) {
+    var  cp = 0, sp = 0, gp = 0, pp = 0;
+
+    if (value < 2) {
+        cp = Treasure.getRoll(6, 1) - 3;
+    } else if (value < 5) {
+        cp = Treasure.getRoll(6, 1) - 2;
+        sp = Treasure.getRoll(4, 1) - 2;
+    } else if (value < 8) {
+        cp = Treasure.getRoll(6, 2) - 5;
+        sp = Treasure.getRoll(4, 2) - 4;
+    } else {
+        cp = Treasure.getRoll(6, 3) - 8;
+        sp = Treasure.getRoll(4, 3) - 5;
+        gp = Treasure.getRoll(value, 1) - 4;
+    }
+    if (cp < 0) {
+        cp = 0;
+    }
+    if (sp < 0) {
+        sp = 0;
+    }
+    if (gp < 0) {
+        gp - 0;
+    }
+    return { 'cp': cp, 'sp': sp, 'gp': gp, 'pp': pp };
+};
+Treasure.lists['Goblin A'] = { 'table': [
+    [ 0, 'Tat' ], [ 0, 'Eww' ], [ 0, 'Eww' ],
+    [ 0, 'Food A' ]
+]};
+Treasure.lists['Goblin B'] = { 'table': [
+    [ 0, 'Tat' ], [ 0, 'Eww' ],
+    [ 0, 'Food A' ], [ 'Tools A' ]
+]};
+Treasure.lists['Goblin C'] = { 'table': [
+    [ 0, 'Tat' ], [ 0, 'Eww' ],
+    [ 0, 'Food A' ], [ 'Tools A' ], [ 'Trinkets A' ]
+]};
