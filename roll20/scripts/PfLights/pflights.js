@@ -38,10 +38,129 @@
  * SOFTWARE.
  */
 
+var PfLight = PfLight || {};
+
+PfLight.BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px; font-style: normal; font-weight: normal; text-align: left";
+
+
+PfLight.setVision = function(token, radius, dimRadius) {
+    var hasSight = token.get("light_hassight");
+    if (hasSight != true) {
+        // No vision, so nothing to do.
+        return;
+    }
+    var lightMultiplier = token.get("light_multiplier");
+    if (lightMultiplier != null && lightMultiplier != "") {
+        lightMultiplier = parseFloat(lightMultiplier);
+    } else {
+        lightMultiplier = 1.0;
+    }
+    var characterId = token.get("represents");
+    if (characterId == null) {
+        // This isn't a character, so nothing to do.
+        return;
+    }
+    log("    Character has sight.");
+    var vision = getAttrByName(characterId, "vision");
+    if (vision != null && vision != "") {
+        vision = vision.toLowerCase();
+    } else {
+        vision = "";
+    }
+    // If a character has darkvision, then increase their vision out
+    // to their darkvision limit.
+    if (vision.indexOf("darkvision") > -1) {
+        var darkVisionRadius = 60;
+        var dr = vision.replace(/.*darkvision +([0-9]+).*/, "$1");
+        if (parseInt(dr) > 0) {
+            dr = parseInt(dr);
+            log("    Character has darkvision " + dr);
+            if (lightMultiplier > 1) {
+                // If they also have low-light vision, then darkvision radius
+                // shouldn't be multiplied, so we divide radius first, so when
+                // it's multiplied by the engine it is correct.
+                dr = dr / lightMultiplier;
+            }
+            if (radius == null || dr > parseInt(radius)) {
+                radius = dr;
+            }
+            if (dimRadius == null || dr > parseInt(dimRadius)) {
+                dimRadius = dr;
+            }
+            log("    Setting vision to be " + radius);
+        }
+    }
+    // A character's Perception can modify how far they can see.
+    var perception = getAttrByName(characterId, "Perception");
+    log("    Character Perception " + perception);
+    if (perception != null && parseInt(perception) != 0 && radius != null) {
+        var bonus = parseInt(perception) * (radius / 20.0);
+        radius += parseInt(bonus);
+        if (dimRadius != null && dimRadius >= 0) {
+            dimRadius += parseInt(bonus);
+        }
+    }
+
+    token.set({
+        'light_radius': radius,
+        'light_dimradius': dimRadius,
+    });
+};
+
+
 // API COMMAND HANDLER
 on("chat:message", function(msg) {
     if (msg.type !== "api") return;
-    if (msg.content.split(" ", 1)[0] === "!lights") {
+    if (msg.content.split(" ", 1)[0] === "!pfvision") {
+        var args = msg.content.split(" ");
+        var radius = null;
+        var dimRadius = null;
+        var msg = null;
+
+        var VISION = [];
+        VISION['day'] = { 'light': 960, 'dim': null, 'msg': "Full daylight" };
+        VISION['overcast'] = { 'light': 480, 'dim': 240, 'msg': "Overcast daylight" };
+        VISION['twilight'] = { 'light': 240, 'dim': 60, 'msg': "Twilight" };
+        VISION['dusk'] = { 'light': 120, 'dim': 30, 'msg': "Dusk" };
+        VISION['fullmoon'] = { 'light': 60, 'dim': -5, 'msg': "Full Moon" };
+        VISION['quarter'] = { 'light': 30, 'dim': -5, 'msg': "Quarter Moon" };
+        VISION['crescent'] = { 'light': 15, 'dim': -5, 'msg': "Crescent Moon" };
+        VISION['starlight'] = { 'light': 10, 'dim': -5, 'msg': "Starlight" };
+        VISION['dark'] = { 'light': null, 'dim': null, 'msg': "Complete darkness" };
+
+        if (args.length > 1) {
+            var lightLevel = args[1];
+            if (VISION[lightLevel] != null) {
+                radius = VISION[lightLevel].light;
+                dimRadius = VISION[lightLevel].dim;
+                msg = VISION[lightLevel].msg;
+            } else {
+                log("Unrecognised light level argument");
+                return;
+            }
+        }
+        log(radius + ", " + dimRadius);
+        var message = "Setting light level to be <b>" + msg + "</b>. ";
+        if (radius != null) {
+            message += "Base sight is <b>" + radius + "'</b>";
+        }
+        if (dimRadius != null && dimRadius >= 0) {
+            message += ", and dim light is from <b>" + dimRadius + "'</b>.";
+        } else {
+            message += ".";
+        }
+        sendChat("", "/desc <div style='" + PfLight.BOX_STYLE + "'>" + message + "</div>");
+
+        var currentObjects = findObjs({
+            _pageid: Campaign().get("playerpageid"),
+            _type: "graphic",
+        });
+        log("Looking for characters");
+        _.each(currentObjects, function(token) {
+            log("Found object: " + token.get("name"));
+            PfLight.setVision(token, radius, dimRadius);
+        });
+    } else if (msg.content.split(" ", 1)[0] === "!lights") {
         var player_obj = getObj("player", msg.playerid);
 
         var commands = msg.content.split(" ");
@@ -55,7 +174,6 @@ on("chat:message", function(msg) {
             token = getObj("graphic", token_id);
         }
 
-        var BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px";
 
         var message = "";
         if (duration < 1) {
@@ -66,7 +184,7 @@ on("chat:message", function(msg) {
             } else {
                 message = "" + duration + " minutes pass.";
             }
-            sendChat("", "/desc <div style='" + BOX_STYLE + "'>" + message + "</div>");
+            sendChat("", "/desc <div style='" + PfLight.BOX_STYLE + "'>" + message + "</div>");
         }
 
         var objects = null;
