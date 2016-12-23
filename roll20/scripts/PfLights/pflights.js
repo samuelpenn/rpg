@@ -119,8 +119,8 @@ on("chat:message", function(msg) {
 
         var VISION = [];
         VISION['day'] = { 'light': 960, 'dim': null, 'msg': "Full daylight" };
-        VISION['overcast'] = { 'light': 480, 'dim': 240, 'msg': "Overcast daylight" };
-        VISION['twilight'] = { 'light': 240, 'dim': 60, 'msg': "Twilight" };
+        VISION['overcast'] = { 'light': 480, 'dim': 360, 'msg': "Overcast daylight" };
+        VISION['twilight'] = { 'light': 240, 'dim': 120, 'msg': "Twilight" };
         VISION['dusk'] = { 'light': 120, 'dim': 30, 'msg': "Dusk" };
         VISION['fullmoon'] = { 'light': 60, 'dim': -5, 'msg': "Full Moon" };
         VISION['quarter'] = { 'light': 30, 'dim': -5, 'msg': "Quarter Moon" };
@@ -140,9 +140,13 @@ on("chat:message", function(msg) {
             }
         }
         log(radius + ", " + dimRadius);
-        var message = "Setting light level to be <b>" + msg + "</b>. ";
+        var message = "Setting light level to be <b>" + msg + "</b>";
         if (radius != null) {
-            message += "Base sight is <b>" + radius + "'</b>";
+            var dim = "";
+            if (dimRadius != null && dimRadius < 0) {
+                dim = "dim to ";
+            }
+            message += ". Base sight is " + dim + "<b>" + radius + "'</b>";
         }
         if (dimRadius != null && dimRadius >= 0) {
             message += ", and dim light is from <b>" + dimRadius + "'</b>.";
