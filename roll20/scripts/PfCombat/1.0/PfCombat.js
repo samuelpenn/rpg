@@ -84,48 +84,34 @@
 var PfCombat = PfCombat || {};
 
 /**
- * Heal all selected tokens to full hit points. Also removes status effects.
+ * Single event handler for all chat messages.
  */
 on("chat:message", function(msg) {
     if (msg.type !== "api") return;
-    if (msg.content.split(" ", 1)[0] != "!heal") return;
+    var command = msg.content.split(" ", 1)[0];
 
-    if (msg.selected.length > 0) {
-        for (var i=0; i < msg.selected.length; i++) {
-            var tokenId = msg.selected[i]._id;
-            var token = getObj("graphic", tokenId);
-            if (token != null) {
-                token.set("bar1_value", token.get("bar1_max"));
-                token.set("bar3_value", 0);
-                token.set({
-                    'status_pummeled': false,
-                    'status_dead': false,
-                    'status_skull': false,
-                    'status_red': false,
-                    'status_brown': false,
-                    'status_green': false,
-                    'status_bleeding-eye': false,
-                    'status_screaming': false,
-                    'status_flying-flag': false,
-                    'status_fishing-net': false,
-                    'status_sleepy': false,
-                    'status_half-haze': false,
-                    'status_broken-heart': false,
-                    'status_padlock': false,
-                    'status_radioactive': false,
-                    'status_half-heart': false,
-                    'status_cobweb': false,
-                    'status_chained-heart': false,
-                    'status_drink-me': false,
-                    'status_interdiction': false,
-                    'status_fist': false,
-                    'status_snail': false
-                });
-            }
-        }
+    if (command == "!pfheal") {
+        PfCombat.healCommand(msg);
+    } else if (command == "!pfinit") {
+        PfCombat.initCommand(msg);
+    } else if (command == "!pfsaves") {
+        PfCombat.savesCommand(msg);
+    } else if (command == "!pfdmg") {
+        PfCombat.damageCommand(msg);
+    } else if (command == "!pfstabilise") {
+        PfCombat.stabiliseCommand(msg);
+    } else if (command == "!pfstatus") {
+        PfCombat.statusCommand(msg);
     }
-    return;
 });
+
+on("change:graphic", function(obj, prev) {
+    log("PfCombat: Graphic change event for " + obj.get("name"));
+    if (obj.get("_pageid") == Campaign().get("playerpageid")) {
+        PfCombat.update(obj, prev, "");
+    }
+});
+
 
 /**
  * Returns an array of all the tokens selected, or a list of all
@@ -147,6 +133,13 @@ PfCombat.getSelectedTokens = function (msg, forceExplicit) {
 
     if (msg.selected != null && msg.selected.length > 0) {
         for (var i=0; i < msg.selected.length; i++) {
+            var token = getObj("graphic", msg.selected[i]._id);
+            if (token.get("name") == null || token.get("name") == "") {
+                continue;
+            }
+            if (token.get("represents") == null) {
+                continue;
+            }
             tokenList.push(msg.selected[i]._id);
         }
     } else if (!playerIsGM(msg.playerid)) {
@@ -183,10 +176,96 @@ PfCombat.getSelectedTokens = function (msg, forceExplicit) {
     return tokenList;
 }
 
-on("chat:message", function(msg) {
-    if (msg.type !== "api") return;
-    if (msg.content.split(" ", 1)[0] != "!pfinit") return;
+PfCombat.statusCommand = function(msg) {
+    var tokenList = PfCombat.getSelectedTokens(msg);
+    if (tokenList == null || tokenList.length == 0) {
+        return;
+    }
 
+    var html = "";
+    for (var i=0; i < tokenList.length; i++) {
+        var token = getObj("graphic", tokenList[i]);
+        var currentHp = parseInt(token.get("bar1_value"));
+        var maxHp = parseInt(token.get("bar1_max"));
+        var nonlethalDamage = parseInt(token.get("bar3_value"));
+        var stable = token.get("status_green");
+        var dead = token.get("status_dead");
+
+        currentHp -= nonlethalDamage;
+
+        var message = "<b>"+token.get("name") + "</b> ";
+        if (dead == true) {
+            message += "is dead.";
+        } else if (currentHp >= maxHp) {
+            message += "is at full hitpoints.";
+        } else if (currentHp > 0) {
+            message += "has " + currentHp + " out of " + maxHp + " hitpoints.";
+        } else if (currentHp == 0) {
+            message += "is disabled on zero hitpoints.";
+        } else if (stable) {
+            message += "is stable on " + currentHp + " hitpoints.";
+        } else {
+            message += "is dying on " + currentHp + " hitpoints.";
+        }
+        html += PfCombat.line(message);
+    }
+    sendChat(msg.who, "/w " + msg.who + " " + html);
+}
+
+/**
+ * Heal all selected tokens to full hit points. Also removes status effects.
+ */
+PfCombat.healCommand = function(msg) {
+    var tokenList = PfCombat.getSelectedTokens(msg);
+    if (tokenList != null && tokenList.length > 0) {
+        for (var i=0; i < tokenList.length; i++) {
+            var tokenId = tokenList[i];
+            var token = getObj("graphic", tokenId);
+            if (token != null) {
+                token.set("bar1_value", token.get("bar1_max"));
+                token.set("bar3_value", 0);
+                token.set({
+                    'status_pummeled': false,
+                    'status_dead': false,
+                    'status_skull': false,
+                    'status_red': false,
+                    'status_brown': false,
+                    'status_green': false,
+                    'status_bleeding-eye': false,
+                    'status_screaming': false,
+                    'status_flying-flag': false,
+                    'status_fishing-net': false,
+                    'status_sleepy': false,
+                    'status_half-haze': false,
+                    'status_broken-heart': false,
+                    'status_padlock': false,
+                    'status_radioactive': false,
+                    'status_half-heart': false,
+                    'status_cobweb': false,
+                    'status_chained-heart': false,
+                    'status_drink-me': false,
+                    'status_interdiction': false,
+                    'status_fist': false,
+                    'status_snail': false
+                });
+            }
+        }
+    }
+    return;
+};
+
+/**
+ * Calculates initiative, and adds to the initiative tracker, for each
+ * selected token. If no tokens are selected, and this is a player, then
+ * all tokens that belong to that player on the active map are selected.
+ *
+ * Initiative values have the dexterity * 0.01 of the character appended
+ * in order to help break ties.
+ *
+ * Makes use of initiativeMsgCallback to process the rolled result and
+ * add it into the tracker.
+ */
+PfCombat.initCommand = function(msg) {
     var turnOrder = [];
     if (Campaign().get("turnorder") != "") {
         turnOrder = JSON.parse(Campaign().get("turnorder"));
@@ -211,6 +290,8 @@ on("chat:message", function(msg) {
         var character = getObj("character", character_id);
         var init = getAttrByName(character_id, "init");
         var dex = getAttrByName(character_id, "DEX-base");
+        // Avoid dividing by 100, since this sometimes gives arithmetic
+        // errors with too many dp.
         if (parseInt(dex) < 10) {
             dex = ("0" + dex);
         }
@@ -220,7 +301,7 @@ on("chat:message", function(msg) {
     }
 
     return;
-});
+};
 
 /**
  * Needed when setting the turn order. Otherwise by the time the callback
@@ -246,18 +327,19 @@ function initiativeMsgCallback(tokenId, turnOrder, token) {
     };
 }
 
-on("chat:message", function(msg) {
-    if (msg.type !== "api") return;
-    if (msg.content.split(" ", 1)[0] != "!pfsaves") return;
-
+PfCombat.savesCommand = function(msg) {
     var params = msg.content.split(" ");
-    if (params.length < 3) {
-        PfCombat.usageSaves(msg, "Must specify at least a save type and DC.");
+    if (params.length < 2) {
+        PfCombat.usageSaves(msg, "Must specify at least a save type.");
         return;
     }
     var saveType = (""+params[1]).toLowerCase();
     var saveName = "";
-    var dc = parseInt(params[2]);
+    var dc = 0;
+
+    if (params.length > 2) {
+        dc = parseInt(params[2]);
+    }
 
     var setDamage = false, setStatus = false;
     var damage = null, halfDamage = null, status = null;
@@ -277,7 +359,8 @@ on("chat:message", function(msg) {
                 return;
             }
         } else if (status == null) {
-            status = arg.replace(/-/, " ");
+            status = arg.replace(/-/, " ").toLowerCase();
+            status = status.replace(/\w\S*/g, function (txt) { return txt.charAt(0).toUpperCase() + txt.substr(1); } );
             if (PfCombat.status[status] == null) {
                 PfCombat.usageSaves(msg, "Unrecognised token state " + arg + ".");
                 return;
@@ -304,11 +387,8 @@ on("chat:message", function(msg) {
         return;
     }
 
-    if (msg != null && msg.selected != null && msg.selected.length > 0) {
-        var tokenList = [];
-        for (var i=0; i < msg.selected.length; i++) {
-            tokenList.push(msg.selected[i]._id);
-        }
+    var tokenList = PfCombat.getSelectedTokens(msg);
+    if (tokenList != null && tokenList.length > 0) {
         for (var tIdx=0; tIdx < tokenList.length; tIdx++) {
             var tokenId = tokenList[tIdx];
             var token = getObj("graphic", tokenId);
@@ -325,9 +405,30 @@ on("chat:message", function(msg) {
                 sendChat("", "/w GM " + token.get("name") + " has no associated save attribute");
                 return;
             }
-            var check = randomInteger(20) + parseInt(score);
-
             var message = "";
+            if (dc == 0) {
+                message = "Rolls a <b>" + saveName + "</b> save of [[d20 + " + score + "]].";
+                PfCombat.message(token, PfCombat.line(message));
+                continue;
+            }
+
+
+            var autoSuccess = false;
+            var autoFail = false;
+            var autoMsg = "";
+            var check = randomInteger(20);
+            if (check == 1) {
+                autoFail = true;
+                autoMsg = " Natural [1]";
+            } else if (check == 20) {
+                autoSuccess = true;
+                autoMsg = " Natural [20]";
+            }
+            check += parseInt(score);
+
+            if (!playerIsGM(msg.playerid)) {
+                message += PfCombat.line("Rolls " + check + "" + autoMsg + ". ");
+            }
             var flags = [];
             var prev = [];
             prev["bar1_value"] = token.get("bar1_value");
@@ -335,7 +436,7 @@ on("chat:message", function(msg) {
             prev["bar3_value"] = token.get("bar3_value");
             prev["bar3_max"] = token.get("bar3_max");
 
-            if (check >= dc) {
+            if (!autoFail && (check >= dc || autoSuccess)) {
                 flags['status_flying-flag'] = false;
                 var text = "Succeeds on a " + saveName + " DC " + dc + " check.";
                 if (setDamage && halfDamage > 0) {
@@ -345,7 +446,7 @@ on("chat:message", function(msg) {
                     token.set("bar1_value", currentHp);
                     text += " They take " + halfDamage + "hp damage.";
                 }
-                message = PfCombat.line(text);
+                message += PfCombat.line(text);
             } else {
                 if (setDamage || setStatus) {
                     var text = "Fails a " + saveName + " DC " + dc + " check.";
@@ -355,7 +456,9 @@ on("chat:message", function(msg) {
 
                         token.set("bar1_value", currentHp);
                         text += " They take " + damage + "hp damage.";
-                        message += PfCombat.line(text);
+                        if (!setStatus) {
+                            message += PfCombat.line(text);
+                        }
                     }
                     if (setStatus) {
                         var symbol = PfCombat.status[status].status;
@@ -368,7 +471,7 @@ on("chat:message", function(msg) {
                         message += PfCombat.line(text);
                     }
                 } else {
-                    message = PfCombat.line("Fails a " + saveName + " DC " + dc + " check.");
+                    message += PfCombat.line("Fails a " + saveName + " DC " + dc + " check.");
                     flags['status_flying-flag'] = true;
                 }
             }
@@ -381,16 +484,13 @@ on("chat:message", function(msg) {
         }
     }
     return;
-});
+};
 
 /**
  * Damage all selected tokens by the given amount.
  * Damage is either lethal or nonlethal.
  */
-on("chat:message", function(msg) {
-    if (msg.type !== "api") return;
-    if (msg.content.split(" ", 1)[0] != "!pfdmg") return;
-
+PfCombat.damageCommand = function(msg) {
     var damage = 1;
     var nonlethal = false;
     n = msg.content.split(" ");
@@ -401,7 +501,7 @@ on("chat:message", function(msg) {
             return;
         }
     }
-    if (n.length > 2 && n[2] == "nonlethal") {
+    if (n.length > 2 && n[2] == "nonlethal".substr(0, n[2].length)) {
         nonlethal = true;
     }
 
@@ -432,18 +532,16 @@ on("chat:message", function(msg) {
         }
     }
     return;
-});
+};
 
 /**
  * Check to see if any of the selected tokens stabilise.
  */
-on("chat:message", function(msg) {
-    if (msg.type !== "api") return;
-    if (msg.content.split(" ", 1)[0] != "!stabilise") return;
-
-    if (msg.selected.length > 0) {
-        for (var i=0; i < msg.selected.length; i++) {
-            var tokenId = msg.selected[i]._id;
+PfCombat.stabiliseCommand = function(msg) {
+    var tokenList = PfCombat.getSelectedTokens(msg, true);
+    if (tokenList != null && tokenList.length > 0) {
+        for (var i=0; i < tokenList.length; i++) {
+            var tokenId = tokenList[i];
             var token = getObj("graphic", tokenId);
             if (token == null) {
                 continue;
@@ -496,14 +594,8 @@ on("chat:message", function(msg) {
         }
     }
     return;
-});
+};
 
-on("change:graphic", function(obj, prev) {
-    log("PfCombat: Graphic change event for " + obj.get("name"));
-    if (obj.get("_pageid") == Campaign().get("playerpageid")) {
-        PfCombat.update(obj, prev, "");
-    }
-});
 
 PfCombat.getSymbolHtml = function(symbol) {
     var statuses = [
