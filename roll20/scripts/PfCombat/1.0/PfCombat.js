@@ -80,8 +80,11 @@
  * SOFTWARE.
  */
 
+
+var PfCombat = PfCombat || {};
+
 /**
- * Heal all selected tokens to full hit points.
+ * Heal all selected tokens to full hit points. Also removes status effects.
  */
 on("chat:message", function(msg) {
     if (msg.type !== "api") return;
@@ -124,29 +127,29 @@ on("chat:message", function(msg) {
     return;
 });
 
-on("chat:message", function(msg) {
-    if (msg.type !== "api") return;
-    if (msg.content.split(" ", 1)[0] != "!pfinit") return;
-
-    var turnOrder = [];
-    if (Campaign().get("turnorder") != "") {
-        turnOrder = JSON.parse(Campaign().get("turnorder"));
-    }
+/**
+ * Returns an array of all the tokens selected, or a list of all
+ * controlled tokens if none are selected. List is returned as an
+ * array of token ids.
+ *
+ * If forceExplicit is passed as true, then only allow a single
+ * target unless they are explicity selected.
+ */
+PfCombat.getSelectedTokens = function (msg, forceExplicit) {
     var tokenList = [];
+    if (forceExplicit == null) {
+        forceExplicit = false;
+    }
 
-    if (msg != null && msg.selected != null && msg.selected.length > 0) {
+    if (msg == null) {
+        return null;
+    }
+
+    if (msg.selected != null && msg.selected.length > 0) {
         for (var i=0; i < msg.selected.length; i++) {
             tokenList.push(msg.selected[i]._id);
-            for (var ti=0; ti < turnOrder.length; ti++) {
-                if (turnOrder[ti].id == msg.selected[i]._id) {
-                    turnOrder.splice(ti, 1);
-                }
-            }
         }
     } else if (!playerIsGM(msg.playerid)) {
-        // If this is not the GM, then roll initiative for the player's
-        // own characters.
-        log("Looking for characters owned by " + msg.playerid);
         var currentObjects = findObjs({
             _pageid: Campaign().get("playerpageid"),
             _type: "graphic",
@@ -166,19 +169,37 @@ on("chat:message", function(msg) {
                 if (controlledBy == null || controlledBy == "") {
                     continue;
                 }
-                log("Found object: " + token.get("name") + " controlled by " + controlledBy);
                 if (controlledBy.indexOf(msg.playerid) > -1 || controlledBy.indexOf("all") > -1) {
-                    log("    Token " + token.get("_id") + " is controlled by me");
                     tokenList.push(token.get("_id"));
-                    for (var ti=0; ti < turnOrder.length; ti++) {
-                        if (turnOrder[ti].id == token.get("_id")) {
-                            turnOrder.splice(ti, 1);
-                        }
-                    }
                 }
             }
         }
+        if (forceExplicit && tokenList.length != 1) {
+            log("PfCombat.getSelectedTokens: forceExplicit is set, and " + tokenList.length + " tokens found.");
+            return null;
+        }
     }
+
+    return tokenList;
+}
+
+on("chat:message", function(msg) {
+    if (msg.type !== "api") return;
+    if (msg.content.split(" ", 1)[0] != "!pfinit") return;
+
+    var turnOrder = [];
+    if (Campaign().get("turnorder") != "") {
+        turnOrder = JSON.parse(Campaign().get("turnorder"));
+    }
+    var tokenList = PfCombat.getSelectedTokens(msg);
+    for (var i=0; i < tokenList.length; i++) {
+        for (var ti=0; ti < turnOrder.length; ti++) {
+            if (turnOrder[ti].id == tokenList[i]) {
+                turnOrder.splice(ti, 1);
+            }
+        }
+    }
+
     for (var tIdx=0; tIdx < tokenList.length; tIdx++) {
         var tokenId = tokenList[tIdx];
         var token = getObj("graphic", tokenId);
@@ -384,9 +405,14 @@ on("chat:message", function(msg) {
         nonlethal = true;
     }
 
-    if (msg.selected.length > 0) {
-        for (var i=0; i < msg.selected.length; i++) {
-            var tokenId = msg.selected[i]._id;
+    var tokenList = PfCombat.getSelectedTokens(msg, true);
+    if (tokenList == null) {
+        PfCombat.error("Cannot determine list of selected tokens.");
+        return;
+    }
+    if (tokenList.length > 0) {
+        for (var i=0; i < tokenList.length; i++) {
+            var tokenId = tokenList[i];
             var token = getObj("graphic", tokenId);
 
             log(token.get("name"));
@@ -472,10 +498,11 @@ on("chat:message", function(msg) {
     return;
 });
 
-var PfCombat = PfCombat || {};
-
 on("change:graphic", function(obj, prev) {
-    PfCombat.update(obj, prev, "");
+    log("PfCombat: Graphic change event for " + obj.get("name"));
+    if (obj.get("_pageid") == Campaign().get("playerpageid")) {
+        PfCombat.update(obj, prev, "");
+    }
 });
 
 PfCombat.getSymbolHtml = function(symbol) {
@@ -555,6 +582,7 @@ PfCombat.update = function(obj, prev, message) {
     if (message == null) {
         message = "";
     }
+    //log("PfCombat.update: " + obj.get("name") + ((prev==null)?"":", <prev>") + ", [" + message + "]");
 
     var takenDamage = false;
     var name = obj.get("name");
@@ -762,3 +790,14 @@ PfCombat.message = function(token, message, func) {
         }
     }
 }
+
+PfCombat.ERROR_STYLE="background-color: #FFDDDD; color: #000000; margin-top: 30px; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px; text-align: left; font-style: normal; font-weight: normal";
+
+PfCombat.error = function(message) {
+    if (message != null && message != "") {
+        log("PfCombat Error: " + message);
+        var html = "<div style='" + PfCombat.ERROR_STYLE + "'><b>PfCombat Error:</b> " + message + "</div>";
+        sendChat("", "/desc " + html);
+    }
+}
+
