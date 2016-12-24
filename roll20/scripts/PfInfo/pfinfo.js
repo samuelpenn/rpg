@@ -335,7 +335,7 @@ Info.message = function(displayName, token, message, func) {
     if (message != null) {
         var image = token.get("imgsrc");
         var name = token.get("name");
-        var html = "<div style='" + Damage.BOX_STYLE + "'>";
+        var html = "<div style='" + PfCombat.BOX_STYLE + "'>";
         html += "<div style='margin-top: 0px; padding-left: 5px; font-weight: normal; font-style: normal;'>";
         html += "<div style='font-weight: bold; font-size: larger; padding: 0px 0px 0px 0px'>" + name + "</div>";
         html += "<img style='float:right' width='64' src='" + image + "'>";
