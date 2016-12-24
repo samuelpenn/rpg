@@ -41,7 +41,7 @@
  *   during testing, but might be useful in a game.
  *
  * Damage:
- *   !damage <hitpoints> [nonlethal]
+ *   !pfdmg <hitpoints> [nonlethal]
  *
  *   Does the indicated damage to all selected tokens. If the 'nonlethal'
  *   flag is set, then the damage is nonlethal.
@@ -128,12 +128,13 @@ on("chat:message", function(msg) {
     if (msg.type !== "api") return;
     if (msg.content.split(" ", 1)[0] != "!pfinit") return;
 
+    var turnOrder = [];
+    if (Campaign().get("turnorder") != "") {
+        turnOrder = JSON.parse(Campaign().get("turnorder"));
+    }
+    var tokenList = [];
+
     if (msg != null && msg.selected != null && msg.selected.length > 0) {
-        var tokenList = [];
-        var turnOrder = [];
-        if (Campaign().get("turnorder") != "") {
-            turnOrder = JSON.parse(Campaign().get("turnorder"));
-        }
         for (var i=0; i < msg.selected.length; i++) {
             tokenList.push(msg.selected[i]._id);
             for (var ti=0; ti < turnOrder.length; ti++) {
@@ -142,24 +143,59 @@ on("chat:message", function(msg) {
                 }
             }
         }
-        for (var tIdx=0; tIdx < tokenList.length; tIdx++) {
-            var tokenId = tokenList[tIdx];
-            var token = getObj("graphic", tokenId);
-
-            var character_id = token.get("represents");
-            if (character_id == null) {
-                return;
+    } else if (!playerIsGM(msg.playerid)) {
+        // If this is not the GM, then roll initiative for the player's
+        // own characters.
+        log("Looking for characters owned by " + msg.playerid);
+        var currentObjects = findObjs({
+            _pageid: Campaign().get("playerpageid"),
+            _type: "graphic",
+        });
+        for (var i=0; i < currentObjects.length; i++) {
+            var token = currentObjects[i];
+            if (token.get("name") == null || token.get("name") == "") {
+                continue;
             }
-            var character = getObj("character", character_id);
-            var init = getAttrByName(character_id, "init");
-            var dex = getAttrByName(character_id, "DEX-base");
-            if (parseInt(dex) < 10) {
-                dex = ("0" + dex);
+            var characterId = token.get("represents");
+            if (characterId != null && characterId != "") {
+                var character = getObj("character", characterId);
+                if (character == null) {
+                    continue;
+                }
+                var controlledBy = character.get("controlledby");
+                if (controlledBy == null || controlledBy == "") {
+                    continue;
+                }
+                log("Found object: " + token.get("name") + " controlled by " + controlledBy);
+                if (controlledBy.indexOf(msg.playerid) > -1 || controlledBy.indexOf("all") > -1) {
+                    log("    Token " + token.get("_id") + " is controlled by me");
+                    tokenList.push(token.get("_id"));
+                    for (var ti=0; ti < turnOrder.length; ti++) {
+                        if (turnOrder[ti].id == token.get("_id")) {
+                            turnOrder.splice(ti, 1);
+                        }
+                    }
+                }
             }
-            var message = "Initiative is [[d20 + " + init + " + 0." + dex + "]]";
-            var message = Damage.line(message);
-            Damage.message(token, message, initiativeMsgCallback(tokenId, turnOrder, token));
         }
+    }
+    for (var tIdx=0; tIdx < tokenList.length; tIdx++) {
+        var tokenId = tokenList[tIdx];
+        var token = getObj("graphic", tokenId);
+
+        var character_id = token.get("represents");
+        if (character_id == null) {
+            continue;
+        }
+        var character = getObj("character", character_id);
+        var init = getAttrByName(character_id, "init");
+        var dex = getAttrByName(character_id, "DEX-base");
+        if (parseInt(dex) < 10) {
+            dex = ("0" + dex);
+        }
+        var message = "Initiative is [[d20 + " + init + " + 0." + dex + "]]";
+        var message = PfCombat.line(message);
+        PfCombat.message(token, message, initiativeMsgCallback(tokenId, turnOrder, token));
     }
 
     return;
@@ -175,12 +211,17 @@ function initiativeMsgCallback(tokenId, turnOrder, token) {
         var rollresult = ops[0];
         var result = rollresult.inlinerolls[0].results.total;
 
+        if (turnOrder == null) {
+            log("turnOrder is not set in initiativeMsgCallback");
+            return;
+        }
+
         turnOrder.push({
             id: tokenId,
             pr: result
         });
         Campaign().set("turnorder", JSON.stringify(turnOrder));
-        Damage.message(token, Damage.line("Joins combat on initiative [[d0 + " + result + "]]"));
+        PfCombat.message(token, PfCombat.line("Joins combat on initiative [[d0 + " + result + "]]"));
     };
 }
 
@@ -190,7 +231,7 @@ on("chat:message", function(msg) {
 
     var params = msg.content.split(" ");
     if (params.length < 3) {
-        Damage.usageSaves(msg, "Must specify at least a save type and DC.");
+        PfCombat.usageSaves(msg, "Must specify at least a save type and DC.");
         return;
     }
     var saveType = (""+params[1]).toLowerCase();
@@ -211,19 +252,19 @@ on("chat:message", function(msg) {
             } else if (halfDamage == null) {
                 halfDamage = parseInt(arg);
             } else {
-                Damage.usageSaves(msg, "Can only specify two damages.");
+                PfCombat.usageSaves(msg, "Can only specify two damages.");
                 return;
             }
         } else if (status == null) {
             status = arg.replace(/-/, " ");
-            if (Damage.status[status] == null) {
-                Damage.usageSaves(msg, "Unrecognised token state " + arg + ".");
+            if (PfCombat.status[status] == null) {
+                PfCombat.usageSaves(msg, "Unrecognised token state " + arg + ".");
                 return;
             } else {
                 setStatus = true;
             }
         } else {
-            Damage.usageSaves(msg, "Too many arguments.");
+            PfCombat.usageSaves(msg, "Too many arguments.");
             return;
         }
     }
@@ -238,7 +279,7 @@ on("chat:message", function(msg) {
         saveType = "Will";
         saveName = "Will";
     } else {
-        Damage.usageSaves(msg, "Unrecognised saving throw type " + saveType);
+        PfCombat.usageSaves(msg, "Unrecognised saving throw type " + saveType);
         return;
     }
 
@@ -283,7 +324,7 @@ on("chat:message", function(msg) {
                     token.set("bar1_value", currentHp);
                     text += " They take " + halfDamage + "hp damage.";
                 }
-                message = Damage.line(text);
+                message = PfCombat.line(text);
             } else {
                 if (setDamage || setStatus) {
                     var text = "Fails a " + saveName + " DC " + dc + " check.";
@@ -293,28 +334,28 @@ on("chat:message", function(msg) {
 
                         token.set("bar1_value", currentHp);
                         text += " They take " + damage + "hp damage.";
-                        message += Damage.line(text);
+                        message += PfCombat.line(text);
                     }
                     if (setStatus) {
-                        var symbol = Damage.status[status].status;
-                        var effect = Damage.status[status].description;
+                        var symbol = PfCombat.status[status].status;
+                        var effect = PfCombat.status[status].description;
                         flags["status_" + symbol] = true;
 
-                        message += Damage.getSymbolHtml(symbol);
+                        message += PfCombat.getSymbolHtml(symbol);
 
                         text += "<br/>They are now <b>" + status + "</b>.";
-                        message += Damage.line(text);
+                        message += PfCombat.line(text);
                     }
                 } else {
-                    message = Damage.line("Fails a " + saveName + " DC " + dc + " check.");
+                    message = PfCombat.line("Fails a " + saveName + " DC " + dc + " check.");
                     flags['status_flying-flag'] = true;
                 }
             }
             token.set( flags );
             if (setDamage) {
-                Damage.update(token, prev, message);
+                PfCombat.update(token, prev, message);
             } else {
-                Damage.message(token, message);
+                PfCombat.message(token, message);
             }
         }
     }
@@ -327,7 +368,7 @@ on("chat:message", function(msg) {
  */
 on("chat:message", function(msg) {
     if (msg.type !== "api") return;
-    if (msg.content.split(" ", 1)[0] != "!damage") return;
+    if (msg.content.split(" ", 1)[0] != "!pfdmg") return;
 
     var damage = 1;
     var nonlethal = false;
@@ -361,7 +402,7 @@ on("chat:message", function(msg) {
                 log("Real hp is now " + currentHp);
                 token.set("bar1_value", currentHp);
             }
-            Damage.update(token, null, "");
+            PfCombat.update(token, null, "");
         }
     }
     return;
@@ -416,14 +457,14 @@ on("chat:message", function(msg) {
                     token.set({
                         status_green: true
                     });
-                    Damage.update(token, null, Damage.getSymbolHtml("green") + Damage.line("<b>" + tokenName + "</b> stops bleeding.</p>"));
+                    PfCombat.update(token, null, PfCombat.getSymbolHtml("green") + PfCombat.line("<b>" + tokenName + "</b> stops bleeding.</p>"));
                 } else {
                     hpCurrent -= 1;
                     token.set({
                         bar1_value: hpCurrent,
                         status_green: false
                     });
-                    Damage.update(token, null, Damage.line("<b>" + tokenName + "</b> bleeds a bit more."));
+                    PfCombat.update(token, null, PfCombat.line("<b>" + tokenName + "</b> bleeds a bit more."));
                 }
             }
         }
@@ -431,13 +472,13 @@ on("chat:message", function(msg) {
     return;
 });
 
-var Damage = Damage || {};
+var PfCombat = PfCombat || {};
 
 on("change:graphic", function(obj, prev) {
-    Damage.update(obj, prev, "");
+    PfCombat.update(obj, prev, "");
 });
 
-Damage.getSymbolHtml = function(symbol) {
+PfCombat.getSymbolHtml = function(symbol) {
     var statuses = [
         'red', 'blue', 'green', 'brown', 'purple', 'pink', 'yellow', // 0-6
         'skull', 'sleepy', 'half-heart', 'half-haze', 'interdiction',
@@ -464,11 +505,11 @@ Damage.getSymbolHtml = function(symbol) {
     }
 }
 
-Damage.usageSaves = function(msg, errorText) {
+PfCombat.usageSaves = function(msg, errorText) {
     var text = "<i>" + errorText + "</i><br/>";
     text += "Use !pfsaves &lt;Ref|Fort|Will&gt; &lt;DC&gt; [&lt;Damage&gt; [&lt;Half-Damage&gt;]] [&lt;Effect&gt;]<br/>";
     text += "Allowed effects: ";
-    for (var s in Damage.status) {
+    for (var s in PfCombat.status) {
         text += s.replace(/ /, "-") + ", ";
     }
     text = text.replace(/, $/, ".");
@@ -476,7 +517,7 @@ Damage.usageSaves = function(msg, errorText) {
     sendChat("PfDamage", "/w " + msg.who + " " + text);
 }
 
-Damage.status = {
+PfCombat.status = {
     'Blind': { status: "bleeding-eye", description: "-2 penalty to AC; loses Dex bonus to AC; -4 penalty of most Dex and Str checks and opposed Perception checks; Opponents have 50% concealment; Acrobatics DC 10 if move faster than half speed, or prone." },
     'Confused': { status: "screaming", description: "01-25: Act Normally; 26-50: Babble; 51-75: 1d8 + Str damage to self; 76-100: Attack nearest." },
     'Entangled': { status: "fishing-net", description: "No movement if anchored, otherwise half speed. -2 attack, -4 Dex. Concentration check to cast spells." },
@@ -497,9 +538,9 @@ Damage.status = {
     'Dead': { status: "dead", description: "Creature is dead. Gone. Destroyed." }
 };
 
-Damage.BOX_STYLE="background-color: #EEEEDD; color: #000000; margin-top: 30px; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px";
+PfCombat.BOX_STYLE="background-color: #EEEEDD; color: #000000; margin-top: 30px; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px";
 
-Damage.line = function(message) {
+PfCombat.line = function(message) {
     return "<p style='margin:0px; padding:0px; padding-bottom: 2px; font-weight: normal; font-style: normal; text-align: left'>" + message + "</p>";
 }
 
@@ -509,7 +550,7 @@ Damage.line = function(message) {
  * The prev object contains a map of previous values prior to the token changing,
  * so we can tell how much damage the token has just taken.
  */
-Damage.update = function(obj, prev, message) {
+PfCombat.update = function(obj, prev, message) {
     if (obj == null || obj.get("bar1_max") === "") return;
     if (message == null) {
         message = "";
@@ -517,9 +558,9 @@ Damage.update = function(obj, prev, message) {
 
     var takenDamage = false;
     var name = obj.get("name");
-    var hpMax = obj.get("bar1_max");
-    var hpCurrent = obj.get("bar1_value");
-    var nonlethalDamage = obj.get("bar3_value");
+    var hpMax = parseInt(obj.get("bar1_max"));
+    var hpCurrent = parseInt(obj.get("bar1_value"));
+    var nonlethalDamage = parseInt(obj.get("bar3_value"));
     var stable = obj.get("status_green");
     var previousHitpoints = hpCurrent;
 
@@ -548,7 +589,7 @@ Damage.update = function(obj, prev, message) {
             stable = true;
         }
 
-        previousHitpoints = prev["bar1_value"] - prev["bar3_value"]
+        previousHitpoints = prev["bar1_value"] - prev["bar3_value"];
     }
 
     if (nonlethalDamage === "") {
@@ -574,7 +615,7 @@ Damage.update = function(obj, prev, message) {
     }
     var living = true;
 
-    // Undead have special rules.
+    // Non-living have special rules.
     if (type.indexOf("Undead") > -1 || type.indexOf("Construct") > -1 || type.indexOf("Inevitable") > -1 || type.indexOf("Swarm") > -1 ) {
         if (nonlethalDamage > 0) {
             obj.set({
@@ -611,9 +652,9 @@ Damage.update = function(obj, prev, message) {
             status_green: false
         });
         if (type.indexOf("Swarm") > -1) {
-            message += Damage.line("<b>" + name + "</b> is <i>dispersed</i>.");
+            message += PfCombat.line("<b>" + name + "</b> is <i>dispersed</i>.");
         } else {
-            message += Damage.line("<b>" + name + "</b> is <i>destroyed</i>.");
+            message += PfCombat.line("<b>" + name + "</b> is <i>destroyed</i>.");
         }
     } else if (hpCurrent <= 0 - constitution) {
         obj.set({
@@ -624,7 +665,7 @@ Damage.update = function(obj, prev, message) {
             status_brown: false,
             status_green: false
         });
-        message += Damage.line("<b>" + name + "</b> is <i>dead</i>.");
+        message += PfCombat.line("<b>" + name + "</b> is <i>dead</i>.");
     } else if (hpActual < 0) {
         obj.set({
             status_pummeled: false,
@@ -634,14 +675,14 @@ Damage.update = function(obj, prev, message) {
             status_brown: false
         });
         if (hpCurrent < 0 && !stable) {
-            message += Damage.getSymbolHtml("skull");
-            message += Damage.line("<b>" + name + "</b> is <i>dying</i>. Each turn " +
+            message += PfCombat.getSymbolHtml("skull");
+            message += PfCombat.line("<b>" + name + "</b> is <i>dying</i>. Each turn " +
                                    "they must make a DC&nbsp;" + (10 - hpCurrent) +
                                    " CON check to stop bleeding.");
         } else if (hpCurrent < 0) {
-            message += Damage.line("<b>" + name + "</b> is <i>dying but stable</i>.");
+            message += PfCombat.line("<b>" + name + "</b> is <i>dying but stable</i>.");
         } else {
-            message += Damage.line("<b>" + name + "</b> is <i>unconscious</i>.");
+            message += PfCombat.line("<b>" + name + "</b> is <i>unconscious</i>.");
         }
     } else if (hpActual == 0) {
         // Staggered. Note that a character is staggered if either
@@ -657,11 +698,11 @@ Damage.update = function(obj, prev, message) {
         });
         var msg = "They can only make one standard or move action each round.";
         if (hpCurrent == 0) {
-            message += Damage.getSymbolHtml("pummeled");
-            message += Damage.line("<b>" + name + "</b> is <i>disabled</i>. " + msg);
+            message += PfCombat.getSymbolHtml("pummeled");
+            message += PfCombat.line("<b>" + name + "</b> is <i>disabled</i>. " + msg);
         } else {
-            message += Damage.getSymbolHtml("pummeled");
-            message += Damage.line("<b>" + name + "</b> is <i>staggered</i>. " + msg);
+            message += PfCombat.getSymbolHtml("pummeled");
+            message += PfCombat.line("<b>" + name + "</b> is <i>staggered</i>. " + msg);
         }
     } else if (hpActual <= hpMax / 3) {
         obj.set({
@@ -673,8 +714,8 @@ Damage.update = function(obj, prev, message) {
             status_green: false
         });
         if (prev != null && previousHitpoints > hpMax / 3) {
-            message += Damage.getSymbolHtml("red");
-            message += Damage.line("<b>" + name + "</b> is now <i>heavily wounded</i>.");
+            message += PfCombat.getSymbolHtml("red");
+            message += PfCombat.line("<b>" + name + "</b> is now <i>heavily wounded</i>.");
         }
     } else if (hpActual <= hpMax * (2/3)) {
         obj.set({
@@ -686,8 +727,8 @@ Damage.update = function(obj, prev, message) {
             status_green: false
         });
         if (prev != null && previousHitpoints > hpMax * (2/3)) {
-            message += Damage.getSymbolHtml("brown");
-            message += Damage.line("<b>" + name + "</b> is now <i>moderately wounded</i>.");
+            message += PfCombat.getSymbolHtml("brown");
+            message += PfCombat.line("<b>" + name + "</b> is now <i>moderately wounded</i>.");
         }
     } else {
         obj.set({
@@ -700,15 +741,15 @@ Damage.update = function(obj, prev, message) {
         });
     }
     if (message != "") {
-        Damage.message(obj, message);
+        PfCombat.message(obj, message);
     }
 }
 
-Damage.message = function(token, message, func) {
+PfCombat.message = function(token, message, func) {
     if (message != null) {
         var image = token.get("imgsrc");
         var name = token.get("name");
-        var html = "<div style='" + Damage.BOX_STYLE + "'>";
+        var html = "<div style='" + PfCombat.BOX_STYLE + "'>";
         html += "<img src='"+image+"' width='50px' style='position: absolute; top: 5px; left: 30px; background-color: white; border-radius: 25px'/>";
         html += "<div style='position: absolute; top: 22px; left: 90px; border: 1px solid black; background-color: white; padding: 0px 5px 0px 5px'>" + name + "</div>";
         html += "<div style='margin-top: 20px; padding-left: 5px'>" + message + "</div>";

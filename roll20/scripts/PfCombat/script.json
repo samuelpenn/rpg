@@ -1,6 +1,6 @@
 {
-    "name": "PfDamage",
-    "script": "pfdamage.js",
+    "name": "PfCombat",
+    "script": "PfCombat.js",
     "version": "1.0",
     "previousversions": [ ],
     "description": "This script tracks and manages damage to creatures, providing both visual feedback on tokens and output to the chat windows. It tracks both lethal and non-lethal damage. It handles creatures that don't suffer nonlethal damage, and automatically calculates stabilising at negative hitpoints.",

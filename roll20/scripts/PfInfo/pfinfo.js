@@ -250,6 +250,17 @@ Info.Process = function(msg, player_obj) {
             html += Info.line("Immunities", immunities);
             html += Info.line("Weaknesses", weaknesses);
 
+            var meleeAttackNotes = getAttrByName(character.id, "melee-attack-notes");
+            var rangedAttackNotes = getAttrByName(character.id, "ranged-attack-notes");
+            var cmbNotes = getAttrByName(character.id, "CMB-notes");
+            var attackNotes = getAttrByName(character.id, "attack-notes");
+
+            html += Info.line("Melee Attacks", meleeAttackNotes);
+            html += Info.line("Ranged Attacks", rangedAttackNotes);
+            html += Info.line("CMB", cmbNotes);
+            html += Info.line("Attacks", attackNotes);
+
+
             // Token statuses
             html += Info.getStatusText(target);
 
