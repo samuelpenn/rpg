@@ -162,7 +162,10 @@ PfCombat.getSelectedTokens = function (msg, forceExplicit) {
                 if (controlledBy == null || controlledBy == "") {
                     continue;
                 }
-                if (controlledBy.indexOf(msg.playerid) > -1 || controlledBy.indexOf("all") > -1) {
+                // We only allow tokens that are explicitly controlled by this
+                // player. Tokens controlled by "all" are never included. This is
+                // to ignore tokens such as spell templates, torches etc.
+                if (controlledBy.indexOf(msg.playerid) > -1) {
                     tokenList.push(token.get("_id"));
                 }
             }
