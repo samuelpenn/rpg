@@ -15,11 +15,14 @@
  * macro (example given below).
  *
  * Usage:
- *   !skills <title> <token_id> <roll> <skills>
+ *   !pfskills <title> <roll> <skills>
  *     title: Heading to be shown, use hyphens for spaces, e.g. Movement-Skills
- *     token_id: Usually @{selected|token_id}
  *     roll: Usually [[d20]], or [[10]] to take 10, or [[20]] to take 20.
  *     skills: Comma separated list of skills, e.g. Bluff,Sneak,Sleight-of-Hand
+ *
+ *   !pfskill [<roll>] <skill>
+ *     roll: Optional, if missed then a separate d20 roll is made for each skill.
+ *     skill: A single skill, but can be a wildcard.
  *
  * There cannot be any spaces in any of the parameters.
  *
@@ -75,10 +78,52 @@ PfSkills.singleSkillCommand = function(msg) {
         PfSkills.error("Must have exactly one token selected.");
         return;
     }
+
+    var d20roll = null;
+    var isRoll = true;
+    var notRolled = false;
+    var n = msg.content.split(" ");
+
+    // Get the result of the die roll.
+    if (msg.inlinerolls == null) {
+        notRolled = true;
+    } else {
+        d20roll = msg.inlinerolls[0].results.total;
+        isRoll = msg.inlinerolls[0].results.rolls[0].dice != null;
+    }
+
     var token = getObj("graphic", tokenList[0]);
     var characterId = token.get("represents");
+    var tokenName = token.get("name");
+    if (!isRoll) {
+        tokenName += " (Takes " + d20roll + ")";
+    }
+    var character_id = token.get("represents");
+    var character = getObj("character", character_id);
 
-    var skillName = msg.content.split(" ")[1];
+    // Get the skill.
+    var skillName = n[n.length - 1];
+    var title = skillName.replace(/-/g, " ").replace(/%/g, " ");
+
+    // Setup the template.
+    var template = PfSkills.setupTemplate(tokenName, character, title);
+    if (notRolled) {
+        // Do nothing.
+    } else if (isRoll) {
+        template += "{{d20 roll=[[d0cs>21 + " + d20roll + "]]}}";
+    } else {
+        template += "{{Take " + d20roll + "=[[d0cs>21 + " + d20roll + "]]}}";
+    }
+
+    var attributes = PfSkills.getAllAttributes(character_id);
+    template += PfSkills.getSkillResult(attributes, skillName, d20roll);
+
+    var player_obj = getObj("player", msg.playerid)
+    if (playerIsGM(player_obj.get("id"))) {
+        sendChat(getAttrByName(character.id, "character_name"), "/w " + player_obj.get("displayname") + " " + template);
+    } else {
+        sendChat(getAttrByName(character.id, "character_name"), template);
+    }
 }
 
 PfSkills.cache = PfSkills.cache || {};
@@ -126,9 +171,16 @@ PfSkills.getSkill = function(list, skill, d20roll, name) {
     }
 
     var score = parseInt(PfSkills.getAttributeValue(list, skill));
+    if (score != parseInt(score)) {
+        return "";
+    }
 
     skill = skill.replace("-", " ");
-    return "{{" + name + " (" + score + ")=**" + (d20roll + score) + "**}}";
+    if (d20roll != null) {
+        return "{{" + name + " (" + score + ")=**" + (d20roll + score) + "**}}";
+    } else {
+        return "{{" + name + " (" + score + ")=**[[d20 + " + score + "]]**}}";
+    }
 };
 
 PfSkills.getAttribute = function(list, attribute, d20roll, name) {
@@ -145,7 +197,11 @@ PfSkills.getAttribute = function(list, attribute, d20roll, name) {
 
     score = score + cond;
 
-    return "{{" + name + " (" + base + " / " + score + ")=**" + (d20roll + score) + "**}}";
+    if (d20roll != null) {
+        return "{{" + name + " (" + base + " / " + score + ")=**" + (d20roll + score) + "**}}";
+    } else {
+        return "{{" + name + " (" + base + " / " + score + ")=**[[d20 + " + score + "]]**}}";
+    }
 };
 
 PfSkills.defaults = PfSkills.defaults || {};
@@ -249,35 +305,12 @@ PfSkills.Process = function(msg, player_obj) {
 
     PfSkills.timer("Getting attributes");
     var attributes = PfSkills.getAllAttributes(character_id);
-    for (var i=0; i < attributes.length; i++) {
-        //log(attributes[i].get("name") + ": " + attributes[i].get("current"));
-    }
     PfSkills.timer("Got attributes");
 
     for (var s=0; s < skills.length; s++) {
         var skill = skills[s];
 
-        if (skill.indexOf("%") == 0) {
-            // This is an attribute.
-            template += PfSkills.getAttribute(attributes, skill.substring(1,4).toUpperCase(),
-                                            d20roll, skill.replace("%", ""));
-        } else if (skill.indexOf("*") > -1) {
-            // List of skills.
-            var baseSkill = skill.replace("*", "");
-            for (var i=1; i < 11; i++) {
-                skill = baseSkill + ( (i>1)?i:"" );
-                //var skillName = getAttrByName(character.id, skill+"-name");
-                var skillName = PfSkills.getAttributeValue(attributes, skill + "-name");
-                if (skillName != null && skillName != "") {
-                    template += PfSkills.getSkill(attributes, skill, d20roll, "*" + baseSkill + ": " + skillName + "*");
-                } else {
-                    break;
-                }
-            }
-        } else {
-            // Standard skill.
-            template += PfSkills.getSkill(attributes, skill, d20roll, skill.replace("-", " "));
-        }
+        template += PfSkills.getSkillResult(attributes, skill, d20roll);
     }
     PfSkills.timer("Done");
 
@@ -288,6 +321,31 @@ PfSkills.Process = function(msg, player_obj) {
     }
 
     return;
+};
+
+PfSkills.getSkillResult = function(attributes, skill, d20roll) {
+    var html = "";
+    if (skill.indexOf("%") == 0) {
+        // This is an attribute.
+        html += PfSkills.getAttribute(attributes, skill.substring(1,4).toUpperCase(),
+                                        d20roll, skill.replace("%", ""));
+    } else if (skill.indexOf("*") > -1) {
+        // List of skills.
+        var baseSkill = skill.replace("*", "");
+        for (var i=1; i < 11; i++) {
+            skill = baseSkill + ( (i>1)?i:"" );
+            var skillName = PfSkills.getAttributeValue(attributes, skill + "-name");
+            if (skillName != null && skillName != "") {
+                html += PfSkills.getSkill(attributes, skill, d20roll, "*" + baseSkill + ": " + skillName + "*");
+            } else {
+                break;
+            }
+        }
+    } else {
+        // Standard skill.
+        html += PfSkills.getSkill(attributes, skill, d20roll, skill.replace(/-/g, " "));
+    }
+    return html;
 };
 
 PfSkills.ERROR_STYLE="background-color: #FFDDDD; color: #000000; margin-top: 30px; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px; text-align: left; font-style: normal; font-weight: normal";
