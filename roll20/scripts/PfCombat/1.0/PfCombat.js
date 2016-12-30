@@ -219,38 +219,70 @@ PfCombat.statusCommand = function(msg) {
  * Heal all selected tokens to full hit points. Also removes status effects.
  */
 PfCombat.healCommand = function(msg) {
+    var healing = null;
+
+    n = msg.content.split(" ");
+    if (n.length > 1) {
+        healing = parseInt(n[1]);
+        if (healing < 1 || isNaN(healing)) {
+            return;
+        }
+    }
     var tokenList = PfCombat.getSelectedTokens(msg);
     if (tokenList != null && tokenList.length > 0) {
         for (var i=0; i < tokenList.length; i++) {
             var tokenId = tokenList[i];
             var token = getObj("graphic", tokenId);
             if (token != null) {
-                token.set("bar1_value", token.get("bar1_max"));
-                token.set("bar3_value", 0);
-                token.set({
-                    'status_pummeled': false,
-                    'status_dead': false,
-                    'status_skull': false,
-                    'status_red': false,
-                    'status_brown': false,
-                    'status_green': false,
-                    'status_bleeding-eye': false,
-                    'status_screaming': false,
-                    'status_flying-flag': false,
-                    'status_fishing-net': false,
-                    'status_sleepy': false,
-                    'status_half-haze': false,
-                    'status_broken-heart': false,
-                    'status_padlock': false,
-                    'status_radioactive': false,
-                    'status_half-heart': false,
-                    'status_cobweb': false,
-                    'status_chained-heart': false,
-                    'status_drink-me': false,
-                    'status_interdiction': false,
-                    'status_fist': false,
-                    'status_snail': false
-                });
+                var prev = {};
+                prev["bar1_value"] = token.get("bar1_value");
+                prev["bar3_value"] = token.get("bar3_value");
+
+                if (healing != null) {
+                    var nonLethal = parseInt(token.get("bar3_value"));
+                    if (nonLethal > 0) {
+                        nonLethal -= healing;
+                        if (nonLethal < 0) {
+                            nonLethal = 0;
+                        }
+                    }
+                    var hp = parseInt(token.get("bar1_value"));
+                    var hpMax = parseInt(token.get("bar1_max"));
+                    hp += healing;
+                    if (hp > hpMax) {
+                        hp = hpMax;
+                    }
+                    token.set("bar1_value", hp);
+                    token.set("bar3_value", nonLethal);
+                } else {
+                    token.set("bar1_value", token.get("bar1_max"));
+                    token.set("bar3_value", 0);
+                    token.set({
+                        'status_pummeled': false,
+                        'status_dead': false,
+                        'status_skull': false,
+                        'status_red': false,
+                        'status_brown': false,
+                        'status_green': false,
+                        'status_bleeding-eye': false,
+                        'status_screaming': false,
+                        'status_flying-flag': false,
+                        'status_fishing-net': false,
+                        'status_sleepy': false,
+                        'status_half-haze': false,
+                        'status_broken-heart': false,
+                        'status_padlock': false,
+                        'status_radioactive': false,
+                        'status_half-heart': false,
+                        'status_cobweb': false,
+                        'status_chained-heart': false,
+                        'status_drink-me': false,
+                        'status_interdiction': false,
+                        'status_fist': false,
+                        'status_snail': false
+                    });
+                }
+                PfCombat.update(token, prev, "");
             }
         }
     }
@@ -522,6 +554,9 @@ PfCombat.damageCommand = function(msg) {
 
             var currentHp = parseInt(token.get("bar1_value"));
             var nonlethalDamage = parseInt(token.get("bar3_value"));
+            var prev = {};
+            prev["bar1_value"] = currentHp;
+            prev["bar3_value"] = nonlethalDamage;
 
             if (nonlethal) {
                 token.set("bar3_value", nonlethalDamage + damage);
@@ -531,7 +566,7 @@ PfCombat.damageCommand = function(msg) {
                 log("Real hp is now " + currentHp);
                 token.set("bar1_value", currentHp);
             }
-            PfCombat.update(token, null, "");
+            PfCombat.update(token, prev, "");
         }
     }
     return;
@@ -862,6 +897,20 @@ PfCombat.update = function(obj, prev, message) {
             status_brown: false,
             status_green: false
         });
+    }
+    if (prev != null && !takenDamage && previousHitpoints < hpActual) {
+        // Probably been healed.
+        if (hpActual >= hpMax && previousHitpoints < hpMax) {
+            message += PfCombat.line("<b>" + name + "</b> is now fully healed.");
+        } else if (hpActual > hpMax * (2/3) && previousHitpoints <= hpMax * (2/3)) {
+            message += PfCombat.line("<b>" + name + "</b> is feeling a lot better.");
+        } else if (hpActual > hpMax / 3 && previousHitpoints <= hpMax / 3) {
+            message += PfCombat.getSymbolHtml("brown");
+            message += PfCombat.line("<b>" + name + "</b> is now only moderately wounded.");
+        } else if (hpActual > 0 && previousHitpoints <= 0) {
+            message += PfCombat.getSymbolHtml("red");
+            message += PfCombat.line("<b>" + name + "</b> is now more alive than dead.");
+        }
     }
     if (message != "") {
         PfCombat.message(obj, message);
