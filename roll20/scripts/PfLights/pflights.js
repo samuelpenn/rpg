@@ -115,7 +115,7 @@ on("chat:message", function(msg) {
         var args = msg.content.split(" ");
         var radius = null;
         var dimRadius = null;
-        var msg = null;
+        var mesg = null;
 
         var VISION = [];
         VISION['day'] = { 'light': 960, 'dim': null, 'msg': "Full daylight" };
@@ -128,19 +128,24 @@ on("chat:message", function(msg) {
         VISION['starlight'] = { 'light': 10, 'dim': -5, 'msg': "Starlight" };
         VISION['dark'] = { 'light': null, 'dim': null, 'msg': "Complete darkness" };
 
+        if (!playerIsGM(msg.playerid)) {
+            log("Player is not GM");
+            return;
+        }
+
         if (args.length > 1) {
             var lightLevel = args[1];
             if (VISION[lightLevel] != null) {
                 radius = VISION[lightLevel].light;
                 dimRadius = VISION[lightLevel].dim;
-                msg = VISION[lightLevel].msg;
+                mesg = VISION[lightLevel].msg;
             } else {
                 log("Unrecognised light level argument");
                 return;
             }
         }
         log(radius + ", " + dimRadius);
-        var message = "Setting light level to be <b>" + msg + "</b>";
+        var message = "Setting light level to be <b>" + mesg + "</b>";
         if (radius != null) {
             var dim = "";
             if (dimRadius != null && dimRadius < 0) {
@@ -155,15 +160,26 @@ on("chat:message", function(msg) {
         }
         sendChat("", "/desc <div style='" + PfLight.BOX_STYLE + "'>" + message + "</div>");
 
-        var currentObjects = findObjs({
-            _pageid: Campaign().get("playerpageid"),
-            _type: "graphic",
-        });
-        log("Looking for characters");
-        _.each(currentObjects, function(token) {
-            log("Found object: " + token.get("name"));
-            PfLight.setVision(token, radius, dimRadius);
-        });
+        if (msg.selected != null && msg.selected.length > 0) {
+            log("Using selected characters");
+            for (var i=0; i < msg.selected.length; i++) {
+                var token = getObj("graphic", msg.selected[i]._id);
+                if (token.get("name") != null && token.get("name") != "") {
+                    log("Selected object: " + token.get("name"));
+                    PfLight.setVision(token, radius, dimRadius);
+                }
+            }
+        } else {
+            var currentObjects = findObjs({
+                _pageid: Campaign().get("playerpageid"),
+                _type: "graphic",
+            });
+            log("Looking for characters");
+            _.each(currentObjects, function(token) {
+                log("Found object: " + token.get("name"));
+                PfLight.setVision(token, radius, dimRadius);
+            });
+        }
     } else if (msg.content.split(" ", 1)[0] === "!lights") {
         var player_obj = getObj("player", msg.playerid);
 
