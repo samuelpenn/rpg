@@ -136,7 +136,7 @@ def getNamedDayOfWeek(day, month, year):
 
     return WEEK[dayOfWeek - 1]
 
-# Returns a number from 1 - 29.
+# Returns the name of this phase of the Moon.
 def getMoonPhase(day, month, year):
     epocDay = getEpocDay(day, month, year)
 
@@ -148,6 +148,19 @@ def getMoonPhase(day, month, year):
             phase += 1
 
     return MOON_PHASES[phase]
+
+# Returns the index of this phase of the Moon, 0-7. 0 = Full Moon, 4 = New Moon.
+def getMoonPhaseIndex(day, month, year):
+    epocDay = getEpocDay(day, month, year)
+
+    moonDay = epocDay - int(MOON_PERIOD * int(epocDay / MOON_PERIOD))
+    phase = 0
+    while (moonDay > 0):
+        moonDay -= PHASE_LENGTH[phase]
+        if (moonDay > 0):
+            phase += 1
+
+    return phase
 
 def calendar(month, year):
     cal = MONTH_DAYS
@@ -174,7 +187,8 @@ def calendar(month, year):
         if today < epocStartDay:
             html += "<td></td>\n"
         else:
-            html += "<td>" + str(getDayInMonth(today)) + "</td>\n"
+            phase = "<img src='phases/" + str(getMoonPhaseIndex(getDayInMonth(today), month, year)) + ".png' width='24px' height ='24px' align='right'/>"
+            html += "<td>" + str(getDayInMonth(today)) + phase + "</td>\n"
 
         if getEpocDayOfWeek(today) == 7:
             html += "</tr>\n"
