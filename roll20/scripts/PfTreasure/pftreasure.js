@@ -35,7 +35,9 @@ var Treasure = Treasure || {};
  */
 on("chat:message", function(msg) {
     if (msg.type !== "api") return;
-    if (msg.content.split(" ", 1)[0] != "!treasure") return;
+    if (msg.content.split(" ", 1)[0] != "!pftreasure") {
+        return;
+    }
 
     var store = true;
     if (msg.content.split(" ", 2)[1] == "nostore") {
@@ -67,6 +69,12 @@ Treasure.line = function(message) {
     return "<p style='margin-bottom: 0px'>" + message + "</p>";
 }
 
+/**
+ * Format the output using the special replacement syntax. There are two replacement
+ * commands that can be put into messages:
+ * <<a|b|c>> - Select a random item from the list, delimited with |.
+ * !!Var - Replace with a random item from the named variable list.
+ */
 Treasure.format = function(message) {
     while (message.indexOf("<<") > -1) {
         var left = message.substring(0, message.indexOf("<<") );
@@ -75,6 +83,17 @@ Treasure.format = function(message) {
         var chosen = array[randomInteger(array.length - 1)];
 
         message = left + chosen + right;
+    }
+    while (list = message.match(/!![A-Za-z]+/)) {
+        var variable = list[0].replace(/!/g, "");
+        var result = "";
+        if (Treasure.vars[variable] != null) {
+            var vars = Treasure.vars[variable];
+            result = vars[randomInteger(vars.length -1)];
+        } else {
+            result = "XXXX";
+        }
+        message = message.replace(/!![A-Za-z]+/, result);
     }
 
     return message;
@@ -362,6 +381,17 @@ Treasure.message = function(character, title, message) {
     }
 }
 
+// Following variables can be used as placeholders in text, and will be randomly
+// replaced with an item from the named list. e.g., $$Colours will insert a random
+// colour from the Colours list.
+Treasure.vars = {};
+Treasure.vars["Colours"] = [ "Red", "Blue", "Green", "Yellow", "Brown", "Black", "White" ];
+Treasure.vars["Humans"] = [ "Varisian", "Shoanti", "Chelexian", "Nidalese", "Mwangi", "Tian" ];
+Treasure.vars["Animals"] = [ "Bear", "Dog", "Cat", "Horse", "Fish", "Donkey", "Bird", "Wolf" ];
+Treasure.vars["GoodGods"] = [ "Abadar", "Calistria", "Cayden Cailean", "Desna", "Erastil", "Gozreh", "Iomedae", "Irori", "Nethys", "Pharasma", "Sarenrae", "Shelyn", "Torag", "Alseta", "Brigh", "Sivanah", "Naderi", "Milani", "Kurgess", "Hanspur" ];
+Treasure.vars["EvilGods"] = [ "Asmodeus", "Lamashtu", "Norgorber", "Rovagug", "Urgathoa", "Zon-Kuthon", "Achaekek", "Besmara", "Ghlaunder", "Groetus", "Gyronna", "Zyphus", "Razmir" ];
+Treasure.vars["Gods"] = [ "Abadar", "Asmodeus", "Calistria", "Cayden Cailean", "Desna", "Erastil", "Gozreh", "Iomedae", "Irori", "Lamashtu", "Nethys", "Norgorber", "Pharasma", "Rovagug", "Sarenrae", "Shelyn", "Torag", "Urgathoa", "Zon-Kuthon" ];
+
 /*
  * Each table may be divided into sub-tables with an A, B, C... suffix.
  *   A is most common 1-3.
@@ -375,8 +405,8 @@ Treasure.message = function(character, title, message) {
 
 Treasure.special = {};
 
-Treasure.special['Notes'] = {};
-Treasure.special['Notes'].table = [
+Treasure.special["Notes"] = {};
+Treasure.special["Notes"].table = [
     [ "Meet at a street in Underbridge [[1d4]] nights from now." ],
     [ "A list of [[2d4 + 5]] names on a scrap of parchment. All but the last [[1d3]] have had a line drawn through them. " ],
     [ "<<A crude|An erotic|A hastily drawn>> portrait of <<a young woman|an elf maiden|an orc|two coupling halflings>>, with '<<To Be Killed|Stupid Whore|My Love|Where are you?|Beloved>>' <<scrawled|written>> <<underneath|alongside|above>>." ],
@@ -391,8 +421,8 @@ Treasure.special['Notes'].table = [
     [ "By the third strike after noon, the <<dragon|dove|bird>> will <<fly|crawl|cry>> for freedom." ],
 ];
 
-Treasure.special['Maps'] = {};
-Treasure.special['Maps'].table = [
+Treasure.special["Maps"] = {};
+Treasure.special["Maps"].table = [
     [ "Map to a lake in the Mushfens." ],
     [ "Map of a dungeon." ],
     [ "Map of what look like sewers." ],
@@ -402,11 +432,11 @@ Treasure.special['Maps'].table = [
 
 Treasure.lists = {};
 
-Treasure.lists['Cursed'] = {};
-Treasure.lists['Cursed'].coins = function(value) {
+Treasure.lists["Cursed"] = {};
+Treasure.lists["Cursed"].coins = function(value) {
     return null;
 }
-Treasure.lists['Cursed'].table = [
+Treasure.lists["Cursed"].table = [
     [ 6, "A <<brass|copper|wooden>> <<ring|pendent>> <<carved|inscribed|decorated|embossed>> with <<cats|dragons|fish|birds>>, -1 to all saves." ],
     [ 6, "A <<dog's|cat's|rat's>> <<stuffed|mummified>> head that makes a <<hiss|scream|sound>> when it is <<squeezed|kissed|petted|given water>>." ],
     [ 6, "A miniature skull with drops of water around its teeth, -10 to swim checks." ],
@@ -420,20 +450,20 @@ Treasure.lists['Cursed'].table = [
  *
  * e.g., a cloak is obvious, noticing the cloak has a symbol of Asmodeous on it may be DC 12.
  *
- *   A - Dirty cheap clothes, rags.
- *   B - Cheap clothes.
- *   C - Standard commoners garb.
- *   D - Good quality.
- *   E - Fine quality.
+ *   A - Dirty cheap clothes, rags. Worthless.
+ *   B - Cheap clothes. Coppers.
+ *   C - Standard commoners garb. Silver.
+ *   D - Good quality. Gold.
+ *   E - Fine quality. Many gold.
  */
-Treasure.lists['Clothing A'] = { 'table': [
+Treasure.lists["Clothing A"] = { "table": [
     [ 6, "A <<quite|relatively>> clean cloak, with 'This belongs to <<Barsali|Silvui|Marino|Catalin|Angelo|Dukker>> of <<Abadar|Nethys|Desna|Erastil|Sarenrae>>' stitched into it." ],
     [ 6, "An old <<dirty|dusty|muddy|torn|>> cloak, with bloodstains and filled with arrow holes." ],
     [ 6, "An old <<dirty|dusty|muddy|torn|>> cloak, with a handful of <<black|green|blue|red|white>> dragon scales (DC 20) stitched on the shoulders." ],
     [ 6, "An old <<dirty|dusty|muddy|torn|>> cloak, with a handful of <<lizard folk|troglodyte>> scales (DC 20) stitched on the shoulders." ],
     [ 6, "An old <<dirty|dusty|muddy|torn|>> cloak, with bloodstains and filled with arrow holes." ],
     [ 6, "An old cloak with a silk patch showing a symbol of <<Achaekek|Norgorber|Calistria>>." ],
-    [ 9, "A <<red|black>> scarf with <<Abyssal|Necril|Infernal>> writing stitched along one edge, detailing an <<ancient|unholy|evil>> <<blessing|curse|prayer|ritual>>." ],
+    [ 9, "A <<red|black>> scarf with <<Abyssal|Necril|Infernal>> writing stitched along one edge, detailing an <<ancient|unholy|evil|holy|common|childish>> <<blessing|curse|prayer|ritual>>." ],
     [ 12, "A <<dark|bright>> <<brown|red>> <<neck scarf|handkerchief>> with dwarven runes and an image of a <<dwarven werebear|bulette>> stitched into it." ],
     [ 12, "There are symbols of <<Abadar|the Aspis Consortium|The Exchange|Liberty's Edge|the Dark Archive>> on the lapel of the jacket." ],
     [ 12, "The jacket has the crest of <<the Arcanamirium|Absalom|the Bellflower Network>> on it." ],
@@ -449,15 +479,17 @@ Treasure.lists['Clothing A'] = { 'table': [
     [ 18, "The buttons on the jacket are actually hiding silver shields, [[1d4+1]]sp." ]
 ]};
 
-Treasure.lists['Clothing B'] = { 'table': [
-    [ 6, "An old <<dirty|stained|worn|torn|tattered>> reversible cloak, worth [[1d4+1]] sp." ],
+Treasure.lists["Clothing B"] = { "table": [
+    [ 6, "An old <<dirty|stained|worn|torn|tattered>> reversible cloak, worth [[1d4+1]]sp." ],
+    [ 6, "A cloth bandolier, which is empty. [[1d3]]sp." ],
+    [ 6, "A floppy hat with a <<dark blue|dark red|green|red>> silk ribbon tied around it. The ribbon is worth [[1d4]]sp." ],
     [ 12, "A set of clothes designed to easily tear." ],
     [ 15, "A leather belt hiding a <<short blade|garotte|set of lockpicks>>, [[1d4]]cp." ],
     [ 15, "A handkerchief with the symbol of the <<Pathfinder Society|Aspis Consortium|Bellflower Network>>, [[1d6+2]] cp." ],
-    [ 18, "A boot heel with [[1d4]]sp hidden inside it." ]
+    [ 18, "A boot heel with [[1d4]]sp hidden inside it." ],
 ]};
 
-Treasure.lists['Clothing C'] = { 'table': [
+Treasure.lists["Clothing C"] = { "table": [
     [ 6, "A cloak edged with <<white fur|red fur|black fur|golden fur>>, [[2d4]]gp" ],
     [ 6, "An old <<dirty|stained|worn|torn|tattered>> reversible cloak, worth [[1d4+1]] sp." ],
     [ 6, "An old <<dirty|stained|worn|torn|tattered>> patchwork cloak, worth [[1d4+1]] gp." ],
@@ -467,14 +499,14 @@ Treasure.lists['Clothing C'] = { 'table': [
     [ 15, "A <<dirty|tattered>> handkerchief with the symbol of the <<Pathfinder Society|Aspis Consortium>>, [[1d6+2]] cp." ],
 ]};
 
-Treasure.lists['Clothing D'] = { 'table': [
+Treasure.lists["Clothing D"] = { "table": [
     [ 6, "A <<good|fine>> quality <<blue|red|green|orange|scarlet>> cloak edged with <<white|black>> trimmings, [[2d4]]sp." ],
     [ 6, "A <<good|fine>> quality <<blue|red|green|orange|scarlet>> cloak with <<horses|birds|ships|axes|flowers>> stitched along the edge, [[2d6]]sp." ],
     [ 6, "A <<robust|thick|heavy>> cloak edged with fur, [[2d4]]gp." ],
     [ 6, "A silken cloak, [[2d6]]gp." ]
 ]};
 
-Treasure.lists['Clothing E'] = { 'table': [
+Treasure.lists["Clothing E"] = { "table": [
     [ 6, "A silken cloak, [[4d12]]gp." ],
     [ 6, "A pair of high quality boots, [[4d6]]gp." ],
     [ 6, "A fine hat, [[4d6]]gp." ]
@@ -490,7 +522,7 @@ Treasure.lists['Clothing E'] = { 'table': [
  *   D - Masterwork or artistic (non-functional) quality.
  *   E - Both masterwork and artistic.
  */
-Treasure.lists['Tools A'] = { 'table': [
+Treasure.lists["Tools A"] = { "table": [
     [ 9, "A <<box|leather bag>> containing flint and steel." ],
     [ 9, "A small jar of <<dried|smelly|blackened>> glue." ],
     [ 12, "A <<small|long|rusty|large|ornate>> <<brass|iron|bronze>> key." ],
@@ -512,30 +544,41 @@ Treasure.lists['Tools A'] = { 'table': [
     [ 21, "<<2|3|4|5>> <<short|long>>bow strings hidden in <<underwear|shoe|lining of jacket>>." ]
 ]};
 
-Treasure.lists['Tools B'] = { 'table': [
+Treasure.lists["Tools B"] = { "table": [
     [ 9, "A <<box|leather bag>> containing flint and steel" ],
     [ 12, "A <<box|leather bag>> containing a blade sharpening kit." ],
     [ 12, "A silver razor, [[2d4]] sp." ],
-    [ 12, "A small bronze mirror" ],
+    [ 12, "A small <<bent|scratched|dented|dirty>> bronze mirror." ],
     [ 15, "Two <<plain|rusty|small|bent>> keys tied together with a short length of <<fraying twine|rusty wire>>." ],
     [ 18, "A set of [[2d6]] <<steel>> needles, [[2d4]]sp." ],
     [ 12, "A <<dirty|mishapen|>> block of wax." ],
     [ 9, "A set of <<rusty|broken|poor quality>> manacles, [[2d6]]sp." ],
+    [ 9, "A block of wax with the imprint of a key in it." ],
     [ 12, "A <<small|rusty|chipped|wobbly>> iron hammer." ],
-    [ 12, "A cheap tattoo kit." ]
+    [ 12, "A cheap tattoo kit." ],
+    [ 12, "Some sealing wax, [[2d4+2]]sp." ],
 ]};
 
-Treasure.lists['Tools C'] = { 'table': [
+Treasure.lists["Tools C"] = { "table": [
     [ 9, "A <<box|leather bag>> containing flint and steel" ],
     [ 9, "A <<silk|velvet>> lined box with a number of empty slots sized for potion vials, [[2d6]]gp" ],
+    [ 9, "A small hand drill, with a bit for drilling half-inch holes, [[1d4+1]]sp." ],
+    [ 9, "A small chalkboard, with <<simple sums|fish prices|a bad poem>> scrawled on it, [[2d3]]sp." ],
     [ 12, "A <<box|leather bag>> containing a blade sharpening kit" ],
     [ 12, "A silver razor, [[2d4]] sp." ],
     [ 12, "A set of <<three|four|five>> <<small|tiny|blunted|rusted>> throwing daggers." ],
-    [ 12, "A small bronze mirror" ],
+    [ 12, "A small well polished bronze mirror" ],
+    [ 12, "A glass cutter, [[d2+3]]gp." ],
+    [ 12, "A small magnet, [[1d4]]sp." ],
     [ 15, "Two <<plain|rusty|small|bent>> keys tied together with a short length of <<fraying twine|rusty wire>>." ],
     [ 18, "A set of [[2d6]] <<steel>> needles, [[2d4]]sp." ]
 ]};
 
+Treasure.lists["Tools D"] = { "table": [
+    [ 9, "A gunsmith's kit, [[d4+10]]gp." ],
+    [ 9, "A gear maintenance kit, [[d3+2]]gp." ],
+    [ 12, "A magnifying glass, [[5d10+50]]gp." ],
+]};
 
 
 
@@ -549,7 +592,7 @@ Treasure.lists['Tools C'] = { 'table': [
  * D: Up to about 30 gold pieces.
  * E: Up to a 100 gold pieces.
  */
-Treasure.lists['Trinkets A'] = { 'table': [
+Treasure.lists["Trinkets A"] = { "table": [
     [ 9, "A <<broken|twisted|plain>> copper ring worth [[2d4]]cp." ],
     [ 9, "A wooden pendant with a <<bird|cat|dog|rat>> carving worth [[1d6]]cp." ],
     [ 9, "A wooden holy symbol of <<Desna|Calistria|Abadar|Erastil|Cayden Cailean>>, [[1d4+2]]cp." ],
@@ -582,12 +625,13 @@ Treasure.lists['Trinkets A'] = { 'table': [
 ]};
 
 // Silver pieces.
-Treasure.lists['Trinkets B'] = { 'table': [
+Treasure.lists["Trinkets B"] = { "table": [
     [ 9, "A small battered eyeglass, missing any glass. [[1d4]]sp." ],
     [ 9, "<<Four|Three>> vials of differently coloured <<sand|dirt|crushed rock|crushed leaves>>." ],
     [ 9, "A pair of wooden sticks, about 9inches long, slightly tapering at one end. They have Tian writing on them, 1d3sp." ],
     [ 9, "<<Seven|Six|Five>> small scented candles, each different [[1d4]]sp." ],
     [ 9, "<<Seven|Six|Five>> small scented candles, each with an erotic carving of <<a woman|a man|two women|two men>> <<on a bed|and a horse|and a dog|and a serpent>>, [[1d6]]sp." ],
+    [ 9, "A small pot of animal glue, 5sp." ],
     [ 12, "A pair of <<ivory|wooden|bone>> dice [[3d4]]cp." ],
     [ 12, "A set of glass marbles, worth [[1d2+1]]sp." ],
     [ 12, "A set of coloured <<stone|glass>> beads, worth [[1d2]]sp." ],
@@ -602,7 +646,7 @@ Treasure.lists['Trinkets B'] = { 'table': [
 ]};
 
 // Gold pieces.
-Treasure.lists['Trinkets C'] = { 'table': [
+Treasure.lists["Trinkets C"] = { "table": [
     [ 12, "A full set of Harrow cards, [[2d4]]gp." ],
     [ 12, "A gold ring with a <<horse|serpent|dragon|abstract pattern>> engraved on it, [[2d4]]gp." ],
     [ 12, "A single small firecracker." ],
@@ -612,7 +656,7 @@ Treasure.lists['Trinkets C'] = { 'table': [
 ]};
 
 // Up to 30gp.
-Treasure.lists['Trinkets D'] = { 'table': [
+Treasure.lists["Trinkets D"] = { "table": [
     [ 12, "A pair of ivory dice studded with a small gemstone on the '1' [[5d6]]gp." ],
     [ 12, "A high quality set of Harrow Cards, worth [[8d6]]gp." ],
     [ 12, "A small <<worthless|cracked|dull>> gemstone that floats around your head like an ioun stone, but otherwise does nothing." ],
@@ -624,7 +668,7 @@ Treasure.lists['Trinkets D'] = { 'table': [
 ]};
 
 // Up to 100gp.
-Treasure.lists['Trinkets E'] = { 'table': [
+Treasure.lists["Trinkets E"] = { "table": [
     [ 9, "A <<tiny|miniature|pocket-sized>> <<ivory|wooden|brass> chess set, <<fully|mostly>> intact, worth [[6d10+40]]gp." ],
     [ 12, "A high quality set of Harrow Cards, worth [[10d6]]gp." ],
     [ 12, "A set of platinum jacks, decorated with <<elven|dwarven|draconic>> symbology, worth [[20d6]]gp." ],
@@ -634,7 +678,7 @@ Treasure.lists['Trinkets E'] = { 'table': [
 /**
  * Food and drink. Also includes drugs and herbs.
  */
-Treasure.lists['Food A'] = { 'table': [
+Treasure.lists["Food A"] = { "table": [
     [ 6, "A pigskin flask of <<oil|brandy|wine>>, [[1d2+3]] cp." ],
     [ 9, "A <<small|dirty|filthy|cracked>> bottle of <<rum|wine|spirits>> worth [[2d3]] cp." ],
     [ 9, "Part of a loaf of <<stale|mouldy>> bread." ],
@@ -648,7 +692,7 @@ Treasure.lists['Food A'] = { 'table': [
     [ 12, "A tomato wrapped in cloth." ],
     [ 12, "A <<small pouch|bag|pouch|handkerchief>> containing some nuts and berries." ]
 ]};
-Treasure.lists['Food B'] = { 'table': [
+Treasure.lists["Food B"] = { "table": [
     [ 12, "A <<vegetable|meat|mushroom>> pasty." ],
     [ 12, "A small metal salt shaker, containing salt." ],
     [ 12, "A slice of cheese between two slices of bread." ],
@@ -656,18 +700,20 @@ Treasure.lists['Food B'] = { 'table': [
     [ 12, "<<An apple|A pear>>." ],
     [ 12, "A small flask of decent quality wine." ],
 ]};
-Treasure.lists['Food C'] = { 'table': [
+Treasure.lists["Food C"] = { "table": [
     [ 12, "A small wheel of cheese." ],
     [ 12, "A pouch of herbs and spices, [[2d4]]gp." ],
     [ 12, "A corked vial containing a <<spicy|hot|sweet>> sauce, [[2d4]]gp." ],
     [ 12, "A <<beef|pork>> pasty decorated with <<animals|plants|a ship|a mug of ale>>." ],
     [ 12, "A small flask of good quality wine." ],
     [ 12, "A fresh orange." ],
+    [ 12, "A small pie with a skillfully made pastry bird on top." ],
+    [ 12, "A small pie with the symbol of !!GoodGods carved into the pastry." ],
     [ 12, "A small <<brass|copper>> box containing <<2|3|4>> doses of <i>Bachelor snuff</i>." ],
     [ 12, "A small <<brass|copper>> box containing <<2|3|4>> doses of <i>snuff</i>." ],
     [ 12, "A small pouch containing <<3|4|5|6|7>> doses of powdered <i>Thileu bark</i>." ],
 ]};
-Treasure.lists['Food D'] = { 'table': [
+Treasure.lists["Food D"] = { "table": [
     [ 9, "A small bottle of <<red|white|vintage>> wine, [[3d6]]gp." ],
     [ 12, "A small wheel of high quality cheese." ],
     [ 12, "A pouch of <<rare|expensive>> herbs and spices, [[3d12+5]]gp." ],
@@ -675,7 +721,7 @@ Treasure.lists['Food D'] = { 'table': [
     [ 12, "A <<beef|pork>> pasty decorated with <<animals|plants|a ship|a mug of ale>>." ],
     [ 12, "A <<silver|gold>> cigar case containing <<3|4|5|6>> cigars." ],
 ]};
-Treasure.lists['Food E'] = { 'table': [
+Treasure.lists["Food E"] = { "table": [
     [ 12, "A small wheel of cheese." ],
     [ 12, "A pouch of herbs and spices, [[2d4]]gp." ],
     [ 12, "A corked vial containing a <<spicy|hot|sweet>> sauce, [[2d4]]gp." ],
@@ -686,7 +732,7 @@ Treasure.lists['Food E'] = { 'table': [
 /**
  * Tat is worthless rubbish, which add nothing but flavour.
  */
-Treasure.lists['Tat'] = { 'table': [
+Treasure.lists["Tat"] = { "table": [
     [ 9, "A <<smelly|red dyed|blue dyed|blood stained>> rabbit's foot, on a string." ],
     [ 9, "A <<dirty|tattered|torn|short>> <<silk|cloth>> neck tie with the words '<<Lucky me|Love me|Great Fuck|This is mine>>' painted on." ],
     [ 9, "A leather belt with <<skulls|animal heads|a woman's face>> marked on it." ],
@@ -738,7 +784,7 @@ Treasure.lists['Tat'] = { 'table': [
 /**
  * Eww is worthless and unpleasant rubbish which only a depraved person would carry.
  */
-Treasure.lists['Eww'] = { 'table': [
+Treasure.lists["Eww"] = { "table": [
     [ 9, "A <<dried|mummified|skeletal>> <<human|monkey's|child's|delicate>> hand on a string." ],
     [ 9, "A mummified cat's head." ],
     [ 9, "A <<straw|sack|feather>> doll with needles stuck into it. <<It has a woman's face painted on it.|It is stained with blood.|It's head is almost detatched.>>" ],
@@ -768,51 +814,67 @@ Treasure.lists['Eww'] = { 'table': [
 ]};
 
 
-Treasure.lists['Scum'] = {};
-Treasure.lists['Scum'].coins = function(value) {
+Treasure.lists["Scum"] = {};
+Treasure.lists["Scum"].coins = function(value) {
     var  cp = 0, sp = 0, gp = 0, pp = 0;
 
     if (value < 2) {
         cp = Treasure.getRoll(4, value + 1);
-    } else if (value < 5) {
+    } else if (value < 4) {
         cp = Treasure.getRoll(6, 2);
-        sp = Treasure.getRoll(3, value - 1);
+        sp = Treasure.getRoll(3, value);
+        gp = Treasure.getRoll(2, value - 1);
+
     } else {
         cp = Treasure.getRoll(6, 2);
         sp = Treasure.getRoll(6, 2);
-        gp = Treasure.getRoll(2, value - 5);
+        gp = Treasure.getRoll(4, value - 2);
     }
-    return { 'cp': cp, 'sp': sp, 'gp': gp, 'pp': pp };
+    return { "cp": cp, "sp": sp, "gp": gp, "pp": pp };
 };
-Treasure.lists['Scum A'] = { 'table': [
+Treasure.lists["Scum A"] = { "table": [
     [ 0, "Cursed" ],
     [ 0, "Clothing A" ],
     [ 0, "Tools A" ],
     [ 0, "Trinkets A" ], [ 0, "Trinkets A" ],
     [ 0, "Tat" ], [ 0, "Tat" ], [ 0, "Tat" ],
     [ 0, "Food A" ], [ 0, "Food A" ], [ 0, "Food B" ],
-    [ 0, "Eww" ]
+    [ 0, "Eww" ], [ 0, "Scum B" ]
 ]};
-Treasure.lists['Scum B'] = { 'table': [
-    [ 0, "Cursed" ],
+Treasure.lists["Scum B"] = { "table": [
+    [ 0, "Scum A" ], [ 0, "Cursed" ],
     [ 0, "Clothing B" ],
     [ 0, "Tools B" ],
     [ 0, "Trinkets B" ], [ 0, "Trinkets B" ],
     [ 0, "Tat" ], [ 0, "Tat" ],
     [ 0, "Food A" ], [ 0, "Food B" ], [ 0, "Food B" ],
-    [ 0, "Eww" ]
+    [ 0, "Eww" ], [ 0, "Scum C" ]
 ]};
-Treasure.lists['Scum C'] = { 'table': [
-    [ 0, "Clothing C" ],
+Treasure.lists["Scum C"] = { "table": [
+    [ 0, "Scum B" ], [ 0, "Clothing C" ],
     [ 0, "Tools C" ],
     [ 0, "Trinkets B" ], [ 0, "Trinkets C" ],
     [ 0, "Tat" ],
-    [ 0, "Food B" ], [ 0, "Food C" ], [ 0, "Food C" ]
+    [ 0, "Food B" ], [ 0, "Food C" ], [ 0, "Food C" ],
+    [ 0, "Scum D" ],
+]};
+Treasure.lists["Scum D"] = { "table": [
+    [ 0, "Scum C" ], [ 0, "Clothing C" ],
+    [ 0, "Tools D" ],
+    [ 0, "Trinkets C" ], [ 0, "Trinkets D" ],
+    [ 0, "Food C" ], [ 0, "Food C" ], [ 0, "Food D" ]
+    [ 0, "Scum E" ],
+]};
+Treasure.lists["Scum E"] = { "table": [
+    [ 0, "Scum D" ], [ 0, "Clothing D" ],
+    [ 0, "Tools D" ], [ 0, "Tools E" ],
+    [ 0, "Trinkets D" ], [ 0, "Trinkets E" ],
+    [ 0, "Food C" ], [ 0, "Food D" ], [ 0, "Food E" ]
 ]};
 
 
-Treasure.lists['Common'] = {};
-Treasure.lists['Common'].coins = function(value) {
+Treasure.lists["Common"] = {};
+Treasure.lists["Common"].coins = function(value) {
     var  cp = 0, sp = 0, gp = 0, pp = 0;
 
     if (value < 2) {
@@ -829,9 +891,9 @@ Treasure.lists['Common'].coins = function(value) {
         sp = Treasure.getRoll(6, 2);
         gp = Treasure.getRoll(4, value - 5);
     }
-    return { 'cp': cp, 'sp': sp, 'gp': gp, 'pp': pp };
+    return { "cp": cp, "sp": sp, "gp": gp, "pp": pp };
 };
-Treasure.lists['Common'].table = [
+Treasure.lists["Common"].table = [
     [ 12, "A <<plain|simply carved|scratched>> wooden box containing snuff, [[1d4]]sp." ],
     [ 12, "An IOU from a local <<merchant|shop keeper|noble|person>> claiming [[2d4]]gp." ],
     [ 12, "A small, <<mud-stained|blood-stained|water-stained>> book. The pages <<appear to be blank|are covered in some unreadable script|contain poor quality sketches>>, worth [[2d6]]cp."],
@@ -840,7 +902,7 @@ Treasure.lists['Common'].table = [
     [ 15, "A wand of acid spray, with one charge [[75]]sp." ],
     [ 21, "A small gemstone worth [[3d6]]gp." ]
 ];
-Treasure.lists['Common A'] = { 'table': [
+Treasure.lists["Common A"] = { "table": [
     [ 0, "Clothing B" ],
     [ 0, "Tools A" ],
     [ 0, "Trinkets A" ], [ 0, "Trinkets A" ], [ 0, "Trinkets A" ],
@@ -850,8 +912,8 @@ Treasure.lists['Common A'] = { 'table': [
 
 
 
-Treasure.lists['Expert'] = {};
-Treasure.lists['Expert'].coins = function(value) {
+Treasure.lists["Expert"] = {};
+Treasure.lists["Expert"].coins = function(value) {
     var  cp = 0, sp = 0, gp = 0, pp = 0;
 
     if (value < 2) {
@@ -869,33 +931,33 @@ Treasure.lists['Expert'].coins = function(value) {
         sp = Treasure.getRoll(6, 3);
         gp = Treasure.getRoll(6, value - 5);
     }
-    return { 'cp': cp, 'sp': sp, 'gp': gp, 'pp': pp };
+    return { "cp": cp, "sp": sp, "gp": gp, "pp": pp };
 };
-Treasure.lists['Expert A'] = { 'table': [
+Treasure.lists["Expert A"] = { "table": [
     [ 0, "Clothing B" ],
     [ 0, "Tools B" ], [ 0, "Tools B" ],
     [ 0, "Trinkets A" ], [ 0, "Trinkets A" ],
     [ 0, "Food B" ], [ 0, "Food B" ], [ 0, "Food C" ],
 ]};
-Treasure.lists['Expert B'] = { 'table': [
+Treasure.lists["Expert B"] = { "table": [
     [ 0, "Clothing B" ],
     [ 0, "Tools B" ], [ 0, "Tools B" ],
     [ 0, "Trinkets A" ], [ 0, "Trinkets B" ],
     [ 0, "Food B" ], [ 0, "Food C" ], [ 0, "Food C" ],
 ]};
-Treasure.lists['Expert C'] = { 'table': [
+Treasure.lists["Expert C"] = { "table": [
     [ 0, "Clothing C" ],
     [ 0, "Tools A" ], [ 0, "Tools C" ],
     [ 0, "Trinkets B" ], [ 0, "Trinkets B" ],
     [ 0, "Food C" ], [ 0, "Food C" ], [ 0, "Food C" ],
 ]};
-Treasure.lists['Expert D'] = { 'table': [
+Treasure.lists["Expert D"] = { "table": [
     [ 0, "Clothing C" ],
     [ 0, "Tools C" ], [ 0, "Tools D" ],
     [ 0, "Trinkets B" ], [ 0, "Trinkets C" ],
     [ 0, "Food C" ], [ 0, "Food C" ], [ 0, "Food D" ],
 ]};
-Treasure.lists['Expert E'] = { 'table': [
+Treasure.lists["Expert E"] = { "table": [
     [ 0, "Clothing C" ], [ 0, "Clothing D" ],
     [ 0, "Tools D" ], [ 0, "Tools E" ],
     [ 0, "Trinkets B" ], [ 0, "Trinkets C" ],
@@ -903,8 +965,8 @@ Treasure.lists['Expert E'] = { 'table': [
 ]};
 
 
-Treasure.lists['Aristocrat'] = {};
-Treasure.lists['Aristocrat'].coins = function(value) {
+Treasure.lists["Aristocrat"] = {};
+Treasure.lists["Aristocrat"].coins = function(value) {
     var  cp = 0, sp = 0, gp = 0, pp = 0;
 
     if (value < 2) {
@@ -923,33 +985,33 @@ Treasure.lists['Aristocrat'].coins = function(value) {
         gp = Treasure.getRoll(8, value - 5) + value;
         pp = Treasure.getRoll(6, value - 7);
     }
-    return { 'cp': cp, 'sp': sp, 'gp': gp, 'pp': pp };
+    return { "cp": cp, "sp": sp, "gp": gp, "pp": pp };
 };
-Treasure.lists['Aristocrat A'] = { 'table': [
+Treasure.lists["Aristocrat A"] = { "table": [
     [ 0, "Clothing B" ], [ 0, "Clothing C" ],
     [ 0, "Trinkets B" ], [ 0, "Trinkets B" ],
     [ 0, "Food B" ], [ 0, "Food C" ],
     [ 0, "Jewellery B" ]
 ]};
-Treasure.lists['Aristocrat B'] = { 'table': [
+Treasure.lists["Aristocrat B"] = { "table": [
     [ 0, "Clothing C" ], [ 0, "Clothing C" ],
     [ 0, "Trinkets B" ], [ 0, "Trinkets C" ],
     [ 0, "Food C" ], [ 0, "Food C" ],
     [ 0, "Jewellery C" ]
 ]};
-Treasure.lists['Aristocrat C'] = { 'table': [
+Treasure.lists["Aristocrat C"] = { "table": [
     [ 0, "Clothing D" ], [ 0, "Clothing D" ],
     [ 0, "Trinkets C" ], [ 0, "Trinkets C" ],
     [ 0, "Food C" ], [ 0, "Food D" ],
     [ 0, "Jewellery C" ], [ 0, "Jewellery C" ]
 ]};
-Treasure.lists['Aristocrat D'] = { 'table': [
+Treasure.lists["Aristocrat D"] = { "table": [
     [ 0, "Clothing E" ], [ 0, "Clothing E" ],
     [ 0, "Trinkets C" ], [ 0, "Trinkets D" ],
     [ 0, "Food D" ], [ 0, "Food D" ],
     [ 0, "Jewellery C" ], [ 0, "Jewellery D" ], [ 0, "Jewellery D" ]
 ]};
-Treasure.lists['Aristocrat E'] = { 'table': [
+Treasure.lists["Aristocrat E"] = { "table": [
     [ 0, "Clothing E" ], [ 0, "Clothing E" ],
     [ 0, "Trinkets D" ], [ 0, "Trinkets E" ],
     [ 0, "Food D" ], [ 0, "Food E" ],
@@ -957,8 +1019,8 @@ Treasure.lists['Aristocrat E'] = { 'table': [
 ]};
 
 
-Treasure.lists['Goblin'] = {};
-Treasure.lists['Goblin'].coins = function(value) {
+Treasure.lists["Goblin"] = {};
+Treasure.lists["Goblin"].coins = function(value) {
     var  cp = 0, sp = 0, gp = 0, pp = 0;
 
     if (value < 2) {
@@ -983,17 +1045,17 @@ Treasure.lists['Goblin'].coins = function(value) {
     if (gp < 0) {
         gp - 0;
     }
-    return { 'cp': cp, 'sp': sp, 'gp': gp, 'pp': pp };
+    return { "cp": cp, "sp": sp, "gp": gp, "pp": pp };
 };
-Treasure.lists['Goblin A'] = { 'table': [
-    [ 0, 'Tat' ], [ 0, 'Eww' ], [ 0, 'Eww' ],
-    [ 0, 'Food A' ]
+Treasure.lists["Goblin A"] = { "table": [
+    [ 0, "Tat" ], [ 0, "Eww" ], [ 0, "Eww" ],
+    [ 0, "Food A" ]
 ]};
-Treasure.lists['Goblin B'] = { 'table': [
-    [ 0, 'Tat' ], [ 0, 'Eww' ],
-    [ 0, 'Food A' ], [ 'Tools A' ]
+Treasure.lists["Goblin B"] = { "table": [
+    [ 0, "Tat" ], [ 0, "Eww" ],
+    [ 0, "Food A" ], [ "Tools A" ]
 ]};
-Treasure.lists['Goblin C'] = { 'table': [
-    [ 0, 'Tat' ], [ 0, 'Eww' ],
-    [ 0, 'Food A' ], [ 'Tools A' ], [ 'Trinkets A' ]
+Treasure.lists["Goblin C"] = { "table": [
+    [ 0, "Tat" ], [ 0, "Eww" ],
+    [ 0, "Food A" ], [ "Tools A" ], [ "Trinkets A" ]
 ]};
