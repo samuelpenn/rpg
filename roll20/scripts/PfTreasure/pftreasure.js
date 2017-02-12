@@ -410,6 +410,7 @@ Treasure.lists['Cursed'].table = [
     [ 6, "A <<brass|copper|wooden>> <<ring|pendent>> <<carved|inscribed|decorated|embossed>> with <<cats|dragons|fish|birds>>, -1 to all saves." ],
     [ 6, "A <<dog's|cat's|rat's>> <<stuffed|mummified>> head that makes a <<hiss|scream|sound>> when it is <<squeezed|kissed|petted|given water>>." ],
     [ 6, "A miniature skull with drops of water around its teeth, -10 to swim checks." ],
+    [ 6, "A <<brass|copper|electrum>> <<ring|necklace|bracelet>> with <<hearts|eyes|diamond patterns>> inscribed on it. -10 to all checks to resist alchohol." ],
 ];
 
 /*
@@ -573,6 +574,7 @@ Treasure.lists['Trinkets A'] = { 'table': [
     [ 12, "A quill and empty inkpot, [[1d4+1]]cp." ],
     [ 12, "Fishing hooks with a large coil of line." ],
     [ 12, "A blade polishing kit, missing any oil." ],
+    [ 12, "A single <<ebony|bone|wooden>> die, that has a 5 in 6 chance of rolling a <<1|1|2|3|4|5|6|6|6>>." ],
     [ 15, "A lock of <<brown|golden|white>> hair <<wrapped|tied>> around a wooden ring." ],
     [ 15, "A <<black|red|red and yellow|yellow|brown>> cloth mask with two eye holes." ],
     [ 15, "A small <<sliver|fragment|shard>> of <<glass|crystal>> that reflects different colours of light." ],
