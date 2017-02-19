@@ -50,12 +50,30 @@ on("chat:message", function(msg) {
 
 var Describe = Describe || {};
 
+Describe.BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px solid black; border-radius: 5px 5px 10px 10px;";
+Describe.TITLE_STYLE="background-color: black; color: #FFFFFF; padding: 1px; font-style: normal; text-align: center; border-radius: 5px 5px 0px 0px;";
+Describe.TEXT_STYLE="padding: 5px; text-align: left; font-weight: normal; font-style: normal";
+
+Describe.getHTML = function(title, image, text) {
+    var html = "<div style='" + Describe.BOX_STYLE + "'>";
+
+    if (title == null) {
+        title = "";
+    }
+
+    html += "<div style='" + Describe.TITLE_STYLE + "'>" + title + "</div>";
+    if (image != null) {
+        html += "<img src='" + image + "' width='100%'/>";
+    }
+    html += "<div style='" + Describe.TEXT_STYLE + "'>" + text + "</div>";
+    html += "</div>";
+
+    return html;
+};
+
+
 
 Describe.Process = function(msg, player_obj) {
-    var BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px solid COLOUR; border-radius: 5px 5px 10px 10px;"
-    var TITLE_STYLE="background-color: COLOUR; color: #FFFFFF; padding: 1px; font-style: normal; text-align: center; border-radius: 5px 5px 0px 0px;";
-    var TEXT_STYLE="padding: 5px; text-align: left; font-weight: normal; font-style: normal";
-
     var n = msg.content.split(" ");
     var target = getObj("graphic", n[1]);
     if (target != undefined) {
@@ -69,13 +87,31 @@ Describe.Process = function(msg, player_obj) {
         var character_id = target.get("represents")
         var character = getObj("character", character_id)
         if (character == null) {
-            sendChat("", "/w " + player_obj.get("displayname") + " No character found");
-        } else {
-            var colour = getAttrByName(character.id, 'rolltemplate_color');
-            if (colour == null || colour == "") {
-                colour = "#000000";
+            // This might be a map symbol that links to a handout.
+            // Look for a handout with the same name.
+            var list = findObjs({
+                _type: "handout",
+                name: title
+            });
+            if (list == null) {
+                sendChat("", "/w " + player_obj.get("displayname") + " No character found");
+                return;
             }
-            var image = null
+            var handout = list[0];
+            var image = handout.get("avatar");
+            if (image == "") {
+                image = null;
+            }
+            handout.get("notes", function(notes) {
+                var text = Describe.getHTML(title, image, unescape(notes));
+                if (playerIsGM(player_obj.get("id"))) {
+                    sendChat("", "/desc " + text);
+                } else {
+                    sendChat("", "/w " + player_obj.get("displayname") + " " + text);
+                }
+            });
+        } else {
+            var image = null;
             if (image == null || image == "") {
                 image = character.get("avatar");
             }
@@ -84,20 +120,14 @@ Describe.Process = function(msg, player_obj) {
                     sendChat("", "/w " + player_obj.get("displayname") + " No bio defined");
                 } else {
                     bio = bio.replace(/<br>-- <br>.*/, "");
-                    colour = "black";
-                    var html = "<div style='" + BOX_STYLE.replace("COLOUR", colour) + "'>";
                     if (title != undefined) {
                         var size = getAttrByName(character.id, "size_display");
                         if (size != null && size != "" && size != "Medium") {
                             title += "<br/>(" + size + ")";
                         }
+                    }
 
-                        html += "<div style='" + TITLE_STYLE.replace("COLOUR", colour) + "'>" + title + "</div>";
-                    }
-                    if (image != null) {
-                        html += "<img src='"+image+"' width='100%'/>";
-                    }
-                    html += "<div style='" + TEXT_STYLE.replace(/COLOUR/g, colour) + "'>" + unescape(bio) + "</div>";
+                    var html = Describe.getHTML(title, image, unescape(bio));
 
                     gmnotes = target.get("gmnotes");
                     if (gmnotes != null && gmnotes != "") {
