@@ -1,9 +1,11 @@
 /**
  * Output a description of a character to the chat window.
  *
- * If the character has a Picture attribute, then the URL from this is used to
- * download an image, otherwise the standard avatar image is used. This allows
- * images to be used without uploading them to Roll20.
+ * !describe @{selected|token_id}
+ *
+ * Outputs a picture (if available) and descriptive text of a character to
+ * the chat window. Allows players to see a description of tokens on the map
+ * which they don't otherwise have permission to access.
  *
  * The 'bio' field is used for the text of the character description. However,
  * it also checks the 'gmnotes' section of the token, looking for any text
@@ -15,6 +17,22 @@
  * are all output on separate lines.
  *
  * All HTML formatting is preserved.
+ *
+ * If the PfInfo script is available, then the current status of the token
+ * is also displayed. e.g., health, stun effects etc.
+ *
+ * If the token does not represent a character, then looks for a handout
+ * with the same name. If found, the descriptive text (and graphic) of the
+ * handout is displayed in its place. This allows symbols to be placed on
+ * a large scale map (such as a city, or a country) which players can select
+ * and get information on.
+ *
+ * !missions [verbose]
+ *
+ * Lists all missions available to players characters. Handouts which begin
+ * "Job: " are considered a mission, and they must be available to all players.
+ * They are listed with their reward price and faction, with a link to the
+ * full description of the mission.
  *
  * The MIT License (MIT)
  *
@@ -54,7 +72,12 @@ on("chat:message", function(msg) {
     var command = args.shift();
 
     if (command == "!describe") {
-        Describe.Process(msg, player);
+        if (args.length == 0) {
+            Describe.error(player, "!describe expects a parameter, e.g. !describe &#64;{selected|token_id}");
+            return;
+        }
+        var id = args.shift();
+        Describe.describe(msg, player, id);
         return;
     } else if (command == "!missions") {
         var verbose = false;
@@ -66,7 +89,7 @@ on("chat:message", function(msg) {
         return;
     } else if (command === "!mission") {
         if (args.length == 0) {
-            sendChat("", "/w " + player.get("displayname") + " Expects a parameter");
+            Describe.error(player, "!mission expects a parameter. Use !missions to get list of missions.");
             return;
         }
         var id = args.shift();
@@ -83,6 +106,16 @@ Describe.BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; bord
 Describe.TITLE_STYLE="background-color: black; color: #FFFFFF; padding: 1px; font-style: normal; text-align: center; border-radius: 5px 5px 0px 0px;";
 Describe.TEXT_STYLE="padding: 5px; text-align: left; font-weight: normal; font-style: normal";
 
+
+/**
+ * Displays an error back to the player. Errors are always whispered so
+ * as not to annoy everyone else.
+ */
+Describe.error = function(player, message) {
+    sendChat("pfDescribe", "/w \"" + player.get("displayname") + "\" " + message);
+}
+
+
 Describe.getHTML = function(title, image, text) {
     var html = "<div style='" + Describe.BOX_STYLE + "'>";
 
@@ -91,7 +124,7 @@ Describe.getHTML = function(title, image, text) {
     }
 
     html += "<div style='" + Describe.TITLE_STYLE + "'>" + title + "</div>";
-    if (image != null) {
+    if (image != null && image != "") {
         html += "<img src='" + image + "' width='100%'/>";
     }
     html += "<div style='" + Describe.TEXT_STYLE + "'>" + text + "</div>";
@@ -102,7 +135,7 @@ Describe.getHTML = function(title, image, text) {
 
 Describe.missionHandout = function(handout, player, callback) {
     if (handout == null) {
-        log("missionHandout: No handout defined");
+        Describe.error(player, "No mission handout defined.");
         return;
     }
     handout.get("notes", function(notes) {
@@ -134,6 +167,11 @@ Describe.missionHandout = function(handout, player, callback) {
 
 };
 
+/**
+ * Given a faction name, either returns the faction name or the
+ * character id of a matching character formatted for use in a
+ * sendChat() call. e.g. "character|aBcD34567".
+ */
 Describe.getFaction = function(faction) {
     if (faction == null || faction == "") {
         return null;
@@ -177,7 +215,6 @@ Describe.missionList = function(handout, player, title, faction, reward, notes) 
     }
     var text = "[" + title + "](!mission " + handout.get("_id") + ")";
 
-
     faction = Describe.getFaction(faction);
     if (playerIsGM(player.get("id"))) {
         sendChat(faction?faction:"", text);
@@ -192,7 +229,7 @@ Describe.mission = function(msg, player, id) {
         _id: id
     });
     if (list == null || list.length == 0) {
-        log("Failed to find handout with id [" + id + "]");
+        Describe.error(player, "Failed to find mission handout with id [" + id + "]");
         return;
     }
     var handout = list[0];
@@ -206,7 +243,7 @@ Describe.missions = function(msg, player, verbose) {
         inplayerjournals: "all"
     });
     if (list == null || list.length == 0) {
-        sendChat("Jobs Board", "/desc No missions available");
+        Describe.error(player, "No missions are currently available for listing.");
         return;
     }
     var jobs = [];
@@ -222,7 +259,6 @@ Describe.missions = function(msg, player, verbose) {
     }
     for (var i=0; i < jobs.length; i++) {
         var handout = jobs[i];
-        log("Found handout [" + handout.get("_id") + "]");
         if (verbose == true) {
             Describe.missionHandout(handout, player, Describe.missionDetails);
         } else {
@@ -231,9 +267,8 @@ Describe.missions = function(msg, player, verbose) {
     }
 };
 
-Describe.Process = function(msg, player_obj) {
-    var n = msg.content.split(" ");
-    var target = getObj("graphic", n[1]);
+Describe.describe = function(msg, player, target_id) {
+    var target = getObj("graphic", target_id);
     if (target != undefined) {
         var title = target.get("name");
         if (title != undefined ) {
@@ -242,8 +277,8 @@ Describe.Process = function(msg, player_obj) {
                 title = title.split(":")[1];
             }
         }
-        var character_id = target.get("represents")
-        var character = getObj("character", character_id)
+        var character_id = target.get("represents");
+        var character = getObj("character", character_id);
         if (character == null) {
             // This might be a map symbol that links to a handout.
             // Look for a handout with the same name.
@@ -251,8 +286,8 @@ Describe.Process = function(msg, player_obj) {
                 _type: "handout",
                 name: title
             });
-            if (list == null) {
-                sendChat("", "/w " + player_obj.get("displayname") + " No character found");
+            if (list == null || list.length == 0) {
+                Describe.error(player, "Target [" + title + "] has no associated character or handout.", target);
                 return;
             }
             var handout = list[0];
@@ -262,10 +297,10 @@ Describe.Process = function(msg, player_obj) {
             }
             handout.get("notes", function(notes) {
                 var text = Describe.getHTML(title, image, unescape(notes));
-                if (playerIsGM(player_obj.get("id"))) {
-                    sendChat("", "/desc " + text);
+                if (playerIsGM(player.get("id"))) {
+                    sendChat("Map", "/desc " + text);
                 } else {
-                    sendChat("", "/w " + player_obj.get("displayname") + " " + text);
+                    sendChat("Map", "/w \"" + player.get("displayname") + "\" " + text);
                 }
             });
         } else {
@@ -274,11 +309,12 @@ Describe.Process = function(msg, player_obj) {
                 image = character.get("avatar");
             }
             character.get("bio", function(bio) {
-                if (bio == undefined || bio.length == 0) {
-                    sendChat("", "/w " + player_obj.get("displayname") + " No bio defined");
+                if (bio == undefined || bio.length == 0 || bio == "null") {
+                    Describe.error(player, "Character has no bio defined.");
+                    return;
                 } else {
                     bio = bio.replace(/<br>-- <br>.*/, "");
-                    if (title != undefined) {
+                    if (title != null && title != "") {
                         var size = getAttrByName(character.id, "size_display");
                         if (size != null && size != "" && size != "Medium") {
                             title += "<br/>(" + size + ")";
@@ -286,9 +322,8 @@ Describe.Process = function(msg, player_obj) {
                     }
 
                     var html = Describe.getHTML(title, image, unescape(bio));
-
                     gmnotes = target.get("gmnotes");
-                    if (gmnotes != null && gmnotes != "") {
+                    if (gmnotes != null && gmnotes != "" && gmnotes != "null") {
                         gmnotes = unescape(gmnotes);
                         matches = gmnotes.match(/~~(.*?)~~/g);
                         if (matches != null && matches.length > 0) {
@@ -302,20 +337,23 @@ Describe.Process = function(msg, player_obj) {
                         }
                     }
 
-                    var statusText = Info.getStatusText(target);
-                    if (statusText != "") {
-                        html += "<div style='" + TEXT_STYLE + "'>" + statusText + "</div>";
+                    if (typeof Info !== 'undefined') {
+                        var statusText = Info.getStatusText(target);
+                        if (statusText != "") {
+                            html += "<div style='" + TEXT_STYLE + "'>" + statusText + "</div>";
+                        }
                     }
 
-                    if (playerIsGM(player_obj.get("id"))) {
-                        sendChat("", "/desc " + html);
+                    if (playerIsGM(player.get("id"))) {
+                        sendChat("character|"+character.get("id"), "/desc " + html);
                     } else {
-                        sendChat("", "/w " + player_obj.get("displayname") + " " + html);
+                        sendChat("character|"+character.get("id"),
+                                 "/w \"" + player.get("displayname") + "\" " + html);
                     }
                 }
             });
         }
     } else {
-        sendChat("", "/w " + player_obj.get("displayname") + " Nothing selected.");
+        Describe.error(player, "Nothing selected.");
     }
 };
