@@ -116,7 +116,7 @@ Describe.error = function(player, message) {
 }
 
 
-Describe.getHTML = function(title, image, text) {
+Describe.getHTML = function(title, image, text, extra) {
     var html = "<div style='" + Describe.BOX_STYLE + "'>";
 
     if (title == null) {
@@ -128,6 +128,9 @@ Describe.getHTML = function(title, image, text) {
         html += "<img src='" + image + "' width='100%'/>";
     }
     html += "<div style='" + Describe.TEXT_STYLE + "'>" + text + "</div>";
+    if (extra != null) {
+        html += extra;
+    }
     html += "</div>";
 
     return html;
@@ -321,28 +324,29 @@ Describe.describe = function(msg, player, target_id) {
                         }
                     }
 
-                    var html = Describe.getHTML(title, image, unescape(bio));
+                    var extra = "";
                     gmnotes = target.get("gmnotes");
                     if (gmnotes != null && gmnotes != "" && gmnotes != "null") {
                         gmnotes = unescape(gmnotes);
                         matches = gmnotes.match(/~~(.*?)~~/g);
                         if (matches != null && matches.length > 0) {
-                            html += "<div style='" + TEXT_STYLE + "'>";
+                            extra += "<div style='" + Describe.TEXT_STYLE + "'>";
                             for (var i=0; i < matches.length; i++) {
                                 text = matches[i];
                                 text = text.replace(/~~/g, "");
-                                html += text + "<BR>";
+                                extra += text + "<BR>";
                             }
-                            html += "</div>";
+                            extra += "</div>";
                         }
                     }
 
                     if (typeof Info !== 'undefined') {
                         var statusText = Info.getStatusText(target);
                         if (statusText != "") {
-                            html += "<div style='" + TEXT_STYLE + "'>" + statusText + "</div>";
+                            extra += "<div style='" + Describe.TEXT_STYLE + "'>" + statusText + "</div>";
                         }
                     }
+                    var html = Describe.getHTML(title, image, unescape(bio) + extra);
 
                     if (playerIsGM(player.get("id"))) {
                         sendChat("character|"+character.get("id"), "/desc " + html);
