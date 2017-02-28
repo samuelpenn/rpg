@@ -295,6 +295,8 @@ Info.getStatusText = function(target) {
 
     html += Info.status(target, "screaming", "Confused", "01-25: Act Normally; 26-50: Babble; 51-75: 1d8 + Str damage to self; 76-100: Attack nearest.");
 
+    html += Info.status(target, "overdrive", "Dazzled", "-1 penalty on attacks and sight based perception checks.");
+
     html += Info.status(target, "fishing-net", "Entangled", "No movement if anchored, otherwise half speed. -2 attack, -4 Dex. Concentration check to cast spells.");
 
     html += Info.status(target, "sleepy", "Exhausted", "Half-speed, -6 to Str and Dex. Rest 1 hour to become fatigued.");

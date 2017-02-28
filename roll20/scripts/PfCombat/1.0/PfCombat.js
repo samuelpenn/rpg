@@ -278,6 +278,7 @@ PfCombat.healCommand = function(msg) {
                         'status_chained-heart': false,
                         'status_drink-me': false,
                         'status_interdiction': false,
+                        'status_overdrive': false,
                         'status_fist': false,
                         'status_snail': false
                     });
@@ -353,6 +354,12 @@ function initiativeMsgCallback(tokenId, turnOrder, token) {
             return;
         }
 
+        // Convert the result into a string, and make sure we aren't
+        // an dropping unwanted zero.
+        result = ("" + result);
+        if (result.match(/\.[0-9]$/g)) {
+            result += "0";
+        }
         turnOrder.push({
             id: tokenId,
             pr: result
@@ -677,6 +684,7 @@ PfCombat.usageSaves = function(msg, errorText) {
 PfCombat.status = {
     'Blind': { status: "bleeding-eye", description: "-2 penalty to AC; loses Dex bonus to AC; -4 penalty of most Dex and Str checks and opposed Perception checks; Opponents have 50% concealment; Acrobatics DC 10 if move faster than half speed, or prone." },
     'Confused': { status: "screaming", description: "01-25: Act Normally; 26-50: Babble; 51-75: 1d8 + Str damage to self; 76-100: Attack nearest." },
+    'Dazzled': { status: "overdrive", description: "-1 attacks and sight based perception checks." },
     'Entangled': { status: "fishing-net", description: "No movement if anchored, otherwise half speed. -2 attack, -4 Dex. Concentration check to cast spells." },
     'Exhausted': { status: "sleepy", description: "Half-speed, -6 to Str and Dex. Rest 1 hour to become fatigued." },
     'Fatigued': { status: "half-haze", description: "Cannot run or charge; -2 to Str and Dex. Rest 8 hours to recover." },
