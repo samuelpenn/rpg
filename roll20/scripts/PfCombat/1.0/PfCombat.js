@@ -102,6 +102,8 @@ on("chat:message", function(msg) {
         PfCombat.stabiliseCommand(msg);
     } else if (command == "!pfstatus") {
         PfCombat.statusCommand(msg);
+    } else if (command == "!pfhitpoints") {
+        PfCombat.setHitPoints(msg);
     }
 });
 
@@ -127,14 +129,14 @@ PfCombat.getSelectedTokens = function (msg, forceExplicit) {
         forceExplicit = false;
     }
 
-    if (msg == null) {
+    if (msg == null || msg == undefined) {
         return null;
     }
 
     if (msg.selected != null && msg.selected.length > 0) {
         for (var i=0; i < msg.selected.length; i++) {
             var token = getObj("graphic", msg.selected[i]._id);
-            if (token.get("name") == null || token.get("name") == "") {
+            if (token == null || token.get("name") == null || token.get("name") == "") {
                 continue;
             }
             if (token.get("represents") == null) {
@@ -213,6 +215,66 @@ PfCombat.statusCommand = function(msg) {
         html += PfCombat.line(message);
     }
     sendChat(msg.who, "/w " + msg.who + " " + html);
+}
+
+/**
+ * Randomly roll hitpoints for the token. Checks the class and levels
+ * of the character, constitution and other modifiers. Also checks the
+ * 'maxhp_lvl1' flag, to see if maximum hitpoints should be set for
+ * first level.
+ */
+PfCombat.setHitPoints = function(msg) {
+    var tokenList = PfCombat.getSelectedTokens(msg);
+    if (tokenList != null && tokenList.length > 0) {
+        for (var i=0; i < tokenList.length; i++) {
+            var tokenId = tokenList[i];
+            var token = getObj("graphic", tokenId);
+
+            var character_id = token.get("represents");
+            if (character_id == null) {
+                continue;
+            }
+            var maxHpLevel1 = getAttrByName(character_id, "maxhp_lvl1");
+            var hpAbilityMod = getAttrByName(character_id, "HP-ability-mod");
+            var hpFormulaMod = getAttrByName(character_id, "HP-formula-mod");
+            var hitpoints = 0;
+
+            for (var classIndex=0; classIndex < 10; classIndex++) {
+                var hd = getAttrByName(character_id, "class-" + classIndex + "-hd");
+                var level = getAttrByName(character_id, "class-" + classIndex + "-level");
+                if (hd == null || level == null || hd == "" || level == "") {
+                    break;
+                }
+                hd = parseInt(hd);
+                level = parseInt(level);
+
+                log(hd + ", " + level);
+
+                if (classIndex == 0 && maxHpLevel1 == 1) {
+                    hitpoints = hd + hpAbilityMod;
+                    if (hitpoints < 1) {
+                        hitpoints = 1;
+                    }
+                    level--;
+                    log("First level hitpoints is " + hitpoints);
+                }
+                for (;level > 0; level--) {
+                    var hp = randomInteger(hd) + hpAbilityMod;
+                    if (hp < 1) {
+                        hp = 1;
+                    }
+                    log("Rolled " + hp + " hitpoints.");
+                    hitpoints += hp;
+                }
+            }
+            hitpoints += hpFormulaMod;
+            log("Total hitpoints = " + hitpoints);
+            token.set("bar1_value", hitpoints);
+            token.set("bar1_max", hitpoints);
+
+            sendChat(token.get("name"), "/w GM hitpoints set to " + hitpoints);
+        }
+    }
 }
 
 /**
