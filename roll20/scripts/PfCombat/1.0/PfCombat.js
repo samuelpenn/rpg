@@ -247,6 +247,9 @@ PfCombat.setHitPoints = function(msg) {
                 }
                 hd = parseInt(hd);
                 level = parseInt(level);
+                if (hd == 0 || level == 0) {
+                    break;
+                }
 
                 log(hd + ", " + level);
 
@@ -267,7 +270,7 @@ PfCombat.setHitPoints = function(msg) {
                     hitpoints += hp;
                 }
             }
-            hitpoints += hpFormulaMod;
+            hitpoints += parseInt(hpFormulaMod);
             log("Total hitpoints = " + hitpoints);
             token.set("bar1_value", hitpoints);
             token.set("bar1_max", hitpoints);
