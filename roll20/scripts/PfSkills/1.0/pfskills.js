@@ -98,8 +98,9 @@ PfSkills.singleSkillCommand = function(msg) {
     if (!isRoll) {
         tokenName += " (Takes " + d20roll + ")";
     }
-    var character_id = token.get("represents");
-    var character = getObj("character", character_id);
+    var characterName = getAttrByName(characterId, key);
+
+    var character = getObj("character", characterId);
 
     // Get the skill.
     var skillName = n[n.length - 1];
@@ -115,7 +116,7 @@ PfSkills.singleSkillCommand = function(msg) {
         template += "{{Take " + d20roll + "=[[d0cs>21 + " + d20roll + "]]}}";
     }
 
-    var attributes = PfSkills.getAllAttributes(character_id);
+    var attributes = PfSkills.getAllAttributes(characterId);
     template += PfSkills.getSkillResult(attributes, skillName, d20roll);
 
     var player_obj = getObj("player", msg.playerid)
@@ -161,13 +162,21 @@ PfSkills.setupTemplate = function(name, character, title) {
  * Reading character sheet attributes is very slow, so we want to try and optimise
  * things to make as few requests as possible.
  */
-PfSkills.getSkill = function(list, skill, d20roll, name) {
+PfSkills.getSkill = function(characterName, list, skill, d20roll, name) {
     var ranks = PfSkills.getAttributeValue(list, skill + "-ranks");
     if (ranks == null || ranks == "" || ranks == 0) {
         var reqTrain = PfSkills.getAttributeValue(list, skill + "-ReqTrain");
         if (reqTrain == 1) {
             return "";
         }
+    }
+    log("Calculating character name to be " + characterName);
+    var skillNote = PfSkills.getAttributeValue(list, skill + "-note");
+
+    if (skillNote != null && skillNote != "") {
+        skillNote = "\n" + skillNote.replace(/@{([^|}]*)}/g, "@{"+characterName+"|$1}");
+    } else {
+        skillNote = "";
     }
 
     var score = parseInt(PfSkills.getAttributeValue(list, skill));
@@ -177,10 +186,11 @@ PfSkills.getSkill = function(list, skill, d20roll, name) {
 
     skill = skill.replace("-", " ");
     if (d20roll != null) {
-        return "{{" + name + " (" + score + ")=**" + (d20roll + score) + "**}}";
+        var template = "{{<b>" + name + " (" + score + ")</b>" + skillNote + "=<b>" + (d20roll + score) + "</b>}}";
     } else {
-        return "{{" + name + " (" + score + ")=**[[d20 + " + score + "]]**}}";
+        var template = "{{<b>" + name + " (" + score + ")</b>" + skillNote + "=[[d20 + " + score + "]]}}";
     }
+    return template;
 };
 
 PfSkills.getAttribute = function(list, attribute, d20roll, name) {
@@ -236,6 +246,7 @@ PfSkills.getAttributeValue = function(list, key) {
  * Get all the attributes for this character, into one big array.
  */
 PfSkills.getAllAttributes = function(characterId) {
+    log("Getting list of attributes");
     var list = findObjs({
         type: 'attribute',
         characterid: characterId
@@ -283,16 +294,17 @@ PfSkills.Process = function(msg, player_obj) {
     if (!isRoll) {
         tokenName += " (Takes " + d20roll + ")";
     }
-    var character_id = target.get("represents");
-    var character = getObj("character", character_id);
+    var characterId = target.get("represents");
+    var character = getObj("character", characterId);
 
     if (character == null) {
         sendChat("", "No character found for token.");
         PfSkills.usage();
         return;
     }
+    var characterName = getAttrByName(characterId, "character_name");
 
-    PfSkills.timer("Prepare template");
+    //PfSkills.timer("Prepare template");
     var template = PfSkills.setupTemplate(tokenName, character, title);
     if (isRoll) {
         template += "{{d20 roll=[[d0cs>21 + " + d20roll + "]]}}";
@@ -303,27 +315,27 @@ PfSkills.Process = function(msg, player_obj) {
     // Define all the Knowledge skills, and iterate through the list, outputting
     // only the ones which the character has ranks in.
 
-    PfSkills.timer("Getting attributes");
-    var attributes = PfSkills.getAllAttributes(character_id);
-    PfSkills.timer("Got attributes");
+    //PfSkills.timer("Getting attributes");
+    var attributes = PfSkills.getAllAttributes(characterId);
+    //PfSkills.timer("Got attributes");
 
     for (var s=0; s < skills.length; s++) {
         var skill = skills[s];
 
-        template += PfSkills.getSkillResult(attributes, skill, d20roll);
+        template += PfSkills.getSkillResult(characterName, attributes, skill, d20roll);
     }
-    PfSkills.timer("Done");
+    //PfSkills.timer("Done");
 
     if (playerIsGM(player_obj.get("id"))) {
-        sendChat(getAttrByName(character.id, "character_name"), "/w " + player_obj.get("displayname") + " " + template);
+        sendChat(characterName, "/w " + player_obj.get("displayname") + " " + template);
     } else {
-        sendChat(getAttrByName(character.id, "character_name"), template);
+        sendChat(characterName, template);
     }
 
     return;
 };
 
-PfSkills.getSkillResult = function(attributes, skill, d20roll) {
+PfSkills.getSkillResult = function(characterName, attributes, skill, d20roll) {
     var html = "";
     if (skill.indexOf("%") == 0) {
         // This is an attribute.
@@ -336,14 +348,14 @@ PfSkills.getSkillResult = function(attributes, skill, d20roll) {
             skill = baseSkill + ( (i>1)?i:"" );
             var skillName = PfSkills.getAttributeValue(attributes, skill + "-name");
             if (skillName != null && skillName != "") {
-                html += PfSkills.getSkill(attributes, skill, d20roll, "*" + baseSkill + ": " + skillName + "*");
+                html += PfSkills.getSkill(characterName, attributes, skill, d20roll, "*" + baseSkill + ": " + skillName + "*");
             } else {
                 break;
             }
         }
     } else {
         // Standard skill.
-        html += PfSkills.getSkill(attributes, skill, d20roll, skill.replace(/-/g, " "));
+        html += PfSkills.getSkill(characterName, attributes, skill, d20roll, skill.replace(/-/g, " "));
     }
     return html;
 };
