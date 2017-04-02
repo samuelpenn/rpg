@@ -71,6 +71,7 @@ Info.line = function line(property, value) {
     if (value == undefined || value == "") {
         return "";
     }
+    value = value.replace(/\n/g, "<br>");
     return "<p style='"+Info.PARA_STYLE+"'><b>" + property + "</b>: " + value + " </p>";
 }
 
@@ -126,6 +127,13 @@ Info.status = function( token, symbol, name, text) {
     return "";
 }
 
+Info.parseCustomFields = function(characterName, text) {
+    if (text === null) {
+        return null;
+    }
+    return text.replace(/@{([^|}]*)}/g, "@{" + characterName + "|$1}");
+}
+
 Info.Process = function(msg, player_obj) {
     var n = msg.content.split(" ");
     var target = getObj("graphic", n[1]);
@@ -142,6 +150,7 @@ Info.Process = function(msg, player_obj) {
         if (character == null) {
             sendChat("", "/w " + player_obj.get("displayname") + " No character found");
         } else {
+            var characterName = getAttrByName(character.id, "character_name");
             var colour = getAttrByName(character.id, 'rolltemplate_color');
             if (colour == null || colour == "") {
                 colour = "#000000";
@@ -251,9 +260,13 @@ Info.Process = function(msg, player_obj) {
             html += Info.line("Weaknesses", weaknesses);
 
             var meleeAttackNotes = getAttrByName(character.id, "melee-attack-notes");
+            meleeAttackNotes = Info.parseCustomFields(characterName, meleeAttackNotes);
             var rangedAttackNotes = getAttrByName(character.id, "ranged-attack-notes");
+            rangedAttackNotes = Info.parseCustomFields(characterName, rangedAttackNotes);
             var cmbNotes = getAttrByName(character.id, "CMB-notes");
+            cmbNotes = Info.parseCustomFields(characterName, cmbNotes);
             var attackNotes = getAttrByName(character.id, "attack-notes");
+            attackNotes = Info.parseCustomFields(characterName, attackNotes);
 
             html += Info.line("Melee Attacks", meleeAttackNotes);
             html += Info.line("Ranged Attacks", rangedAttackNotes);
