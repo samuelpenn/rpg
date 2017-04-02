@@ -81,11 +81,16 @@ on("chat:message", function(msg) {
         return;
     } else if (command == "!missions") {
         var verbose = false;
-        var flag = args.shift();
-        if (flag == "verbose") {
-            verbose = true;
+        var whisper = false;
+        while (flag = args.shift()) {
+            if (flag == "verbose") {
+                verbose = true;
+            }
+            if (flag == "whisper") {
+                whisper = true;
+            }
         }
-        Describe.missions(msg, player, verbose);
+        Describe.missions(msg, player, verbose, whisper);
         return;
     } else if (command === "!mission") {
         if (args.length == 0) {
@@ -94,7 +99,31 @@ on("chat:message", function(msg) {
         }
         var id = args.shift();
         log(id);
-        Describe.mission(msg, player, id);
+        if (id === "Job:") {
+            if (playerIsGM(player.get("id"))) {
+                var title = msg.content.replace(/!mission /g, "");
+                var list = findObjs({
+                    _type: "handout",
+                    name: title
+                });
+                if (list == null || list.length == 0) {
+                    Describe.error(player, "Cannot find mission \"" + title + "\"");
+                    return;
+                }
+                id = list[0].get("id");
+                Describe.mission(msg, player, id, true);
+            } else{
+                Describe.error(player, "Only the GM can do this.");
+                return;
+            }
+        } else {
+            var whisper = args.shift();
+            if (whisper == "whisper") {
+                Describe.mission(msg, player, id, true);
+            } else {
+                Describe.mission(msg, player, id);
+            }
+        }
         return;
     }
 
@@ -136,7 +165,7 @@ Describe.getHTML = function(title, image, text, extra) {
     return html;
 };
 
-Describe.missionHandout = function(handout, player, callback) {
+Describe.missionHandout = function(handout, player, callback, whisper=false) {
     if (handout == null) {
         Describe.error(player, "No mission handout defined.");
         return;
@@ -152,9 +181,14 @@ Describe.missionHandout = function(handout, player, callback) {
 
             var faction = null;
             var reward = null;
+            var complexity = null;
             if (firstline.indexOf(",") != -1) {
-                faction = firstline.replace(/,.*/, "");
-                reward = firstline.replace(/.*, /g, "");
+                var details = firstline.split(",");
+                faction = details.shift();
+                reward = details.shift();
+                complexity = details.shift();
+                //faction = firstline.replace(/,.*/, "");
+                //reward = firstline.replace(/.*, /g, "");
 
                 if (faction == "") {
                     faction = null;
@@ -162,9 +196,12 @@ Describe.missionHandout = function(handout, player, callback) {
                 if (reward == "") {
                     reward = null;
                 }
+                if (complexity == "") {
+                    complexity = null;
+                }
             }
 
-            callback.call(this, handout, player, title, faction, reward, notes);
+            callback.call(this, handout, player, title, faction, reward, complexity, notes, whisper);
         });
     });
 
@@ -190,43 +227,75 @@ Describe.getFaction = function(faction) {
     return "character|" + list[0].get("id");
 }
 
-Describe.missionDetails = function(handout, player, title, faction, reward, notes) {
+Describe.getFactionImage = function(faction) {
+    if (faction == null || faction == "") {
+        return null;
+    }
+
+    var list = findObjs({
+        _type: "character",
+        _name: faction
+    });
+    if (list == null || list.length == 0) {
+        return null;
+    }
+    return list[0].get("avatar");
+}
+
+Describe.missionDetails = function(handout, player, title, faction, reward, complexity, notes, whisper) {
     var text = "";
     if (faction != null) {
+        /*
+        var image = Describe.getFactionImage(faction);
+        if (image != null) {
+            text += "<img src='" + image + "' width='50px' style='float:right'/>";
+        }
+        */
         text += "<b>Faction: </b>" + faction + "<br/>";
     }
     if (reward != null) {
         text += "<b>Reward: </b>" + reward + "<br/>";
     }
+    if (complexity != null) {
+        text += "<b>Complexity: </b>" + complexity + "<br/>";
+    }
     if (faction != null || reward != null) {
         text += "<br/>";
+    }
+    var avatar = handout.get("avatar");
+    if (avatar !== null) {
+        text += "<img src='" + avatar + "' width='100%'/>";
     }
 
     text += notes;
 
     faction = Describe.getFaction(faction);
-    if (playerIsGM(player.get("id"))) {
-        sendChat(faction?faction:"", "/desc " + Describe.getHTML(title, null, text));
+    if (playerIsGM(player.get("id")) && !whisper) {
+        sendChat(faction?faction:"", "" + Describe.getHTML(title, null, text));
     } else {
         sendChat(faction?faction:"", "/w \"" + player.get("displayname") + "\" " + Describe.getHTML(title, null, text));
     }
 }
 
-Describe.missionList = function(handout, player, title, faction, reward, notes) {
+Describe.missionList = function(handout, player, title, faction, reward, complexity, notes, whisper) {
     if (reward != null) {
         title += " (" + reward + ")";
     }
-    var text = "[" + title + "](!mission " + handout.get("_id") + ")";
+    if (whisper) {
+        var text = "[" + title + "](!mission " + handout.get("_id") + " whisper)";
+    } else {
+        var text = "[" + title + "](!mission " + handout.get("_id") + ")";
+    }
 
     faction = Describe.getFaction(faction);
-    if (playerIsGM(player.get("id"))) {
+    if (playerIsGM(player.get("id")) && !whisper) {
         sendChat(faction?faction:"", text);
     } else {
         sendChat(faction?faction:"", "/w \"" + player.get("displayname") + "\" " + text);
     }
 }
 
-Describe.mission = function(msg, player, id) {
+Describe.mission = function(msg, player, id, whisper = false) {
     var list = findObjs({
         _type: "handout",
         _id: id
@@ -236,15 +305,23 @@ Describe.mission = function(msg, player, id) {
         return;
     }
     var handout = list[0];
-    Describe.missionHandout(handout, player, Describe.missionDetails);
+    Describe.missionHandout(handout, player, Describe.missionDetails, whisper);
 };
 
 
-Describe.missions = function(msg, player, verbose) {
-    var list = findObjs({
-        _type: "handout",
-        inplayerjournals: "all"
-    });
+Describe.missions = function(msg, player, verbose = false, whisper = false) {
+    if (whisper && playerIsGM(player.get("id"))) {
+        var list = findObjs({
+            _type: "handout",
+            archived: false
+        });
+    } else {
+        var list = findObjs({
+            _type: "handout",
+            inplayerjournals: "all",
+            archived: false
+        });
+    }
     if (list == null || list.length == 0) {
         Describe.error(player, "No missions are currently available for listing.");
         return;
@@ -256,16 +333,20 @@ Describe.missions = function(msg, player, verbose) {
         }
     }
 
-    if (playerIsGM(player.get("id"))) {
+    if (playerIsGM(player.get("id")) && !whisper) {
         sendChat("player|" + player.get("id"),
+                 "The following jobs are currently listed as being available.");
+    } else if (playerIsGM(player.get("id"))) {
+        sendChat("player|" + player.get("id"),
+                 "/w \"" + player.get("displayname") + "\" " +
                  "The following jobs are currently listed as being available.");
     }
     for (var i=0; i < jobs.length; i++) {
         var handout = jobs[i];
         if (verbose == true) {
-            Describe.missionHandout(handout, player, Describe.missionDetails);
+            Describe.missionHandout(handout, player, Describe.missionDetails, whisper);
         } else {
-            Describe.missionHandout(handout, player, Describe.missionList);
+            Describe.missionHandout(handout, player, Describe.missionList, whisper);
         }
     }
 };
