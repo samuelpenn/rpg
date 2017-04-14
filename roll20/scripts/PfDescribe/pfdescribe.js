@@ -187,17 +187,21 @@ Describe.missionHandout = function(handout, player, callback, whisper=false) {
                 faction = details.shift();
                 reward = details.shift();
                 complexity = details.shift();
-                //faction = firstline.replace(/,.*/, "");
-                //reward = firstline.replace(/.*, /g, "");
 
-                if (faction == "") {
+                if (faction == "" || faction == null) {
                     faction = null;
+                } else {
+                    faction = faction.trim();
                 }
-                if (reward == "") {
+                if (reward == "" || reward == null) {
                     reward = null;
+                } else {
+                    reward = reward.trim();
                 }
-                if (complexity == "") {
+                if (complexity == "" || complexity == null) {
                     complexity = null;
+                } else {
+                    complexity = complexity.trim();
                 }
             }
 

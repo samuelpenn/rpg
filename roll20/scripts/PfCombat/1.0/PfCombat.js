@@ -88,7 +88,8 @@ var PfCombat = PfCombat || {};
  */
 on("chat:message", function(msg) {
     if (msg.type !== "api") return;
-    var command = msg.content.split(" ", 1)[0];
+    var args = msg.content.split(" ");
+    var command = args.shift();
 
     if (command == "!pfheal") {
         PfCombat.healCommand(msg);
@@ -103,7 +104,9 @@ on("chat:message", function(msg) {
     } else if (command == "!pfstatus") {
         PfCombat.statusCommand(msg);
     } else if (command == "!pfhitpoints") {
-        PfCombat.setHitPoints(msg);
+        PfCombat.setHitPoints(msg, args);
+    } else if (command == "!pfcustominit") {
+        PfCombat.addCustomInitCommand(msg, args);
     }
 });
 
@@ -217,15 +220,73 @@ PfCombat.statusCommand = function(msg) {
     sendChat(msg.who, "/w " + msg.who + " " + html);
 }
 
+// Constants for hitpoint options.
+PfCombat.HP_NORMAL = 0;
+PfCombat.HP_LOW = 1;
+PfCombat.HP_AVERAGE = 2;
+PfCombat.HP_HIGH = 3;
+PfCombat.HP_MAX = 4;
+
+/**
+ * Roll hitpoints for a given hitdie, possibly weighted according to the
+ * options. The value of option can be:
+ *
+ * HP_NORMAL: Roll die randomly with no weighting.
+ * HP_LOW: Roll twice, take the lowest.
+ * HP_AVERAGE: Roll twice, take the average (round down).
+ * HP_HIGH: Roll twice, take the highest.
+ * HP_MAX: Maximum hitpoints.
+ */
+PfCombat.getHitPoints = function(hitdie, option) {
+    var hp = 0;
+
+    switch (option) {
+        case PfCombat.HP_LOW:
+            hp = Math.min(randomInteger(hitdie), randomInteger(hitdie));
+            break;
+        case PfCombat.HP_AVERAGE:
+            hp = (randomInteger(hitdie) + randomInteger(hitdie))/2;
+            break;
+        case PfCombat.HP_HIGH:
+            hp = Math.max(randomInteger(hitdie), randomInteger(hitdie));
+            break;
+        case PfCombat.HP_MAX:
+            hp = hitdie;
+            break;
+        default:
+            hp = randomInteger(hitdie);
+            break;
+    }
+    return parseInt(hp);
+}
+
 /**
  * Randomly roll hitpoints for the token. Checks the class and levels
  * of the character, constitution and other modifiers. Also checks the
  * 'maxhp_lvl1' flag, to see if maximum hitpoints should be set for
  * first level.
+ *
+ * Argument can be 'low', 'average', 'high' or 'max', which if specified
+ * weights the rolls in a particular way, to give below average, average,
+ * above average or maximum hitpoints.
  */
-PfCombat.setHitPoints = function(msg) {
+PfCombat.setHitPoints = function(msg, args) {
     var tokenList = PfCombat.getSelectedTokens(msg);
     if (tokenList != null && tokenList.length > 0) {
+        var option = PfCombat.HP_NORMAL;
+        if (args != null && args.length > 0) {
+            var arg = args.shift();
+            if (arg == "low") {
+                option = PfCombat.HP_LOW;
+            } else if (arg == "average") {
+                option = PfCombat.HP_AVERAGE;
+            } else if (arg == "high") {
+                option = PfCombat.HP_HIGH;
+            } else if (arg == "max") {
+                option = PfCombat.HP_MAX;
+            }
+        }
+
         for (var i=0; i < tokenList.length; i++) {
             var tokenId = tokenList[i];
             var token = getObj("graphic", tokenId);
@@ -239,6 +300,20 @@ PfCombat.setHitPoints = function(msg) {
             var hpFormulaMod = getAttrByName(character_id, "HP-formula-mod");
             var hitpoints = 0;
 
+            // Get hitpoints from racial Hit Dice.
+            var npcHd = getAttrByName(character_id, "npc-hd");
+            var npcLevel = getAttrByName(character_id, "npc-hd-num");
+            if (npcHd != null && npcLevel != null) {
+                npcHd = parseInt(npcHd);
+                npcLevel = parseInt(npcLevel);
+
+                for (;npcLevel > 0; npcLevel--) {
+                    hitpoints += PfCombat.getHitPoints(npcHd, option) + hpAbilityMod;
+                }
+                log("NPC Hitpoints = " + hitpoints);
+            }
+
+            // Get hitpoints from class Hit Dice.
             for (var classIndex=0; classIndex < 10; classIndex++) {
                 var hd = getAttrByName(character_id, "class-" + classIndex + "-hd");
                 var level = getAttrByName(character_id, "class-" + classIndex + "-level");
@@ -262,7 +337,7 @@ PfCombat.setHitPoints = function(msg) {
                     log("First level hitpoints is " + hitpoints);
                 }
                 for (;level > 0; level--) {
-                    var hp = randomInteger(hd) + hpAbilityMod;
+                    var hp = PfCombat.getHitPoints(hd, option) + hpAbilityMod;
                     if (hp < 1) {
                         hp = 1;
                     }
@@ -400,6 +475,46 @@ PfCombat.initCommand = function(msg) {
         var message = PfCombat.line(message);
         PfCombat.message(token, message, initiativeMsgCallback(tokenId, turnOrder, token));
     }
+
+    return;
+};
+
+/**
+ * Add a custom initiative marker. This is designed to be used to track
+ * spells and other effects which last a given number of rounds. The
+ * first argument is the number of rounds, the rest are the description
+ * of the effect being tracked.
+ *
+ * One token must be selected, and its name is put into the tracker's
+ * description. The tracker item is always pushed to the end of the
+ * initiative track (it is assumed the current token has initiative,
+ * so this will put it just before the current token comes up again).
+ */
+PfCombat.addCustomInitCommand = function(msg, args) {
+    var turnOrder = [];
+    if (Campaign().get("turnorder") != "") {
+        turnOrder = JSON.parse(Campaign().get("turnorder"));
+    }
+    var tokenList = PfCombat.getSelectedTokens(msg, true);
+
+    var tokenId = tokenList[0];
+    var token = getObj("graphic", tokenId);
+
+    var customName = token.get("name") + ":";
+    var turns = args.shift();
+    log("Custom init for " + customName + " for " + turns);
+    while (args.length > 0) {
+        customName += " " + args.shift();
+    }
+    log("Custom init for " + customName);
+
+    turnOrder.push({
+        "id": "-1",
+        "pr": turns,
+        "custom": customName,
+        "formula": -1,
+    });
+    Campaign().set("turnorder", JSON.stringify(turnOrder));
 
     return;
 };
