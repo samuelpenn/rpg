@@ -63,6 +63,8 @@ on("chat:message", function(msg) {
         PfSkills.Process(msg, player_obj);
     } else if (command === "!pfskill") {
         PfSkills.singleSkillCommand(msg);
+    } else if (command === "!pfperformance") {
+        PfSkills.performanceIncome(msg);
     }
 });
 
@@ -98,13 +100,14 @@ PfSkills.singleSkillCommand = function(msg) {
     if (!isRoll) {
         tokenName += " (Takes " + d20roll + ")";
     }
-    var characterName = getAttrByName(characterId, key);
+    var characterName = getAttrByName(characterId, "character_name");
 
     var character = getObj("character", characterId);
 
     // Get the skill.
     var skillName = n[n.length - 1];
     var title = skillName.replace(/-/g, " ").replace(/%/g, " ");
+    log(skillName);
 
     // Setup the template.
     var template = PfSkills.setupTemplate(tokenName, character, title);
@@ -117,7 +120,7 @@ PfSkills.singleSkillCommand = function(msg) {
     }
 
     var attributes = PfSkills.getAllAttributes(characterId);
-    template += PfSkills.getSkillResult(attributes, skillName, d20roll);
+    template += PfSkills.getSkillResult(characterName, attributes, skillName, d20roll);
 
     var player_obj = getObj("player", msg.playerid)
     if (playerIsGM(player_obj.get("id"))) {
@@ -126,6 +129,99 @@ PfSkills.singleSkillCommand = function(msg) {
         sendChat(getAttrByName(character.id, "character_name"), template);
     }
 }
+
+PfSkills.performanceIncome = function(msg) {
+    var tokenList = PfCombat.getSelectedTokens(msg, true);
+    if (tokenList == null || tokenList.length != 1) {
+        PfSkills.error("Must have exactly one token selected.");
+        return;
+    }
+
+    var d20roll = null;
+    var isRoll = true;
+    var notRolled = false;
+    var n = msg.content.split(" ");
+    var performanceSkill = n[1];
+    var days = parseInt(n[2]);
+
+
+
+    var token = getObj("graphic", tokenList[0]);
+    var characterId = token.get("represents");
+    var tokenName = token.get("name");
+    var characterName = getAttrByName(characterId, "character_name");
+
+    var character = getObj("character", characterId);
+    var attributes = PfSkills.getAllAttributes(characterId);
+
+    var html = "";
+
+    var baseSkill = "Perform";
+    var score = 0;
+    for (var i=1; i < 11; i++) {
+        skill = baseSkill + ( (i>1)?i:"" );
+        var skillName = PfSkills.getAttributeValue(attributes, skill + "-name");
+        if (skillName == performanceSkill) {
+            log("Found match for " + skillName);
+            score = parseInt(PfSkills.getAttributeValue(attributes, skill));
+            log("Has a score of " + score);
+            break;
+        }
+    }
+
+    var cp = 0, sp = 0, gp = 0;
+    for (var day=0; day < days; day++) {
+        var roll = score + randomInteger(20);
+        var result = "";
+        if (roll >= 30) {
+            var gold = randomInteger(6) + randomInteger(6) + randomInteger(6);
+            gp += gold;
+            result = "<b>Extraordinary (" + roll + "):</b> " + gold + "gp";
+        } else if (roll >= 25) {
+            var gold = randomInteger(6);
+            gp += gold;
+            result = "<b>Memorable (" + roll + "):</b> " + gold + "gp";
+        } else if (roll >= 20) {
+            var silver = randomInteger(10) + randomInteger(10) + randomInteger(10);
+            sp += silver;
+            result = "<b>Great (" + roll + "):</b> " + silver + "sp";
+        } else if (roll >= 15) {
+            var silver = randomInteger(10);
+            sp += silver;
+            result = "<b>Enjoyable (" + roll + "):</b> " + silver + "sp";
+        } else if (roll > 10) {
+            var copper = randomInteger(10);
+            cp += copper;
+            result = "<b>Routine (" + roll + "):</b> " + copper + "cp";
+        } else {
+            result = "<b>Poor (" + roll + "): </b>Nothing";
+        }
+        html += "<p>" + result + "</p>";
+    }
+    while (cp >= 10) {
+        cp -= 10;
+        sp += 1;
+    }
+    while (sp >= 10) {
+        sp -= 10;
+        gp += 1;
+    }
+
+    html += "<p>You earn ";
+    if (gp > 0) html += gp + "gp ";
+    if (sp > 0) html += sp + "sp ";
+    if (cp > 0) html += cp + "cp ";
+    html += "</p>";
+
+
+    var player_obj = getObj("player", msg.playerid)
+    if (playerIsGM(player_obj.get("id"))) {
+        sendChat(getAttrByName(character.id, "character_name"), "/w " + player_obj.get("displayname") + " " + html);
+    } else {
+        sendChat(getAttrByName(character.id, "character_name"), html);
+    }
+}
+
 
 PfSkills.cache = PfSkills.cache || {};
 
@@ -359,6 +455,7 @@ PfSkills.getSkillResult = function(characterName, attributes, skill, d20roll) {
     }
     return html;
 };
+
 
 PfSkills.ERROR_STYLE="background-color: #FFDDDD; color: #000000; margin-top: 30px; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px; text-align: left; font-style: normal; font-weight: normal";
 
