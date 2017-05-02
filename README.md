@@ -9,5 +9,5 @@ License: BSD
 
 <h1>This is a test</h1>
 
-<p onclick="alert('Hello World')">Hello World</p>
+<a href="#" onclick="alert('Hello World')">Hello World</a>
 
