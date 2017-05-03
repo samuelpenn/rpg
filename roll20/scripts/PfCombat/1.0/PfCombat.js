@@ -473,7 +473,7 @@ PfCombat.initCommand = function(msg) {
         }
         var message = "Initiative is [[d20 + " + init + " + 0." + dex + "]]";
         var message = PfCombat.line(message);
-        PfCombat.message(token, message, initiativeMsgCallback(tokenId, turnOrder, token));
+        PfCombat.message(token, message, initiativeMsgCallback(tokenId, turnOrder, token, playerIsGM(msg.playerid)));
     }
 
     return;
@@ -524,7 +524,7 @@ PfCombat.addCustomInitCommand = function(msg, args) {
  * is executed, the value of tokenId that is in scope has changed, and we
  * just end up adding the last token multiple times.
  */
-function initiativeMsgCallback(tokenId, turnOrder, token) {
+function initiativeMsgCallback(tokenId, turnOrder, token, isGM) {
     return function(ops) {
         var rollresult = ops[0];
         var result = rollresult.inlinerolls[0].results.total;
@@ -545,7 +545,11 @@ function initiativeMsgCallback(tokenId, turnOrder, token) {
             pr: result
         });
         Campaign().set("turnorder", JSON.stringify(turnOrder));
-        PfCombat.message(token, PfCombat.line("Joins combat on initiative [[d0 + " + result + "]]"));
+        if (isGM) {
+            PfCombat.whisper(token, PfCombat.line("Joins combat on initiative [[d0 + " + result + "]]"));
+        } else {
+            PfCombat.message(token, PfCombat.line("Joins combat on initiative [[d0 + " + result + "]]"));
+        }
     };
 }
 
@@ -1105,21 +1109,51 @@ PfCombat.update = function(obj, prev, message) {
     }
 }
 
-PfCombat.message = function(token, message, func) {
-    if (message != null) {
+PfCombat.getMessageBox = function(token, message, whisper = null) {
+    var html = "";
+    var x = 30, y = 5;
+    if (whisper) {
+        x += 30;
+        y += 25;
+    }
+    if (message != null && token != null) {
         var image = token.get("imgsrc");
         var name = token.get("name");
-        var html = "<div style='" + PfCombat.BOX_STYLE + "'>";
-        html += "<img src='"+image+"' width='50px' style='position: absolute; top: 5px; left: 30px; background-color: white; border-radius: 25px'/>";
-        html += "<div style='position: absolute; top: 22px; left: 90px; border: 1px solid black; background-color: white; padding: 0px 5px 0px 5px'>" + name + "</div>";
+        html += "<div style='" + PfCombat.BOX_STYLE + "'>";
+        html += "<img src='"+image+"' width='50px' style='position: absolute; top: " + y +
+                "px; left: " + x + "px; background-color: white; border-radius: 25px'/>";
+
+        html += "<div style='position: absolute; top: " + (y+17) +
+                "px; left: " + (x+60) + "px; border: 1px solid black; background-color: " +
+                "white; padding: 0px 5px 0px 5px'>" + name + "</div>";
+
         html += "<div style='margin-top: 20px; padding-left: 5px'>" + message + "</div>";
         html += "</div>";
 
-        if (func == null) {
-            sendChat("", "/desc " + html);
-        } else {
-            sendChat("", "/desc " + html, func);
-        }
+        return html;
+    } else if (message != null) {
+        html += "<div style='" + PfCombat.BOX_STYLE + "'>";
+        html += "<div style='margin-top: 20px; padding-left: 5px'>" + message + "</div>";
+        html += "</div>";
+    }
+    return html;
+}
+
+PfCombat.message = function(token, message, func) {
+    var html = PfCombat.getMessageBox(token, message);
+    if (func == null) {
+        sendChat("", "/desc " + html);
+    } else {
+        sendChat("", "/desc " + html, func);
+    }
+}
+
+PfCombat.whisper = function(token, message, func) {
+    var html = PfCombat.getMessageBox(token, message, true);
+    if (func == null) {
+        sendChat("GM", "/w GM " + html);
+    } else {
+        sendChat("GM", "/w GM " + html, func);
     }
 }
 
