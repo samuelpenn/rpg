@@ -166,7 +166,10 @@ PfNames.names["Human/Varisian"]["Male"] = [
     "Loiza", "Mander", "Marko", "Merripen", "Mestipen", "Nicu", "Pal",
     "Pattin", "Petsha", "Pias", "Pitivo", "Pov", "Pulika", "Punka", "Radu",
     "Ramon", "Rye", "Stiggur", "Tamas", "Tas", "Tawno", "Tem", "Theron",
-    "Tobar", "Wen", "Wesh", "Yanko", "Yoska", "Zale", "Zindelo"
+    "Tobar", "Wen", "Wesh", "Yanko", "Yoska", "Zale", "Zindelo",
+    "Abert", "Bristur", "Ciprian", "Claudiu", "Costin", "Dariu", "Dominik",
+    "Dracu", "Dragos", "Garril", "Kennick", "Maloney", "Matei", "Mazonn",
+    "Nicolas", "Pitti", "Sergil", "Valerian", "Vasile", "Yanor"
 
 ];
 PfNames.names["Human/Varisian"]["Female"] = [
@@ -178,7 +181,11 @@ PfNames.names["Human/Varisian"]["Female"] = [
     "Mirela", "Nadja", "Natayla", "Olena", "Oriana", "Pesha", "Philana",
     "Rasia", "Rawnie", "Risa", "Rumer", "Sadira", "Sapphira", "Shalaye",
     "Shebari", "Shey", "Shofranka", "Shimza", "Sirena", "Syeira", "Taletha",
-    "Tzigane", "Vita", "Yesenia", "Zenda", "Zenina", "Zenobia", "Zigana"
+    "Tzigane", "Vita", "Yesenia", "Zenda", "Zenina", "Zenobia", "Zigana",
+    "Anemona", "Branka", "Carmelin", "Cataria", "Constanta", "Corica",
+    "Fawni", "Georgeta", "Ilina", "Jaela", "Lizuca", "Lucia", "Minda",
+    "Mirelda", "Monia", "Rodica", "Sandra", "Sorinnia", "Valeria",
+    "Veronisha", "Violena"
 ];
 
 PfNames.names["Human/Shoanti"] = {};
@@ -186,7 +193,10 @@ PfNames.names["Human/Shoanti"]["Male"] = [
     "Adahy", "Aditsan", "Ahiga", "Apiationu", "Ashkii", "Atohi", "Ceta",
     "Chaska", "Dohanzee", "Gaagii", "Gawonii", "Gomda", "Kangee", "Kanuna",
     "Kohali", "Kohanahto", "Loota", "Mammedaty", "Niyol", "Odakota", "Ohiye",
-    "Paytah", "Shappa", "Tahate", "Tsela", "Tsiyi", "Unaduti", "Wahkah", "Wana"
+    "Paytah", "Shappa", "Tahate", "Tsela", "Tsiyi", "Unaduti", "Wahkah", "Wana",
+    "Apiationu", "Ashkii", "Atoki", "Besha", "Boiko", "Chanzee", "Chatangee",
+    "Enapa", "Eska", "Kohate", "Mahpee", "Naalnisin", "Seta", "Shiyesa",
+    "Sintonka", "Toke", "Tsoai", "Wana", "Weaya", "Yani"
 ];
 PfNames.names["Human/Shoanti"]["Female"] = [
     "Agaskawee", "Ahyoka", "Angpetu", "Atsila", "Ayita", "Chapa",
@@ -199,18 +209,74 @@ PfNames.names["Human/Shoanti"]["Female"] = [
 
 PfNames.names["Human/Nidalese"] = PfNames.names["Human/Varisian"];
 
+PfNames.names["Human/Chelaxian"] = {};
+PfNames.names["Human/Chelaxian"]["Male"] = [
+    "Andrea", "Bonavenlio", "Castumius", "Cervinus", "Cispianus", "Davius",
+    "Duvius", "Epidio", "Folcarius", "Gianula", "Iovinus", "Laetanus",
+    "Lucanicio", "Pilus", "Pilo", "Plauto", "Pollius", "Quartius",
+    "Quinctius", "Rainaldo", "Remus", "Rufo", "Saulius", "Synisto",
+    "Vesterius", "Vindex"
+];
+PfNames.names["Human/Chelaxian"]["Female"] = [
+    "Arsina", "Bubo", "Camela", "Cascens", "Debonia", "Eclettina", "Elpiana",
+    "Frugia", "Fuscina", "Juniana", "Lovella", "Marullia", "Melitia",
+    "Morenatia", "Nennia", "Norial", "Ovida", "Pulcita", "Sarranta", "Terra",
+    "Tina", "Urbica", "Vagenna", "Verenici", "Viducia", "Vinia", "Vinice"
+];
+
 
 PfNames.names["Goblin"] = {};
 PfNames.names["Goblin"]["Male"] = [
     "Arg", "Bog", "Chog", "Dorl", "Eb", "Fod", "Gorn", "Hab",
     "Jad", "Kal", "Lob", "Mob", "Nob", "Og", "Pek", "Rus", "Tad",
-    "Wat", "Yal"
+    "Wat", "Yal",
+    "Ard", "Arl", "Ald", "Bolg", "Borb", "Chob", "Cob", "Dork", "Dal", "Dort",
+    "Ed", "Egg", "Er", "Ford", "Fon", "Fob", "Gorb", "Gol", "Gort", "Hal",
+    "Hed", "Hag", "Jeb", "Job", "Jord", "Kad", "Kas", "Kebb", "Lort", "Lor",
+    "Lub", "Meb", "Mib", "Moth", "Nork", "Nan", "Nub", "Olg", "Oot", "Orn",
+    "Pap", "Pelk", "Pork", "Rub", "Rad", "Rarn", "Ted", "Tolg", "Tan", "Wart",
+    "Wob", "Wib", "Yang", "Yar", "Yig"
 ];
 PfNames.names["Goblin"]["Female"] = [
     "Ana", "Bogi", "Coi", "Dori", "Eba", "Fodi", "Goro", "Haba",
     "Jada", "Kala", "Lobi", "Mobi", "Nobi", "Ogi", "Peki", "Rusa", "Tadi",
-    "Wata", "Yali"
+    "Wata", "Yali",
+    "Arda", "Arli", "Aldi", "Bolga", "Borba", "Chobi", "Cobu", "Dorka", "Dali", "Dorti",
+    "Eda", "Egga", "Era", "Forni", "Fonni", "Fobbi", "Gorba", "Golsa", "Gora", "Halba",
+    "Hedda", "Hagi", "Jebe", "Jobi", "Jorda", "Kaldi", "Kassi", "Kebbo", "Lorti", "Loro",
+    "Lube", "Mebba", "Mibba", "Mothi", "Norka", "Nanna", "Nubi", "Olga", "Ooti", "Orna",
+    "Pai", "Pelki", "Pora", "Rubi", "Rada", "Rarna", "Tedi", "Tolga", "Tano", "Wari",
+    "Woba", "Wibi", "Yani", "Yarli", "Yigga"
 ];
 
 
+PfNames.names["Derro"] = {};
+PfNames.names["Derro"]["Male"] = [
+    "Adjgarfal", "Adjwoldin", "Adjgholthor", "Adjardan",
+    "Arihorg", "Arisanakon",
+    "Diinja", "Diinkoloba", "Diinjagog",
+    "Diirghol", "Diirthok",
+    "Fakasol", "Fakakoloba",
+    "Inkamor", "Inkajan", "Inkajal",
+    "Karadumm", "Karadorthag", "Karanavak",
+    "Miirnwoldin", "Miirnjagog", "Miirnsold",
+    "Secgholthor", "Secardan", "Secthok",
+    "Uriinana", "Uriikoloba", "Uriisanakon", "Uriitotha",
+    "Xeerjarda", "Xeerxanso",
+    "Zandabra", "Zannakon"
+];
+PfNames.names["Derro"]["Female"] = [
+    "Adjoolsii", "Adjaana",
+    "Ariankoolaa",
+    "Diinaanii", "Diijuulaa",
+    "Diiruuba",
+    "Fakasoolaarn", "Fakakuubaa",
+    "Inkakaazuu",
+    "Karameetoo", "Karajaataa",
+    "Miirnooluum",
+    "Secooraa",
+    "Uriinaanaa",
+    "Xeeroolee",
+    "Zaneelaa",
+];
 
