@@ -308,7 +308,7 @@ PfCombat.setHitPoints = function(msg, args) {
                 npcLevel = parseInt(npcLevel);
 
                 for (;npcLevel > 0; npcLevel--) {
-                    hitpoints += PfCombat.getHitPoints(npcHd, option) + hpAbilityMod;
+                    hitpoints += parseInt(PfCombat.getHitPoints(npcHd, option)) + parseInt(hpAbilityMod);
                 }
                 log("NPC Hitpoints = " + hitpoints);
             }
@@ -329,7 +329,7 @@ PfCombat.setHitPoints = function(msg, args) {
                 log(hd + ", " + level);
 
                 if (classIndex == 0 && maxHpLevel1 == 1) {
-                    hitpoints = hd + hpAbilityMod;
+                    hitpoints = parseInt(hd) + parseInt(hpAbilityMod);
                     if (hitpoints < 1) {
                         hitpoints = 1;
                     }
@@ -337,12 +337,12 @@ PfCombat.setHitPoints = function(msg, args) {
                     log("First level hitpoints is " + hitpoints);
                 }
                 for (;level > 0; level--) {
-                    var hp = PfCombat.getHitPoints(hd, option) + hpAbilityMod;
+                    var hp = parseInt(PfCombat.getHitPoints(hd, option)) + parseInt(hpAbilityMod);
                     if (hp < 1) {
                         hp = 1;
                     }
                     log("Rolled " + hp + " hitpoints.");
-                    hitpoints += hp;
+                    hitpoints += parseInt(hp);
                 }
             }
             hitpoints += parseInt(hpFormulaMod);
