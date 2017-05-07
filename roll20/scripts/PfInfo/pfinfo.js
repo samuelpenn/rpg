@@ -273,20 +273,43 @@ Info.Process = function(msg, player_obj) {
             html += Info.line("CMB", cmbNotes);
             html += Info.line("Attacks", attackNotes);
 
-
             // Token statuses
             html += Info.getStatusText(target);
-
             html += "</div>";
 
-            html += "</div>";
+            var displayName = ""+player_obj.get("displayname");
+            // Call asynchronous function.
+            character.get("gmnotes", function(notes) {
+                if (notes !== null && notes !== "" && notes !== "null") {
+                    html += "<div style='" + Info.INSET_STYLE + "'>" + notes + "</div>";
+                }
 
-            Info.message(""+player_obj.get("displayname"), target, html);
+                gmnotes = target.get("gmnotes");
+                if (gmnotes != null && gmnotes != "" && gmnotes != "null") {
+                    gmnotes = unescape(gmnotes);
+                    matches = gmnotes.match(/!!(.*?)!!/g);
+                    if (matches != null && matches.length > 0) {
+                        html += "<div style='" + Info.INSET_STYLE + "'>";
+                        for (var i=0; i < matches.length; i++) {
+                            text = matches[i];
+                            text = text.replace(/!!/g, "");
+                            html += text + "<BR>";
+                        }
+                        html += "</div>";
+                    }
+                }
+
+
+                html += "</div>";
+                Info.message(character, displayName, target, html);
+            });
         }
     } else {
         sendChat("", "/w " + player_obj.get("displayname") + " Nothing selected.");
     }
 };
+
+Info.INSET_STYLE = "border: 1px solid black; margin: 3px; padding: 2px; background-color: #FFFFDD";
 
 Info.getStatusText = function(target) {
     var html = "";
@@ -346,7 +369,7 @@ Info.getStatusText = function(target) {
     return html;
 }
 
-Info.message = function(displayName, token, message, func) {
+Info.message = function(character, displayName, token, message, func) {
     if (message != null) {
         var image = token.get("imgsrc");
         var name = token.get("name");
@@ -360,9 +383,9 @@ Info.message = function(displayName, token, message, func) {
         html += "</div>";
         log(displayName);
         if (func == null) {
-            sendChat(name, "/w \"" + displayName + "\" " + html);
+            sendChat("character|"+character.get("id"), "/w \"" + displayName + "\" " + html);
         } else {
-            sendChat(name, "/w \"" + displayName + "\" " + html, func);
+            sendChat("character|"+character.get("id"), "/w \"" + displayName + "\" " + html, func);
         }
     }
 }
