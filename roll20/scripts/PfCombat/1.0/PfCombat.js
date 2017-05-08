@@ -94,7 +94,7 @@ on("chat:message", function(msg) {
     if (command == "!pfheal") {
         PfCombat.healCommand(msg);
     } else if (command == "!pfinit") {
-        PfCombat.initCommand(msg);
+        PfCombat.initCommand(msg, args);
     } else if (command == "!pfsaves") {
         PfCombat.savesCommand(msg);
     } else if (command == "!pfdmg") {
@@ -441,7 +441,13 @@ PfCombat.healCommand = function(msg) {
  * Makes use of initiativeMsgCallback to process the rolled result and
  * add it into the tracker.
  */
-PfCombat.initCommand = function(msg) {
+PfCombat.initCommand = function(msg, args) {
+    var initRoll = null;
+    
+    if (args != null && args.length > 0) {
+        initRoll = parseInt(args[0]);
+    }
+    
     var turnOrder = [];
     if (Campaign().get("turnorder") != "") {
         turnOrder = JSON.parse(Campaign().get("turnorder"));
@@ -472,6 +478,9 @@ PfCombat.initCommand = function(msg) {
             dex = ("0" + dex);
         }
         var message = "Initiative is [[d20 + " + init + " + 0." + dex + "]]";
+        if (initRoll != null) {
+            message = "Initiative is [[d0 + " + initRoll + " + 0." + dex + "]]";
+        }
         var message = PfCombat.line(message);
         PfCombat.message(token, message, initiativeMsgCallback(tokenId, turnOrder, token, playerIsGM(msg.playerid)));
     }
