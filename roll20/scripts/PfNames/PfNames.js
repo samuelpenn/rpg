@@ -224,6 +224,20 @@ PfNames.names["Human/Chelaxian"]["Female"] = [
     "Tina", "Urbica", "Vagenna", "Verenici", "Viducia", "Vinia", "Vinice"
 ];
 
+PfNames.names["Human/Kellid"] = {};
+PfNames.names["Human/Kellid"]["Male"] = [
+    "Brok", "Brongu", "Burak", "Dangu", "Dannga", "Dannum", "Desk", "Drok",
+    "Durgu", "Goresk", "Gorug", "Granga", "Grog", "Jannek", "Kannek", "Kokek",
+    "Kolog", "Kolok", "Kolum", "Kranug", "Nanngu", "Nolug", "Trok", "Trokom",
+    "Zanek", "Zanem",
+];
+PfNames.names["Human/Kellid"]["Female"] = [
+    "Agik", "Bala", "Balet", "Bannka", "Belet", "Beska", "Dalik", "Deshka",
+    "Eshka", "Fanka", "Faren", "Felen", "Janla", "Jeshka", "Jeski", "Jesla",
+    "Kala", "Kalki", "Kesla", "Leshka", "Nagur", "Narit", "Nesen", "Neska",
+    "Shalka", "Veshki", "Yannet", "Yannka", "Yelen",
+];
+
 
 PfNames.names["Goblin"] = {};
 PfNames.names["Goblin"]["Male"] = [
@@ -249,6 +263,17 @@ PfNames.names["Goblin"]["Female"] = [
     "Woba", "Wibi", "Yani", "Yarli", "Yigga"
 ];
 
+PfNames.names["Hobgoblin"] = {};
+PfNames.names["Hobgoblin"]["Male"] = [
+    "Nerlet", "Hivtug", "Hikluk", "Gethir", "Praldor", "Siltem", "Dorkong", "Prughad",
+    "Nagrid", "Dethrun", "Darog", "Paled", "Borlim", "Sodrim", "Rethom", "Faglen",
+    "Drivtar", "Nivron", "Rudrim", "Ruthir"
+];
+PfNames.names["Hobgoblin"]["Female"] = [
+    "Phinre", "Oklal", "Dakli", "Imgi", "Mufne", "Nuyraf", "Wetnin", "Hema", "Ecmikdil",
+    "Fulgonduh", "Sasmof", "Nelme", "Kecmo", "Phitran", "Sasza", "Nulu", "Tamko",
+    "Simku", "Toszosdes", "Wustithum"
+];
 
 PfNames.names["Derro"] = {};
 PfNames.names["Derro"]["Male"] = [
