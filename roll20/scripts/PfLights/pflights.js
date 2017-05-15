@@ -42,6 +42,26 @@ var PfLight = PfLight || {};
 
 PfLight.BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px; font-style: normal; font-weight: normal; text-align: left";
 
+/**
+ * Displays an error back to the player. Errors are always whispered so
+ * as not to annoy everyone else.
+ */
+PfLight.error = function(player, message) {
+    sendChat("pfLight", "/w \"" + player.get("displayname") + "\" " + message);
+}
+
+PfLight.actionMessage = function(token, message) {
+    var characterId = token.get("represents");
+
+    var html = "<div style='" + PfLight.BOX_STYLE + "'>";
+    var image = token.get("imgsrc");
+    html += "<img src='" + image + "' width='50px' style='float:left; margin-top:-25px; padding-top: 0px; background-color: white; border-radius: 25px;'/>";
+    html += "<div style='margin-left: 60px; padding-bottom: 10px'>";
+    html += message + "</div>";
+    html += "</div>";
+
+    sendChat("character|"+characterId, "/desc " + html);
+}
 
 PfLight.setVision = function(token, radius, dimRadius) {
     var hasSight = token.get("light_hassight");
@@ -107,10 +127,164 @@ PfLight.setVision = function(token, radius, dimRadius) {
     });
 };
 
+PfLight.VARIANCE = 5;
+PfLight.ATTRIBUTE = "pf_heldObject";
+
+/**
+ * Pick up a light source.
+ */
+PfLight.take = function(player, token) {
+    if (token === null) {
+        PfLight.error(player, "You must specify a character token.");
+        return;
+    }
+    var characterId = token.get("represents");
+    if (characterId === null) {
+        PfLight.error(player, "Selected token is not a character.");
+        return;
+    }
+    var x = token.get("left");
+    var y = token.get("top");
+    var tokenName = token.get("name");
+
+    log(tokenName + " is at " + x + "," + y);
+    var objects = findObjs({
+        _pageid: Campaign().get("playerpageid"),
+        _type: "graphic", _subtype: "token", _name: "Light",
+    });
+    log(objects.length);
+    var takenItem = null;
+    for (var i=0; i < objects.length; i++) {
+        log("Checking object " + i);
+        var object = objects[i];
+        if (object === null) {
+            PfLight.error(player, "Returned object is null");
+            continue;
+        }
+        var ox = object.get("left");
+        var oy = object.get("top");
+        if (Math.abs(ox - x) <= PfLight.VARIANCE && Math.abs(oy - y) <= PfLight.VARIANCE) {
+            takenItem = object;
+            break;
+        }
+    }
+    if (takenItem === null) {
+        PfLight.error(player, "Nothing for " + tokenName + " to pick up.");
+
+        return;
+    } else {
+        log("Found object to take");
+        log("Object is " + takenItem.get("name"));
+        if (takenItem.get("represents") == null || takenItem.get("represents") == "") {
+            PfLight.error(player, "Found item does not represent a character.");
+            return;
+        }
+        var itemCharacter = getObj("character", takenItem.get("represents"));
+        if (itemCharacter === null) {
+            PfLight.error(player, "Found item has an invalid character.");
+            return;
+        }
+        var message = tokenName + " picks up a " + itemCharacter.get("name") + ".";
+        PfLight.actionMessage(token, message);
+        toBack(takenItem);
+        takenItem.set({
+            'left': x,
+            'top': y,
+        });
+        var character = getObj("character", characterId);
+        var attribute = findObjs({
+            type: 'attribute',
+            characterid: characterId,
+            name: PfLight.ATTRIBUTE
+        }, {caseInsensitive: false})[0];
+        if (!attribute) {
+            attribute = createObj('attribute', {
+                characterid: characterId,
+                name: PfLight.ATTRIBUTE,
+                current: takenItem.get("_id"),
+                max: ""
+            });
+        } else {
+            attribute.set({
+                current: takenItem.get("_id")
+            });
+        }
+    }
+}
+
+PfLight.drop = function(player, token) {
+    if (token == null) {
+        log("No token specified.");
+        return;
+    }
+    var characterId = token.get("represents");
+    var character = getObj("character", characterId);
+    var attribute = findObjs({
+        type: 'attribute',
+        characterid: characterId,
+        name: PfLight.ATTRIBUTE
+    }, {caseInsensitive: false})[0];
+
+    if (!attribute || attribute.get("current") == "") {
+        PfLight.error(player, token.get("_name") + " is not carrying anything.");
+        return;
+    } else {
+        var message = token.get("_name") + " drops what they are carrying.";
+        PfLight.actionMessage(token, message);
+        attribute.set({
+            current: ""
+        });
+    }
+}
+
+on("change:graphic", function(obj, prev) {
+    log("PfLight: Graphic change event for " + obj.get("name"));
+    if (obj.get("_pageid") == Campaign().get("playerpageid")) {
+        PfLight.move(obj);
+    }
+});
+
+PfLight.move = function(token) {
+    var characterId = token.get("represents");
+    if (characterId != null) {
+        var carrying = getAttrByName(characterId, PfLight.ATTRIBUTE, "current");
+        if (carrying != null && carrying != "") {
+            var takenItem = getObj("graphic", carrying);
+            takenItem.set({
+                left: token.get("left"),
+                top: token.get("top")
+            });
+        }
+    }
+}
+
 
 // API COMMAND HANDLER
 on("chat:message", function(msg) {
-    if (msg.type !== "api") return;
+   if (msg.type !== "api") return;
+
+   var args = msg.content.split(" ");
+   var command = args.shift();
+   var player = getObj("player", msg.playerid);
+
+   if (command === "!pftake") {
+       if (args.length != 1) {
+           PfLight.error(player, "Must be exactly one argument.");
+           return;
+       }
+       log(args[0]);
+       var token = getObj("graphic", args[0]);
+       PfLight.take(player, token);
+   } else if (command === "!pfdrop") {
+       if (args.length != 1) {
+           PfLight.error(player, "Must be exactly one argument.");
+           return;
+       }
+       log(args[0]);
+       var token = getObj("graphic", args[0]);
+       PfLight.drop(player, token);
+   }
+
     if (msg.content.split(" ", 1)[0] === "!pfvision") {
         var args = msg.content.split(" ");
         var radius = null;
@@ -143,6 +317,9 @@ on("chat:message", function(msg) {
                 log("Unrecognised light level argument");
                 return;
             }
+        } else {
+            log("No light level argument provided");
+            return;
         }
         log(radius + ", " + dimRadius);
         var message = "Setting light level to be <b>" + mesg + "</b>";
