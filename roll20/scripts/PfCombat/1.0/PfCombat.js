@@ -91,28 +91,28 @@ on("chat:message", function(msg) {
     var args = msg.content.split(" ");
     var command = args.shift();
 
-    if (command == "!pfheal") {
+    if (command === "!pfheal") {
         PfCombat.healCommand(msg);
-    } else if (command == "!pfinit") {
+    } else if (command === "!pfinit") {
         PfCombat.initCommand(msg, args);
-    } else if (command == "!pfsaves") {
+    } else if (command === "!pfsaves") {
         PfCombat.savesCommand(msg);
-    } else if (command == "!pfdmg") {
+    } else if (command === "!pfdmg") {
         PfCombat.damageCommand(msg);
-    } else if (command == "!pfstabilise") {
+    } else if (command === "!pfstabilise") {
         PfCombat.stabiliseCommand(msg);
-    } else if (command == "!pfstatus") {
+    } else if (command === "!pfstatus") {
         PfCombat.statusCommand(msg);
-    } else if (command == "!pfhitpoints") {
+    } else if (command === "!pfhitpoints") {
         PfCombat.setHitPoints(msg, args);
-    } else if (command == "!pfcustominit") {
+    } else if (command === "!pfcustominit") {
         PfCombat.addCustomInitCommand(msg, args);
     }
 });
 
 on("change:graphic", function(obj, prev) {
     log("PfCombat: Graphic change event for " + obj.get("name"));
-    if (obj.get("_pageid") == Campaign().get("playerpageid")) {
+    if (obj.get("_pageid") === Campaign().get("playerpageid")) {
         PfCombat.update(obj, prev, "");
     }
 });
@@ -154,17 +154,17 @@ PfCombat.getSelectedTokens = function (msg, forceExplicit) {
         });
         for (var i=0; i < currentObjects.length; i++) {
             var token = currentObjects[i];
-            if (token.get("name") == null || token.get("name") == "") {
+            if (!token.get("name")) {
                 continue;
             }
             var characterId = token.get("represents");
-            if (characterId != null && characterId != "") {
+            if (characterId) {
                 var character = getObj("character", characterId);
-                if (character == null) {
+                if (!character) {
                     continue;
                 }
                 var controlledBy = character.get("controlledby");
-                if (controlledBy == null || controlledBy == "") {
+                if (!controlledBy) {
                     continue;
                 }
                 // We only allow tokens that are explicitly controlled by this
@@ -175,14 +175,14 @@ PfCombat.getSelectedTokens = function (msg, forceExplicit) {
                 }
             }
         }
-        if (forceExplicit && tokenList.length != 1) {
+        if (forceExplicit && tokenList.length !== 1) {
             log("PfCombat.getSelectedTokens: forceExplicit is set, and " + tokenList.length + " tokens found.");
             return null;
         }
     }
 
     return tokenList;
-}
+};
 
 PfCombat.statusCommand = function(msg) {
     var tokenList = PfCombat.getSelectedTokens(msg);
@@ -218,7 +218,7 @@ PfCombat.statusCommand = function(msg) {
         html += PfCombat.line(message);
     }
     sendChat(msg.who, "/w " + msg.who + " " + html);
-}
+};
 
 // Constants for hitpoint options.
 PfCombat.HP_NORMAL = 0;
@@ -258,7 +258,7 @@ PfCombat.getHitPoints = function(hitdie, option) {
             break;
     }
     return parseInt(hp);
-}
+};
 
 /**
  * Randomly roll hitpoints for the token. Checks the class and levels
@@ -272,17 +272,17 @@ PfCombat.getHitPoints = function(hitdie, option) {
  */
 PfCombat.setHitPoints = function(msg, args) {
     var tokenList = PfCombat.getSelectedTokens(msg);
-    if (tokenList != null && tokenList.length > 0) {
+    if (tokenList && tokenList.length > 0) {
         var option = PfCombat.HP_NORMAL;
-        if (args != null && args.length > 0) {
+        if (args && args.length > 0) {
             var arg = args.shift();
-            if (arg == "low") {
+            if (arg === "low") {
                 option = PfCombat.HP_LOW;
-            } else if (arg == "average") {
+            } else if (arg === "average") {
                 option = PfCombat.HP_AVERAGE;
-            } else if (arg == "high") {
+            } else if (arg === "high") {
                 option = PfCombat.HP_HIGH;
-            } else if (arg == "max") {
+            } else if (arg === "max") {
                 option = PfCombat.HP_MAX;
             }
         }
@@ -292,7 +292,7 @@ PfCombat.setHitPoints = function(msg, args) {
             var token = getObj("graphic", tokenId);
 
             var character_id = token.get("represents");
-            if (character_id == null) {
+            if (!character_id) {
                 continue;
             }
             var maxHpLevel1 = getAttrByName(character_id, "maxhp_lvl1");
@@ -322,7 +322,7 @@ PfCombat.setHitPoints = function(msg, args) {
                 }
                 hd = parseInt(hd);
                 level = parseInt(level);
-                if (hd == 0 || level == 0) {
+                if (hd === 0 || level === 0) {
                     break;
                 }
 
@@ -353,7 +353,7 @@ PfCombat.setHitPoints = function(msg, args) {
             sendChat(token.get("name"), "/w GM hitpoints set to " + hitpoints);
         }
     }
-}
+};
 
 /**
  * Heal all selected tokens to full hit points. Also removes status effects.
@@ -369,16 +369,16 @@ PfCombat.healCommand = function(msg) {
         }
     }
     var tokenList = PfCombat.getSelectedTokens(msg);
-    if (tokenList != null && tokenList.length > 0) {
+    if (tokenList && tokenList.length > 0) {
         for (var i=0; i < tokenList.length; i++) {
             var tokenId = tokenList[i];
             var token = getObj("graphic", tokenId);
-            if (token != null) {
+            if (token) {
                 var prev = {};
                 prev["bar1_value"] = token.get("bar1_value");
                 prev["bar3_value"] = token.get("bar3_value");
 
-                if (healing != null) {
+                if (healing) {
                     var nonLethal = parseInt(token.get("bar3_value"));
                     if (nonLethal > 0) {
                         nonLethal -= healing;
@@ -427,7 +427,6 @@ PfCombat.healCommand = function(msg) {
             }
         }
     }
-    return;
 };
 
 /**
@@ -444,18 +443,18 @@ PfCombat.healCommand = function(msg) {
 PfCombat.initCommand = function(msg, args) {
     var initRoll = null;
     
-    if (args != null && args.length > 0) {
+    if (args && args.length > 0) {
         initRoll = parseInt(args[0]);
     }
     
     var turnOrder = [];
-    if (Campaign().get("turnorder") != "") {
+    if (Campaign().get("turnorder") !== "") {
         turnOrder = JSON.parse(Campaign().get("turnorder"));
     }
     var tokenList = PfCombat.getSelectedTokens(msg);
     for (var i=0; i < tokenList.length; i++) {
         for (var ti=0; ti < turnOrder.length; ti++) {
-            if (turnOrder[ti].id == tokenList[i]) {
+            if (turnOrder[ti].id === tokenList[i]) {
                 turnOrder.splice(ti, 1);
             }
         }
@@ -466,7 +465,7 @@ PfCombat.initCommand = function(msg, args) {
         var token = getObj("graphic", tokenId);
 
         var character_id = token.get("represents");
-        if (character_id == null) {
+        if (!character_id) {
             continue;
         }
         var character = getObj("character", character_id);
@@ -478,14 +477,12 @@ PfCombat.initCommand = function(msg, args) {
             dex = ("0" + dex);
         }
         var message = "Initiative is [[d20 + " + init + " + 0." + dex + "]]";
-        if (initRoll != null) {
+        if (initRoll || initRoll === 0) {
             message = "Initiative is [[d0 + " + initRoll + " + 0." + dex + "]]";
         }
-        var message = PfCombat.line(message);
+        message = PfCombat.line(message);
         PfCombat.message(token, message, initiativeMsgCallback(tokenId, turnOrder, token, playerIsGM(msg.playerid)));
     }
-
-    return;
 };
 
 /**
@@ -718,7 +715,6 @@ PfCombat.savesCommand = function(msg) {
             }
         }
     }
-    return;
 };
 
 /**
@@ -741,7 +737,7 @@ PfCombat.damageCommand = function(msg) {
     }
 
     var tokenList = PfCombat.getSelectedTokens(msg, true);
-    if (tokenList == null) {
+    if (!tokenList) {
         PfCombat.error("Cannot determine list of selected tokens.");
         return;
     }
@@ -769,7 +765,6 @@ PfCombat.damageCommand = function(msg) {
             PfCombat.update(token, prev, "");
         }
     }
-    return;
 };
 
 /**
@@ -777,17 +772,17 @@ PfCombat.damageCommand = function(msg) {
  */
 PfCombat.stabiliseCommand = function(msg) {
     var tokenList = PfCombat.getSelectedTokens(msg, true);
-    if (tokenList != null && tokenList.length > 0) {
+    if (tokenList && tokenList.length > 0) {
         for (var i=0; i < tokenList.length; i++) {
             var tokenId = tokenList[i];
             var token = getObj("graphic", tokenId);
-            if (token == null) {
+            if (!token) {
                 continue;
             }
 
             var tokenName = token.get("name");
             var character_id = token.get("represents");
-            if (character_id == null) {
+            if (!character_id) {
                 sendChat("", "/w GM " + tokenName + " has no associated character");
                 return;
             }
@@ -800,22 +795,22 @@ PfCombat.stabiliseCommand = function(msg) {
             var dead = token.get("status_dead");
 
             var constitution = getAttrByName(character_id, 'CON-mod');
-            if (constitution == "") {
+            if (!constitution) {
                 constitution = 0;
             }
 
-            if (dead == true) {
+            if (dead === true) {
                 sendChat("", "/w GM " + tokenName + " is already dead.");
             } else if (hpCurrent >= 0) {
                 // Target is healthy, nothing to do.
                 sendChat("", "/w GM " + tokenName + " is healthy.");
-            } else if (stable == true) {
+            } else if (stable === true) {
                 sendChat("", "/w GM " + tokenName + " is stable.");
             } else {
                 var dc = 10 - hpCurrent;
                 var check = randomInteger(20) + parseInt(constitution);
                 log(tokenName + " rolls " + check + " to stabilise.");
-                if (check >= dc || check == constitution + 20) {
+                if (check >= dc || check === constitution + 20) {
                     token.set({
                         status_green: true
                     });
@@ -831,7 +826,6 @@ PfCombat.stabiliseCommand = function(msg) {
             }
         }
     }
-    return;
 };
 
 
@@ -860,7 +854,7 @@ PfCombat.getSymbolHtml = function(symbol) {
     } else {
         return '<div style="float: left; width: 24px; height: 24px; display: inline-block; margin: 0; border: 0; cursor: pointer; padding: 0px 3px; background: url(\'https://app.roll20.net/images/statussheet.png\'); background-repeat: no-repeat; background-position: '+((-34)*(i-7))+'px 0px;"></div>';
     }
-}
+};
 
 PfCombat.usageSaves = function(msg, errorText) {
     var text = "<i>" + errorText + "</i><br/>";
@@ -872,7 +866,7 @@ PfCombat.usageSaves = function(msg, errorText) {
     text = text.replace(/, $/, ".");
 
     sendChat("PfDamage", "/w " + msg.who + " " + text);
-}
+};
 
 PfCombat.status = {
     'Blind': { status: "bleeding-eye", description: "-2 penalty to AC; loses Dex bonus to AC; -4 penalty of most Dex and Str checks and opposed Perception checks; Opponents have 50% concealment; Acrobatics DC 10 if move faster than half speed, or prone." },
@@ -900,7 +894,7 @@ PfCombat.BOX_STYLE="background-color: #EEEEDD; color: #000000; margin-top: 30px;
 
 PfCombat.line = function(message) {
     return "<p style='margin:0px; padding:0px; padding-bottom: 2px; font-weight: normal; font-style: normal; text-align: left'>" + message + "</p>";
-}
+};
 
 /**
  * Called when a token is updated. We check the damage values (bar1 and bar3)
@@ -1116,7 +1110,7 @@ PfCombat.update = function(obj, prev, message) {
     if (message != "") {
         PfCombat.message(obj, message);
     }
-}
+};
 
 PfCombat.getMessageBox = function(token, message, whisper = null) {
     var html = "";
@@ -1146,7 +1140,7 @@ PfCombat.getMessageBox = function(token, message, whisper = null) {
         html += "</div>";
     }
     return html;
-}
+};
 
 PfCombat.message = function(token, message, func) {
     var html = PfCombat.getMessageBox(token, message);
@@ -1155,7 +1149,7 @@ PfCombat.message = function(token, message, func) {
     } else {
         sendChat("", "/desc " + html, func);
     }
-}
+};
 
 PfCombat.whisper = function(token, message, func) {
     var html = PfCombat.getMessageBox(token, message, true);
@@ -1164,7 +1158,7 @@ PfCombat.whisper = function(token, message, func) {
     } else {
         sendChat("GM", "/w GM " + html, func);
     }
-}
+};
 
 PfCombat.ERROR_STYLE="background-color: #FFDDDD; color: #000000; margin-top: 30px; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px; text-align: left; font-style: normal; font-weight: normal";
 
@@ -1174,5 +1168,5 @@ PfCombat.error = function(message) {
         var html = "<div style='" + PfCombat.ERROR_STYLE + "'><b>PfCombat Error:</b> " + message + "</div>";
         sendChat("", "/desc " + html);
     }
-}
+};
 

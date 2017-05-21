@@ -142,7 +142,7 @@ Describe.TEXT_STYLE="padding: 5px; text-align: left; font-weight: normal; font-s
  */
 Describe.error = function(player, message) {
     sendChat("pfDescribe", "/w \"" + player.get("displayname") + "\" " + message);
-}
+};
 
 
 Describe.getHTML = function(title, image, text, extra) {

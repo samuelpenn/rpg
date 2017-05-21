@@ -39,49 +39,198 @@
  * SOFTWARE.
  */
 
+var PfInfo = PfInfo || {};
+
+PfInfo.VERSION = "2.0";
+
+PfInfo.gmHelp = PfInfo.gmHelp || {};
+PfInfo.playerHelp = PfInfo.playerHelp || {};
+
+on("ready", function() {
+    log(`==== PfInfo Version ${PfInfo.VERSION} ====`);
+    log(`Type !pfhelp for help.`);
+
+    PfInfo.addPlayerHelp("!pfhelp", "This message text.");
+    PfInfo.addGmHelp("!pfinfo", "Args: <b>tokenId</b><br/>Output status and information on a token and character.")
+});
+
+PfInfo.addGmHelp = function(command, text) {
+    PfInfo.gmHelp[command] = text;
+};
+
+PfInfo.addPlayerHelp = function(command, text) {
+    PfInfo.playerHelp[command] = text;
+};
+
+PfInfo.help = function(playerId) {
+    let html = `<div style='${PfInfo.BOX_STYLE}'>`;
+    let player = getObj("player", playerId);
+
+    if (playerIsGM(playerId)) {
+        html += "<h3>GM Commands</h3>";
+        for (let i in PfInfo.gmHelp) {
+            html += `<h4>${i}</h4>`;
+            html += `<p>${PfInfo.gmHelp[i]}</p>`;
+        }
+        html += "<h3>Player Commands</h3>";
+    }
+
+    for (let i in PfInfo.playerHelp) {
+        html += `<h4>${i}</h4>`;
+        html += `<p>${PfInfo.playerHelp[i]}</p>`;
+    }
+    html += "</div>";
+
+    sendChat("PfInfo", `/w "${player.get('_displayname')}" ${html}`);
+};
+
+PfInfo.error = function(playerId, message) {
+    if (!message) {
+        message = "Unknown error.";
+    }
+
+    if (playerId) {
+        let player = getObj("player", playerId);
+        sendChat("PfInfo", `/w "${player.get('_displayname')}" ${message}`);
+    } else {
+        sendChat("PfInfo", `/w GM ${message}`)
+    }
+};
+
+/**
+ * Returns an array of all the tokens selected, or a list of all
+ * controlled tokens if none are selected. List is returned as an
+ * array of token ids.
+ *
+ * If forceExplicit is passed as true, then only allow a single
+ * target unless they are explicity selected.
+ */
+PfInfo.getSelectedTokens = function (msg, forceExplicit) {
+    let tokenList = [];
+    let token = null;
+
+    if (!msg) {
+        return null;
+    }
+
+    if (!forceExplicit) {
+        forceExplicit = false;
+    }
+
+
+    if (msg.selected && msg.selected.length > 0) {
+        for (let i=0; i < msg.selected.length; i++) {
+            token = getObj("graphic", msg.selected[i]._id);
+            if (!token || !token.get("name") || !token.get("represents")) {
+                continue;
+            }
+            tokenList.push(msg.selected[i]._id);
+        }
+    } else if (!playerIsGM(msg.playerid)) {
+        let currentObjects = findObjs({
+            _pageid: Campaign().get("playerpageid"),
+            _type: "graphic",
+        });
+        for (let i=0; i < currentObjects.length; i++) {
+            token = currentObjects[i];
+            if (!token.get("name")) {
+                continue;
+            }
+            let characterId = token.get("represents");
+            if (characterId) {
+                let character = getObj("character", characterId);
+                if (!character) {
+                    continue;
+                }
+                let controlledBy = character.get("controlledby");
+                if (!controlledBy) {
+                    continue;
+                }
+                // We only allow tokens that are explicitly controlled by this
+                // player. Tokens controlled by "all" are never included. This is
+                // to ignore tokens such as spell templates, torches etc.
+                if (controlledBy.indexOf(msg.playerid) > -1) {
+                    tokenList.push(token.get("_id"));
+                }
+            }
+        }
+        if (forceExplicit && tokenList.length !== 1) {
+            log("PfCombat.getSelectedTokens: forceExplicit is set, and " + tokenList.length + " tokens found.");
+            return null;
+        }
+    }
+
+    return tokenList;
+};
+
+
+
+
 // API COMMAND HANDLER
 on("chat:message", function(msg) {
     if (msg.type !== "api") return;
-    if (msg.content.split(" ", 1)[0] === "!info") {
-        var player_obj = getObj("player", msg.playerid);
-        Info.Process(msg, player_obj);
+
+    let args = msg.content.split(" ");
+    let command = args.shift();
+    let playerId = msg.playerid;
+
+    if (command === "!pfinfo") {
+        let tokenId = args.shift();
+        if (!tokenId) {
+            PfInfo.error(playerId, "!pfinfo requires a token id argument.");
+        } else {
+            let token = getObj("graphic", tokenId);
+            if (token) {
+                PfInfo.infoCommand(playerId, token);
+            } else {
+                PfInfo.error(playerId, "Specified token id is invalid.");
+            }
+        }
+    } else if (command === "!pfhelp") {
+        PfInfo.help(playerId);
     }
 });
 
-var Info = Info || {};
 
-Info.BOX_STYLE="background-color: #DDDDAA; color: #000000; padding:0px; margin-top: -10px; border:1px solid COLOUR; border-radius: 5px;"
-Info.TITLE_STYLE="background-color: COLOUR; color: #FFFFFF; padding: 1px; text-align: center";
-Info.TEXT_STYLE="padding: 5px; padding-top: 0px; padding-bottom: 0px;"
-Info.PARA_STYLE="padding: 0px; margin: 0px; text-align: left;";
-Info.P = "<p style='"+Info.PARA_STYLE+"'>";
+PfInfo.BOX_STYLE="background-color: #DDDDAA; color: #000000; padding:0px; margin-top: -10px; border:1px solid COLOUR; border-radius: 5px;";
+PfInfo.TITLE_STYLE="background-color: COLOUR; color: #FFFFFF; padding: 1px; text-align: center";
+PfInfo.TEXT_STYLE="padding: 5px; padding-top: 0px; padding-bottom: 0px;";
+PfInfo.PARA_STYLE="padding: 0px; margin: 0px; text-align: left;";
+PfInfo.P = "<p style='"+PfInfo.PARA_STYLE+"'>";
 
 
-Info.cell = function cell(property, value) {
-    if (value == undefined || value == "") {
+PfInfo.cell = function(property, value) {
+    if (!value || value === "0") {
         return "";
     }
-    if (value == "0") {
-        return "";
-    }
+
     return "<b>" + property + "</b>: " + value + " ";
-}
+};
 
-Info.line = function line(property, value) {
-    if (value == undefined || value == "") {
+PfInfo.line = function(property, value) {
+    if (!value) {
         return "";
     }
     value = value.replace(/\n/g, "<br>");
-    return "<p style='"+Info.PARA_STYLE+"'><b>" + property + "</b>: " + value + " </p>";
-}
+    return "<p style='"+PfInfo.PARA_STYLE+"'><b>" + property + "</b>: " + value + " </p>";
+};
 
-Info.text = function text(text) {
-    return "<p style='"+Info.PARA_STYLE+"'>" + text + "</p>";
-}
+PfInfo.text = function(text) {
+    return "<p style='"+PfInfo.PARA_STYLE+"'>" + text + "</p>";
+};
 
-Info.status = function( token, symbol, name, text) {
-    var html = "";
-    var statuses = [
+PfInfo.inset = function(text, emphasis) {
+    if (emphasis) {
+        emphasis = " font-weight: bold; color: #770000;";
+    } else {
+        emphasis = "";
+    }
+    return `<div style="${PfInfo.INSET_STYLE}${emphasis}">${text}</div>`;
+};
+
+PfInfo.status = function( token, symbol, name, text) {
+    let html = "";
+    let statuses = [
         'red', 'blue', 'green', 'brown', 'purple', 'pink', 'yellow', // 0-6
         'skull', 'sleepy', 'half-heart', 'half-haze', 'interdiction',
         'snail', 'lightning-helix', 'spanner', 'chained-heart',
@@ -96,297 +245,304 @@ Info.status = function( token, symbol, name, text) {
         'angel-outfit', 'archery-target'
     ];
 
-    var value = token.get("status_" + symbol);
+    let value = token.get("status_" + symbol);
     if (value) {
-        var i = _.indexOf(statuses, symbol);
-        var number = parseInt(value);
+        let i = _.indexOf(statuses, symbol);
+        let number = parseInt(value);
 
         if (number > 0) {
-            number = "<span style='color:#ff0000; background-color: white; font-weight: bold; font-size: 120%; text-align: right; vertical-align: bottom;'>" + number + "</span>";
+            number = "<span style='color:#ff0000; background-color: white; font-weight: bold; font-size: 120%; " +
+                     "text-align: right; vertical-align: bottom;'>" + number + "</span>";
         } else {
             number = "";
         }
 
         if (i > 6) {
-            html += '<div style="float: left; width: 24px; height: 24px; display: inline-block; margin: 0; border: 0; cursor: pointer; padding: 0px 3px; background: url(\'https://app.roll20.net/images/statussheet.png\'); background-repeat: no-repeat; background-position: '+((-34)*(i-7))+'px 0px;">'+number+'</div>';
+            html += '<div style="float: left; width: 24px; height: 24px; display: inline-block; ' +
+                    'margin: 0; border: 0; cursor: pointer; padding: 0 3px; background: ' +
+                    'url(\'https://app.roll20.net/images/statussheet.png\'); background-repeat: no-repeat; ' +
+                    'background-position: '+((-34)*(i-7))+'px 0;">'+number+'</div>';
 
-            html += Info.line(name, text);
+            html += PfInfo.line(name, text);
         } else {
             // Use one of the colour circles.
-            var colour = symbol;
-            if (colour == "brown") {
+            let colour = symbol;
+            if (colour === "brown") {
                 colour = "orange";
             }
-            html += '<div style="float: left; width: 16px; height: 12px; display: inline-block; margin: 0; margin-right: 8px; border: 0; cursor: pointer; padding: 5px 3px; background: ' + colour + '; border-radius: 12px">'+number+'</div>';
-            html += Info.line(name, text);
+            html += '<div style="float: left; width: 16px; height: 12px; display: inline-block; ' +
+                    'margin: 0; margin-right: 8px; border: 0; cursor: pointer; padding: 5px 3px; ' +
+                    'background: ' + colour + '; border-radius: 12px">'+number+'</div>';
+            html += PfInfo.line(name, text);
         }
 
         return html;
     }
 
     return "";
-}
+};
 
-Info.parseCustomFields = function(characterName, text) {
-    if (text === null) {
+PfInfo.parseCustomFields = function(characterName, text) {
+    if (!text) {
         return null;
     }
     return text.replace(/@{([^|}]*)}/g, "@{" + characterName + "|$1}");
-}
-
-Info.Process = function(msg, player_obj) {
-    var n = msg.content.split(" ");
-    var target = getObj("graphic", n[1]);
-    if (target != undefined) {
-        var title = target.get("name");
-        if (title != undefined ) {
-
-            if (title.split(":").length > 1) {
-                title = title.split(":")[1];
-            }
-        }
-        var character_id = target.get("represents")
-        var character = getObj("character", character_id)
-        if (character == null) {
-            sendChat("", "/w " + player_obj.get("displayname") + " No character found");
-        } else {
-            var characterName = getAttrByName(character.id, "character_name");
-            var colour = getAttrByName(character.id, 'rolltemplate_color');
-            if (colour == null || colour == "") {
-                colour = "#000000";
-            }
-            var image = null
-            if (image == null || image == "") {
-                image = character.get("avatar");
-            }
-
-            var html = "";
-            var currentHitpoints = target.get("bar1_value");
-            var totalHitpoints = target.get("bar1_max");
-            var nonlethalDamage = target.get("bar3_value");
-            var bab = getAttrByName(character.id, "bab");
-            var type = getAttrByName(character.id, "npc-type");
-            var size = getAttrByName(character.id, "size_display");
-            var alignment = getAttrByName(character.id, "alignment");
-            var hitDice = getAttrByName(character.id, "level");
-            var ac = getAttrByName(character.id, "AC");
-            var acTouch = getAttrByName(character.id, "Touch");
-            var acFlat = getAttrByName(character.id, "Flat-Footed");
-
-            currentHitpoints = parseInt(currentHitpoints);
-            totalHitpoints = parseInt(totalHitpoints);
-            nonlethalDamage = parseInt(nonlethalDamage);
-
-            var c = 0;
-            var classLevels = ""
-            while (c < 10) {
-                var classNameAttr = "class-"+c+"-name";
-                var classLevelAttr = "class-"+c+"-level";
-
-                var className = getAttrByName(character.id, classNameAttr);
-                var classLevel = getAttrByName(character.id, classLevelAttr);
-
-                if (className != null && className != "") {
-                    if (classLevels != "") {
-                        classLevels += " / ";
-                    }
-                    classLevels += className + " " + classLevel;
-                } else {
-                    break;
-                }
-                c++;
-            }
-
-            html += Info.text(size + " " + type);
-            html += Info.text(classLevels);
-            html += Info.text(alignment);
-            html += "<br/>";
-
-            if (nonlethalDamage > 0) {
-                var hp = currentHitpoints - nonlethalDamage;
-                html += Info.line("Hitpoints", "(" + hp + ") " +
-                        currentHitpoints + " / " + totalHitpoints);
-            } else {
-                html += Info.line("Hitpoints", currentHitpoints + " / " + totalHitpoints);
-            }
-            html += Info.P;
-            html += Info.cell("AC", ac) + Info.cell("Flat", acFlat) + Info.cell("Touch", acTouch);
-            html += "</p>";
-
-            html += Info.P;
-            var babMelee = getAttrByName(character.id, "attk-melee");
-            var babRanged = getAttrByName(character.id, "attk-melee");
-            var cmb = getAttrByName(character.id, "CMB");
-            var cmd = getAttrByName(character.id, "CMD");
-
-            html += Info.cell("BAB", babMelee);
-            if (babRanged != babMelee) {
-                html += Info.cell("Ranged", babRanged)
-            }
-            html += Info.cell("CMB", cmb) + Info.cell("CMD", cmd);
-            html += "</p><br/>";
-
-            html += Info.P;
-            var speedBase = getAttrByName(character.id, "speed-base");
-            var speedModified = getAttrByName(character.id, "speed-modified");
-            var speedFly = getAttrByName(character.id, "speed-fly");
-            var speedSwim = getAttrByName(character.id, "speed-swim");
-            var speedClimb = getAttrByName(character.id, "speed-climb");
-            var speedMisc = getAttrByName(character.id, "speed-misc");
-            var speedMult = getAttrByName(character.id, "speed-run-mult");
-            var speedRun = getAttrByName(character.id, "speed-run");
-
-            html += Info.P;
-            html += Info.cell("Move", speedModified) + Info.cell("Run", speedRun);
-            html += "</p>";
-
-            if (speedFly > 0 || speedSwim > 0 || speedClimb > 0) {
-                html += Info.P;
-                if (speedFly > 0) html += Info.cell("Fly", speedFly);
-                if (speedSwim > 0) html += Info.cell("Swim", speedSwim);
-                if (speedClimb > 0) html += Info.cell("Climb", speedClimb);
-                html += "</p>";
-            }
-
-            var dr = getAttrByName(character.id, "DR");
-            var resistences = getAttrByName(character.id, "resistances");
-            var immunities = getAttrByName(character.id, "immunities");
-            var sr = getAttrByName(character.id, "SR");
-            var weaknesses = getAttrByName(character.id, "weaknesses");
-
-            html += Info.P + Info.cell("DR", dr) + Info.cell("SR", sr) + "</p>";
-            html += Info.line("Resistences", resistences);
-            html += Info.line("Immunities", immunities);
-            html += Info.line("Weaknesses", weaknesses);
-
-            var meleeAttackNotes = getAttrByName(character.id, "melee-attack-notes");
-            meleeAttackNotes = Info.parseCustomFields(characterName, meleeAttackNotes);
-            var rangedAttackNotes = getAttrByName(character.id, "ranged-attack-notes");
-            rangedAttackNotes = Info.parseCustomFields(characterName, rangedAttackNotes);
-            var cmbNotes = getAttrByName(character.id, "CMB-notes");
-            cmbNotes = Info.parseCustomFields(characterName, cmbNotes);
-            var attackNotes = getAttrByName(character.id, "attack-notes");
-            attackNotes = Info.parseCustomFields(characterName, attackNotes);
-
-            html += Info.line("Melee Attacks", meleeAttackNotes);
-            html += Info.line("Ranged Attacks", rangedAttackNotes);
-            html += Info.line("CMB", cmbNotes);
-            html += Info.line("Attacks", attackNotes);
-
-            // Token statuses
-            html += Info.getStatusText(target);
-            html += "</div>";
-
-            var displayName = ""+player_obj.get("displayname");
-            // Call asynchronous function.
-            character.get("gmnotes", function(notes) {
-                if (notes !== null && notes !== "" && notes !== "null") {
-                    html += "<div style='" + Info.INSET_STYLE + "'>" + notes + "</div>";
-                }
-
-                gmnotes = target.get("gmnotes");
-                if (gmnotes != null && gmnotes != "" && gmnotes != "null") {
-                    gmnotes = unescape(gmnotes);
-                    matches = gmnotes.match(/!!(.*?)!!/g);
-                    if (matches != null && matches.length > 0) {
-                        html += "<div style='" + Info.INSET_STYLE + "'>";
-                        for (var i=0; i < matches.length; i++) {
-                            text = matches[i];
-                            text = text.replace(/!!/g, "");
-                            html += text + "<BR>";
-                        }
-                        html += "</div>";
-                    }
-                }
-
-
-                html += "</div>";
-                Info.message(character, displayName, target, html);
-            });
-        }
-    } else {
-        sendChat("", "/w " + player_obj.get("displayname") + " Nothing selected.");
-    }
 };
 
-Info.INSET_STYLE = "border: 1px solid black; margin: 3px; padding: 2px; background-color: #FFFFDD";
+PfInfo.infoCommand = function(playerId, token) {
+    let title = token.get("name");
+    if (!title) {
+        PfInfo.error(playerId, "Token has no name.");
+        return;
+    }
 
-Info.getStatusText = function(target) {
-    var html = "";
+    let characterId = token.get("represents");
+    if (!characterId) {
+        PfInfo.error(playerId, "Token has no associated character.");
+        return;
+    }
+    let character = getObj("character", characterId);
+    if (!character) {
+        PfInfo.error(playerid, "Token has an invalid character associated with it.");
+        return;
+    }
 
-    var value = target.get("status_green");
+    let characterName = getAttrByName(character.id, "character_name");
+
+    let html = "";
+    // Get token values.
+    let currentHitpoints = token.get("bar1_value");
+    let totalHitpoints = token.get("bar1_max");
+    let nonlethalDamage = token.get("bar3_value");
+
+    // Get character values.
+    let bab = getAttrByName(character.id, "bab");
+    let type = getAttrByName(character.id, "npc-type");
+    let size = getAttrByName(character.id, "size_display");
+    let alignment = getAttrByName(character.id, "alignment");
+    let ac = getAttrByName(character.id, "AC");
+    let acTouch = getAttrByName(character.id, "Touch");
+    let acFlat = getAttrByName(character.id, "Flat-Footed");
+
+    currentHitpoints = parseInt(currentHitpoints);
+    totalHitpoints = parseInt(totalHitpoints);
+    nonlethalDamage = parseInt(nonlethalDamage);
+
+    let c = 0;
+    let classLevels = "";
+    while (c < 10) {
+        let classNameAttr = "class-"+c+"-name";
+        let classLevelAttr = "class-"+c+"-level";
+
+        let className = getAttrByName(character.id, classNameAttr);
+        let classLevel = getAttrByName(character.id, classLevelAttr);
+
+        if (className) {
+            if (classLevels) {
+                classLevels += " / ";
+            }
+            classLevels += className + " " + classLevel;
+        } else {
+            break;
+        }
+        c++;
+    }
+
+    html += PfInfo.text(size + " " + type);
+    html += PfInfo.text(classLevels);
+    html += PfInfo.text(alignment);
+    html += "<br/>";
+
+    if (nonlethalDamage > 0) {
+        let hp = currentHitpoints - nonlethalDamage;
+        html += PfInfo.line("Hitpoints", "(" + hp + ") " +
+                currentHitpoints + " / " + totalHitpoints);
+    } else {
+        html += PfInfo.line("Hitpoints", currentHitpoints + " / " + totalHitpoints);
+    }
+    html += PfInfo.P;
+    html += PfInfo.cell("AC", ac) + PfInfo.cell("Flat", acFlat) + PfInfo.cell("Touch", acTouch);
+    html += "</p>";
+
+    html += PfInfo.P;
+    let babMelee = getAttrByName(character.id, "attk-melee");
+    let babRanged = getAttrByName(character.id, "attk-melee");
+    let cmb = getAttrByName(character.id, "CMB");
+    let cmd = getAttrByName(character.id, "CMD");
+
+    html += PfInfo.cell("BAB", babMelee);
+    if (babRanged !== babMelee) {
+        html += PfInfo.cell("Ranged", babRanged)
+    }
+    html += PfInfo.cell("CMB", cmb) + PfInfo.cell("CMD", cmd);
+    html += "</p><br/>";
+
+    html += PfInfo.P;
+    let speedModified = getAttrByName(character.id, "speed-modified");
+    let speedFly = getAttrByName(character.id, "speed-fly");
+    let speedSwim = getAttrByName(character.id, "speed-swim");
+    let speedClimb = getAttrByName(character.id, "speed-climb");
+    let speedRun = getAttrByName(character.id, "speed-run");
+
+    html += PfInfo.P;
+    html += PfInfo.cell("Move", speedModified) + PfInfo.cell("Run", speedRun);
+    html += "</p>";
+
+    if (speedFly > 0 || speedSwim > 0 || speedClimb > 0) {
+        html += PfInfo.P;
+        if (speedFly > 0) html += PfInfo.cell("Fly", speedFly);
+        if (speedSwim > 0) html += PfInfo.cell("Swim", speedSwim);
+        if (speedClimb > 0) html += PfInfo.cell("Climb", speedClimb);
+        html += "</p>";
+    }
+
+    let dr = getAttrByName(character.id, "DR");
+    let resistences = getAttrByName(character.id, "resistances");
+    let immunities = getAttrByName(character.id, "immunities");
+    let sr = getAttrByName(character.id, "SR");
+    let weaknesses = getAttrByName(character.id, "weaknesses");
+
+    html += PfInfo.P + PfInfo.cell("DR", dr) + PfInfo.cell("SR", sr) + "</p>";
+    html += PfInfo.line("Resistences", resistences);
+    html += PfInfo.line("Immunities", immunities);
+    html += PfInfo.line("Weaknesses", weaknesses);
+
+    let meleeAttackNotes = getAttrByName(character.id, "melee-attack-notes");
+    meleeAttackNotes = PfInfo.parseCustomFields(characterName, meleeAttackNotes);
+    let rangedAttackNotes = getAttrByName(character.id, "ranged-attack-notes");
+    rangedAttackNotes = PfInfo.parseCustomFields(characterName, rangedAttackNotes);
+    let cmbNotes = getAttrByName(character.id, "CMB-notes");
+    cmbNotes = PfInfo.parseCustomFields(characterName, cmbNotes);
+    let attackNotes = getAttrByName(character.id, "attack-notes");
+    attackNotes = PfInfo.parseCustomFields(characterName, attackNotes);
+
+    html += PfInfo.line("Melee Attacks", meleeAttackNotes);
+    html += PfInfo.line("Ranged Attacks", rangedAttackNotes);
+    html += PfInfo.line("CMB", cmbNotes);
+    html += PfInfo.line("Attacks", attackNotes);
+
+    // Token statuses
+    html += PfInfo.getStatusText(token);
+
+    let player = getObj("player", playerId);
+    let displayName = ""+player.get("displayname");
+
+    // Call asynchronous function.
+    character.get("gmnotes", function(notes) {
+        if (notes !== null && notes !== "" && notes !== "null") {
+            html += PfInfo.inset(notes);
+        }
+
+        for (let i=1; i <= 10; i++) {
+            let n = getAttrByName(character.id, `customn${i}-name`);
+            if (n && n === "NB") {
+                let nb = getAttrByName(character.id, `customn${i}`);
+                if (nb) {
+                    html += PfInfo.inset(nb, true);
+                }
+            }
+        }
+
+        let gmnotes = token.get("gmnotes");
+        if (gmnotes && gmnotes !== "null") {
+            gmnotes = unescape(gmnotes);
+            let matches = gmnotes.match(/!!(.*?)!!/g);
+            if (matches && matches.length > 0) {
+                html += "<div style='" + PfInfo.INSET_STYLE + "'>";
+                for (let i=0; i < matches.length; i++) {
+                    let text = matches[i];
+                    text = text.replace(/!!/g, "");
+                    html += text + "<BR>";
+                }
+                html += "</div>";
+            }
+        }
+
+        html += "</div>";
+        PfInfo.message(character, displayName, token, html);
+    });
+};
+
+PfInfo.INSET_STYLE = "font-style: italic; border: 1px dotted black; margin: 3px; padding: 3px;";
+
+PfInfo.getStatusText = function(target) {
+    let html = "";
+
+    let value = target.get("status_green");
     if (value) {
 
     }
 
-    html += Info.status(target, "green", "Stablized", "Is unconscious but not dying.");
+    html += PfInfo.status(target, "green", "Stablized", "Is unconscious but not dying.");
     if (!target.get("status_red")) {
         // We show both red and brown status symbols for accessibility reasons,
         // but the actual descriptive text only needs to display the worst.
-        html += Info.status(target, "brown", "Moderately wounded", "Has less than two third hitpoints.");
+        html += PfInfo.status(target, "brown", "Moderately wounded", "Has less than two third hitpoints.");
     }
-    html += Info.status(target, "red", "Heavily Wounded", "Has less than one third hitpoints.");
+    html += PfInfo.status(target, "red", "Heavily Wounded", "Has less than one third hitpoints.");
 
-    html += Info.status(target, "bleeding-eye", "Blind", "-2 penalty to AC; loses Dex bonus to AC; -4 penalty of most Dex and Str checks and opposed Perception checks; Opponents have 50% concealment; Acrobatics DC 10 if move faster than half speed, or prone.");
+    html += PfInfo.status(target, "bleeding-eye", "Blind", "-2 penalty to AC; loses Dex bonus to AC; -4 penalty of most Dex and Str checks and opposed Perception checks; Opponents have 50% concealment; Acrobatics DC 10 if move faster than half speed, or prone.");
 
-    html += Info.status(target, "screaming", "Confused", "01-25: Act Normally; 26-50: Babble; 51-75: 1d8 + Str damage to self; 76-100: Attack nearest.");
+    html += PfInfo.status(target, "screaming", "Confused", "01-25: Act Normally; 26-50: Babble; 51-75: 1d8 + Str damage to self; 76-100: Attack nearest.");
 
-    html += Info.status(target, "overdrive", "Dazzled", "-1 penalty on attacks and sight based perception checks.");
+    html += PfInfo.status(target, "overdrive", "Dazzled", "-1 penalty on attacks and sight based perception checks.");
 
-    html += Info.status(target, "fishing-net", "Entangled", "No movement if anchored, otherwise half speed. -2 attack, -4 Dex. Concentration check to cast spells.");
+    html += PfInfo.status(target, "fishing-net", "Entangled", "No movement if anchored, otherwise half speed. -2 attack, -4 Dex. Concentration check to cast spells.");
 
-    html += Info.status(target, "sleepy", "Exhausted", "Half-speed, -6 to Str and Dex. Rest 1 hour to become fatigued.");
+    html += PfInfo.status(target, "sleepy", "Exhausted", "Half-speed, -6 to Str and Dex. Rest 1 hour to become fatigued.");
 
-    html += Info.status(target, "half-haze", "Fatigued", "Cannot run or charge; -2 to Str and Dex. Rest 8 hours to recover.");
+    html += PfInfo.status(target, "half-haze", "Fatigued", "Cannot run or charge; -2 to Str and Dex. Rest 8 hours to recover.");
 
-    html += Info.status(target, "broken-heart", "Frightened", "-2 attacks, saves, skills and ability checks; must flee from source.");
+    html += PfInfo.status(target, "broken-heart", "Frightened", "-2 attacks, saves, skills and ability checks; must flee from source.");
 
-    html += Info.status(target, "padlock", "Grappled", "Cannot move or take actions that require hands. -4 Dex, -2 attacks and combat maneuvers except to escape. Concentration to cast spells, do not threaten.");
+    html += PfInfo.status(target, "padlock", "Grappled", "Cannot move or take actions that require hands. -4 Dex, -2 attacks and combat maneuvers except to escape. Concentration to cast spells, do not threaten.");
 
-    html += Info.status(target, "radioactive", "Nauseated", "Can only take a single move action, no spells attacks or concentration.");
+    html += PfInfo.status(target, "radioactive", "Nauseated", "Can only take a single move action, no spells attacks or concentration.");
 
-    html += Info.status(target, "half-heart", "Panicked", "-2 attacks, saves, skills and ability checks; drops items and must flee from source.");
+    html += PfInfo.status(target, "half-heart", "Panicked", "-2 attacks, saves, skills and ability checks; drops items and must flee from source.");
 
-    html += Info.status(target, "cobweb", "Paralyzed", "Str and Dex reduced to zero. Flyers fall. Helpless.");
+    html += PfInfo.status(target, "cobweb", "Paralyzed", "Str and Dex reduced to zero. Flyers fall. Helpless.");
 
-    html += Info.status(target, "chained-heart", "Shaken", "-2 penalty on all attacks, saves, skills and ability checks.");
+    html += PfInfo.status(target, "chained-heart", "Shaken", "-2 penalty on all attacks, saves, skills and ability checks.");
 
-    html += Info.status(target, "arrowed", "Prone", "-4 penalty to attack roles and can't use most ranged weapons. Has +4 AC bonus against ranged, but -4 AC against melee.");
+    html += PfInfo.status(target, "arrowed", "Prone", "-4 penalty to attack roles and can't use most ranged weapons. Has +4 AC bonus against ranged, but -4 AC against melee.");
 
-    html += Info.status(target, "drink-me", "Sickened", "-2 penalty on all attacks, damage, saves, skills and ability checks.");
+    html += PfInfo.status(target, "drink-me", "Sickened", "-2 penalty on all attacks, damage, saves, skills and ability checks.");
 
-    html += Info.status(target, "pummeled", "Staggered", "Only a move or standard action (plus swift and immediate).");
+    html += PfInfo.status(target, "pummeled", "Staggered", "Only a move or standard action (plus swift and immediate).");
 
-    html += Info.status(target, "interdiction", "Stunned", "Cannot take actions, drops everything held, takes a -2 penalty to AC, loses its Dex bonus to AC.");
+    html += PfInfo.status(target, "interdiction", "Stunned", "Cannot take actions, drops everything held, takes a -2 penalty to AC, loses its Dex bonus to AC.");
 
 
-    html += Info.status(target, "fist", "Power Attack", "Penalty to hit and bonus to damage based on BAB. Lasts until start of next turn.");
+    html += PfInfo.status(target, "fist", "Power Attack", "Penalty to hit and bonus to damage based on BAB. Lasts until start of next turn.");
 
-    html += Info.status(target, "skull", "Unconscious", "Is unconscious and possibly dying.");
+    html += PfInfo.status(target, "skull", "Unconscious", "Is unconscious and possibly dying.");
 
-    html += Info.status(target, "dead", "Dead", "Creature is dead. Gone. Destroyed.");
+    html += PfInfo.status(target, "dead", "Dead", "Creature is dead. Gone. Destroyed.");
 
     return html;
-}
+};
 
-Info.message = function(character, displayName, token, message, func) {
-    if (message != null) {
-        var image = token.get("imgsrc");
-        var name = token.get("name");
-        var html = "<div style='" + PfCombat.BOX_STYLE + "'>";
-        html += "<div style='margin-top: 0px; padding-left: 5px; font-weight: normal; font-style: normal;'>";
-        html += "<div style='font-weight: bold; font-size: larger; padding: 0px 0px 0px 0px'>" + name + "</div>";
-        html += "<img style='float:right' width='64' src='" + image + "'>";
+PfInfo.BOX_STYLE="background-color: #EEEEDD; color: #000000; margin-top: 0px; " +
+                 "padding:5px; border:1px dashed black; border-radius: 10px; " +
+                 "font-weight: normal; font-style: normal; text-align: left; "+
+                 "background-image: url(http://imgsrv.roll20.net/?src=i.imgur.com/BLDFC8xg.jpg)";
+
+PfInfo.message = function(character, displayName, token, message, func) {
+    if (message) {
+        let image = token.get("imgsrc");
+        let name = token.get("name");
+        let html = "<div style='" + PfInfo.BOX_STYLE + "'>";
+        html += `<img style='float:right' width='64' src='${image}'>`;
+        html += `<h3>${name}</h3>`;
         html += message;
         html += "</div>";
 
-        html += "</div>";
-        log(displayName);
-        if (func == null) {
+        if (!func) {
             sendChat("character|"+character.get("id"), "/w \"" + displayName + "\" " + html);
         } else {
             sendChat("character|"+character.get("id"), "/w \"" + displayName + "\" " + html, func);
         }
     }
-}
+};
 

@@ -40,10 +40,23 @@
 
 var PfLight = PfLight || {};
 
+PfLight.VERSION = "2.0";
 PfLight.BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px; font-style: normal; font-weight: normal; text-align: left";
 
 on("ready", function() {
-   log("PfLight started.");
+    log(`==== PfLight Version ${PfLight.VERSION} ====`);
+
+    if (PfInfo) {
+        // Player commands.
+        PfInfo.addPlayerHelp("!pftake", "Args: <b>tokenId</b><br/>This token will pick up a light token it is standing on.");
+        PfInfo.addPlayerHelp("!pfdrop", "Args: <b>tokenId</b><br/>This token will drop the light token it is carrying.");
+        PfInfo.addPlayerHelp("!pfturnlight", "Args: <b>tokenId</b> <b>direction</b><br/>Rotates the given light source according to the direction. Either (c) or (a) for clockwise or anti-clockwise, or a value (0-359) to set to that facing.");
+
+        // GM Only commands.
+        PfInfo.addGmHelp("!pflights", "Args: <b>duration</b>, <b>tokenId</b><br/>Reduce time left on light sources.");
+    } else {
+        sendChat("PfLight", "PfLight API depends on PfInfo, which is missing.");
+    }
 });
 
 /**
@@ -152,7 +165,7 @@ on("chat:message", function(msg) {
             token = getObj("graphic", tokenId);
             if (token) {
                 if (token.get("name") !== "Light") {
-                    PfLight.error(player, "Selected token ${token.get('name')} is not a light source.");
+                    PfLight.error(player, `Selected token ${token.get('name')} is not a light source.`);
                 } else {
                     PfLight.turnLightCommand(token, direction);
                 }

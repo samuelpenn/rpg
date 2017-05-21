@@ -76,7 +76,7 @@ PfSkills.usage = function() {
 
 PfSkills.singleSkillCommand = function(msg) {
     var tokenList = PfCombat.getSelectedTokens(msg, true);
-    if (tokenList == null || tokenList.length != 1) {
+    if (!tokenList || tokenList.length !== 1) {
         PfSkills.error("Must have exactly one token selected.");
         return;
     }
@@ -87,11 +87,13 @@ PfSkills.singleSkillCommand = function(msg) {
     var n = msg.content.split(" ");
 
     // Get the result of the die roll.
-    if (msg.inlinerolls == null) {
+    if (!msg.inlinerolls) {
         notRolled = true;
     } else {
         d20roll = msg.inlinerolls[0].results.total;
-        isRoll = msg.inlinerolls[0].results.rolls[0].dice != null;
+        if (!msg.inlinerolls[0].results.rolls[0].dice) {
+            isRoll = false;
+        }
     }
 
     var token = getObj("graphic", tokenList[0]);
@@ -132,7 +134,7 @@ PfSkills.singleSkillCommand = function(msg) {
 
 PfSkills.performanceIncome = function(msg) {
     var tokenList = PfCombat.getSelectedTokens(msg, true);
-    if (tokenList == null || tokenList.length != 1) {
+    if (!tokenList || tokenList.length !== 1) {
         PfSkills.error("Must have exactly one token selected.");
         return;
     }
@@ -161,7 +163,7 @@ PfSkills.performanceIncome = function(msg) {
     for (var i=1; i < 11; i++) {
         skill = baseSkill + ( (i>1)?i:"" );
         var skillName = PfSkills.getAttributeValue(attributes, skill + "-name");
-        if (skillName == performanceSkill) {
+        if (skillName === performanceSkill) {
             log("Found match for " + skillName);
             score = parseInt(PfSkills.getAttributeValue(attributes, skill));
             log("Has a score of " + score);
@@ -260,28 +262,28 @@ PfSkills.setupTemplate = function(name, character, title) {
  */
 PfSkills.getSkill = function(characterName, list, skill, d20roll, name) {
     var ranks = PfSkills.getAttributeValue(list, skill + "-ranks");
-    if (ranks == null || ranks == "" || ranks == 0) {
+    if (!ranks) {
         var reqTrain = PfSkills.getAttributeValue(list, skill + "-ReqTrain");
-        if (reqTrain == 1) {
+        if (reqTrain === 1) {
             return "";
         }
     }
     log("Calculating character name to be " + characterName);
     var skillNote = PfSkills.getAttributeValue(list, skill + "-note");
 
-    if (skillNote != null && skillNote != "") {
+    if (skillNote) {
         skillNote = "\n" + skillNote.replace(/@{([^|}]*)}/g, "@{"+characterName+"|$1}");
     } else {
         skillNote = "";
     }
 
     var score = parseInt(PfSkills.getAttributeValue(list, skill));
-    if (score != parseInt(score)) {
+    if (score !== parseInt(score)) {
         return "";
     }
 
     skill = skill.replace("-", " ");
-    if (d20roll != null) {
+    if (d20roll) {
         var template = "{{<b>" + name + " (" + score + ")</b>" + skillNote + "=<b>" + (d20roll + score) + "</b>}}";
     } else {
         var template = "{{<b>" + name + " (" + score + ")</b>" + skillNote + "=[[d20 + " + score + "]]}}";
@@ -303,7 +305,7 @@ PfSkills.getAttribute = function(list, attribute, d20roll, name) {
 
     score = score + cond;
 
-    if (d20roll != null) {
+    if (d20roll) {
         return "{{" + name + " (" + base + " / " + score + ")=**" + (d20roll + score) + "**}}";
     } else {
         return "{{" + name + " (" + base + " / " + score + ")=**[[d20 + " + score + "]]**}}";
@@ -313,7 +315,7 @@ PfSkills.getAttribute = function(list, attribute, d20roll, name) {
 PfSkills.defaults = PfSkills.defaults || {};
 
 PfSkills.getDefaultValue = function(list, key) {
-    if (PfSkills.defaults[key] != null) {
+    if (PfSkills.defaults[key]) {
         return PfSkills.defaults[key];
     }
 
