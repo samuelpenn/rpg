@@ -42,6 +42,10 @@ var PfLight = PfLight || {};
 
 PfLight.BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px; font-style: normal; font-weight: normal; text-align: left";
 
+on("ready", function() {
+   log("PfLight started.");
+});
+
 /**
  * Displays an error back to the player. Errors are always whispered so
  * as not to annoy everyone else.
@@ -110,7 +114,11 @@ on("chat:message", function(msg) {
             PfLight.error(player, "Must be exactly one argument, <i>light_level</i>.");
         } else {
             var lightLevel = args.shift();
-            PfLight.setVisionCommand(player, args);
+            if (lightLevel) {
+                PfLight.setVisionCommand(lightLevel, msg.selected);
+            } else {
+                PfLight.error(player, "<i>light_level</i> is not valid");
+            }
         }
     } else if (command === "!pflights") {
         if (!isGM) {
@@ -339,7 +347,7 @@ PfLight.move = function(token) {
 }
 
 
-PfLight.setVisionCommand = function(player, args) {
+PfLight.setVisionCommand = function(lightLevel, selected) {
     var radius = null;
     var dimRadius = null;
     var mesg = null;
@@ -355,8 +363,7 @@ PfLight.setVisionCommand = function(player, args) {
     VISION['starlight'] = { 'light': 10, 'dim': -5, 'msg': "Starlight" };
     VISION['dark'] = { 'light': null, 'dim': null, 'msg': "Complete darkness" };
 
-    if (args.length > 1) {
-        var lightLevel = args[1];
+    if (lightLevel) {
         if (VISION[lightLevel] !== null) {
             radius = VISION[lightLevel].light;
             dimRadius = VISION[lightLevel].dim;
@@ -383,12 +390,12 @@ PfLight.setVisionCommand = function(player, args) {
     } else {
         message += ".";
     }
-    sendChat("", "/desc <div style='" + PfLight.BOX_STYLE + "'>" + message + "</div>");
+    sendChat("PfLight", "/w GM <div style='" + PfLight.BOX_STYLE + "'>" + message + "</div>");
 
-    if (msg.selected !== null && msg.selected.length > 0) {
+    if (selected && selected.length > 0) {
         log("Using selected characters");
-        for (var i=0; i < msg.selected.length; i++) {
-            var token = getObj("graphic", msg.selected[i]._id);
+        for (var i=0; i < selected.length; i++) {
+            var token = getObj("graphic", selected[i]._id);
             if (token.get("name") != null && token.get("name") != "") {
                 log("Selected object: " + token.get("name"));
                 PfLight.setVision(token, radius, dimRadius);
