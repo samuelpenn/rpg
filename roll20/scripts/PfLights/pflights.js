@@ -142,6 +142,24 @@ on("chat:message", function(msg) {
             }
             PfLight.lightsCommand(duration, token);
         }
+    } else if (command === "!pfturnlight") {
+        tokenId = args.shift();
+        var direction = args.shift();
+
+        if (!tokenId || !direction) {
+            PfLight.error(player, "You must specify <i>token_id</i> and <i>clockwise (c)</i> or <i>anti-clockwise (a)</i>.");
+        } else {
+            token = getObj("graphic", tokenId);
+            if (token) {
+                if (token.get("name") !== "Light") {
+                    PfLight.error(player, "Selected token ${token.get('name')} is not a light source.");
+                } else {
+                    PfLight.turnLightCommand(token, direction);
+                }
+            } else {
+                PfLight.error(player, "Not a valid token id.");
+            }
+        }
     }
 });
 
@@ -174,7 +192,6 @@ PfLight.setVision = function(token, radius, dimRadius) {
     // If a character has darkvision, then increase their vision out
     // to their darkvision limit.
     if (vision.indexOf("darkvision") > -1) {
-        var darkVisionRadius = 60;
         var dr = vision.replace(/.*darkvision +([0-9]+).*/, "$1");
         if (parseInt(dr) > 0) {
             dr = parseInt(dr);
@@ -207,7 +224,7 @@ PfLight.setVision = function(token, radius, dimRadius) {
 
     token.set({
         'light_radius': radius,
-        'light_dimradius': dimRadius,
+        'light_dimradius': dimRadius
     });
 };
 
@@ -234,7 +251,7 @@ PfLight.takeCommand = function(player, token) {
     log(tokenName + " is at " + x + "," + y);
     var objects = findObjs({
         _pageid: Campaign().get("playerpageid"),
-        _type: "graphic", _subtype: "token", _name: "Light",
+        _type: "graphic", _subtype: "token", _name: "Light"
     });
     log(objects.length);
     var takenItem = null;
@@ -254,8 +271,6 @@ PfLight.takeCommand = function(player, token) {
     }
     if (takenItem === null) {
         PfLight.error(player, "Nothing for " + tokenName + " to pick up.");
-
-        return;
     } else {
         log("Found object to take");
         log("Object is " + takenItem.get("name"));
@@ -273,7 +288,7 @@ PfLight.takeCommand = function(player, token) {
         toBack(takenItem);
         takenItem.set({
             'left': x,
-            'top': y,
+            'top': y
         });
         var character = getObj("character", characterId);
         var attribute = findObjs({
@@ -311,7 +326,6 @@ PfLight.dropCommand = function(player, token) {
 
     if (!attribute || attribute.get("current") === "") {
         PfLight.error(player, token.get("_name") + " is not carrying anything.");
-        return;
     } else {
         var message = token.get("_name") + " drops what they are carrying.";
         PfLight.actionMessage(token, message);
@@ -319,9 +333,9 @@ PfLight.dropCommand = function(player, token) {
             current: ""
         });
     }
-}
+};
 
-on("change:graphic", function(obj, prev) {
+on("change:graphic", function(obj) {
     log("PfLight: Graphic change event for " + obj.get("name"));
     if (obj.get("_pageid") === Campaign().get("playerpageid")) {
         PfLight.move(obj);
@@ -344,7 +358,7 @@ PfLight.move = function(token) {
             }
         }
     }
-}
+};
 
 
 PfLight.setVisionCommand = function(lightLevel, selected) {
@@ -396,7 +410,7 @@ PfLight.setVisionCommand = function(lightLevel, selected) {
         log("Using selected characters");
         for (var i=0; i < selected.length; i++) {
             var token = getObj("graphic", selected[i]._id);
-            if (token.get("name") != null && token.get("name") != "") {
+            if (token.get("name")) {
                 log("Selected object: " + token.get("name"));
                 PfLight.setVision(token, radius, dimRadius);
             }
@@ -404,7 +418,7 @@ PfLight.setVisionCommand = function(lightLevel, selected) {
     } else {
         var currentObjects = findObjs({
             _pageid: Campaign().get("playerpageid"),
-            _type: "graphic",
+            _type: "graphic"
         });
         log("Looking for characters");
         _.each(currentObjects, function(token) {
@@ -412,7 +426,7 @@ PfLight.setVisionCommand = function(lightLevel, selected) {
             PfLight.setVision(token, radius, dimRadius);
         });
     }
-}
+};
 
 PfLight.lightsCommand = function(duration, token) {
     var message = "";
@@ -437,7 +451,6 @@ PfLight.lightsCommand = function(duration, token) {
         objects = [ token ];
     }
 
-    var count = 0;
     for (var i=0; i < objects.length && objects[i]; i++) {
         var obj = objects[i];
         var notes = obj.get("gmnotes");
@@ -558,5 +571,51 @@ PfLight.lightsCommand = function(duration, token) {
             }
         }
     }
+};
+
+/**
+ * Rotates an object. Used to rotate light sources such as Bullseye lanterns
+ * which face a particular direction. Can be used in conjunction with 'Take'
+ * and 'Drop' to rotate a light source that is being carried.
+ *
+ * @param token     Token to be rotated.
+ * @param direction Direction to rotate, or angle to rotate to.
+ */
+PfLight.turnLightCommand = function(token, direction) {
+    if (!token || !direction) {
+        PfLight.error(null, "Invalid parameters to turnLightCommand.");
+        return;
+    }
+
+    var rotation = token.get("rotation");
+    if (rotation) {
+        rotation = parseInt(rotation);
+    } else {
+        rotation = 0;
+    }
+
+    if (direction.startsWith("c")) {
+        // Clockwise.
+        rotation += 45;
+    } else if (direction.startsWith("a")) {
+        // Anti-clockwise.
+        rotation -= 45;
+    } else {
+        // A specific angle in degrees.
+        rotation = parseInt(direction);
+    }
+    // Force it to be in 45 degree increments.
+    rotation = parseInt(rotation / 45) * 45;
+
+    if (rotation < 0) {
+        rotation += 360;
+    } else if (rotation >= 360) {
+        rotation -= 360;
+    }
+
+    token.set({
+        'rotation': rotation
+    });
+
 };
 
