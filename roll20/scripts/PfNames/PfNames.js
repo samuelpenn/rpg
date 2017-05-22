@@ -1,11 +1,11 @@
 /**
- * Generate random names..
+ * Generate random names.
  *
  * Designed to work with the Pathfinder character sheet for Roll20.
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2016, Samuel Penn, sam@glendale.org.uk
+ * Copyright (c) 2016,2017, Samuel Penn, sam@glendale.org.uk
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal

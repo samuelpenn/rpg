@@ -360,14 +360,14 @@ PfInfo.infoCommand = function(playerId, token) {
             if (classLevels) {
                 classLevels += " / ";
             }
-            classLevels += className + " " + classLevel;
+            classLevels += `${className} ${classLevel}`;
         } else {
             break;
         }
         c++;
     }
 
-    html += PfInfo.text(size + " " + type);
+    html += PfInfo.text(`${size?size:""} ${type}`);
     html += PfInfo.text(classLevels);
     html += PfInfo.text(alignment);
     html += "<br/>";
@@ -574,7 +574,13 @@ PfInfo.message = function(player, message, title) {
         html += message;
         html += "</div>";
 
-        sendChat(`player|${player.get("_id")}`, `/desc ${html}`);
+        if (player && typeof(player) === "object") {
+            sendChat(`player|${player.get("_id")}`, `/desc ${html}`);
+        } else if (player && typeof(player) === "string") {
+            sendChat(player, `/desc ${html}`);
+        } else {
+            sendChat("", `/desc ${html}`);
+        }
     }
 };
 
@@ -587,6 +593,12 @@ PfInfo.whisper = function(player, message, title) {
         html += message;
         html += "</div>";
 
-        sendChat(`player|${player.get("_id")}`, `/w "${player.get('displayname')}" ${html}`);
+        if (player && typeof(player) === "object") {
+            sendChat(`player|${player.get("_id")}`, `/w GM ${html}`);
+        } else if (player && typeof(player) === "string") {
+            sendChat(player, `/w GM ${html}`);
+        } else {
+            sendChat("", `/w GM ${html}`);
+        }
     }
 };

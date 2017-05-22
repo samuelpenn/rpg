@@ -72,11 +72,12 @@ PfLight.error = function(player, message) {
 };
 
 PfLight.actionMessage = function(token, message) {
-    var characterId = token.get("represents");
+    let characterId = token.get("represents");
 
-    var html = "<div style='" + PfLight.BOX_STYLE + "'>";
-    var image = token.get("imgsrc");
-    html += "<img src='" + image + "' width='50px' style='float:left; margin-top:-25px; padding-top: 0px; background-color: white; border-radius: 25px;'/>";
+    let html = "<div style='" + PfLight.BOX_STYLE + "'>";
+    let image = token.get("imgsrc");
+    html += "<img src='" + image + "' width='50px' style='float:left; margin-top:-25px; padding-top: 0; "+
+            "background-color: white; border-radius: 25px;'/>";
     html += "<div style='margin-left: 60px; padding-bottom: 10px'>";
     html += message + "</div>";
     html += "</div>";
@@ -87,14 +88,14 @@ PfLight.actionMessage = function(token, message) {
 
 // API COMMAND HANDLER
 on("chat:message", function(msg) {
-   if (msg.type !== "api") return;
+    if (msg.type !== "api") return;
 
-   var args = msg.content.split(" ");
-   var command = args.shift();
-   var player = getObj("player", msg.playerid);
-   var isGM = playerIsGM(player.get("_id"));
-   var token = null;
-   var tokenId = null;
+    let args = msg.content.split(" ");
+    let command = args.shift();
+    let player = getObj("player", msg.playerid);
+    let isGM = playerIsGM(player.get("_id"));
+    let token = null;
+    let tokenId = null;
 
     if (command === "!pftake") {
        if (args.length !== 1) {
@@ -126,7 +127,7 @@ on("chat:message", function(msg) {
         } else if (args.length !== 1) {
             PfLight.error(player, "Must be exactly one argument, <i>light_level</i>.");
         } else {
-            var lightLevel = args.shift();
+            let lightLevel = args.shift();
             if (lightLevel) {
                 PfLight.setVisionCommand(lightLevel, msg.selected);
             } else {
@@ -137,7 +138,7 @@ on("chat:message", function(msg) {
         if (!isGM) {
             PfLight.error(player, "You must be the GM to be able to run this.");
         } else {
-            var duration = args.shift();
+            let duration = args.shift();
             tokenId = args.shift();
             if (!duration) {
                 duration = 0;
@@ -157,7 +158,7 @@ on("chat:message", function(msg) {
         }
     } else if (command === "!pfturnlight") {
         tokenId = args.shift();
-        var direction = args.shift();
+        let direction = args.shift();
 
         if (!tokenId || !direction) {
             PfLight.error(player, "You must specify <i>token_id</i> and <i>clockwise (c)</i> or <i>anti-clockwise (a)</i>.");
@@ -179,24 +180,24 @@ on("chat:message", function(msg) {
 
 
 PfLight.setVision = function(token, radius, dimRadius) {
-    var hasSight = token.get("light_hassight");
+    let hasSight = token.get("light_hassight");
     if (hasSight !== true) {
         // No vision, so nothing to do.
         return;
     }
-    var lightMultiplier = token.get("light_multiplier");
+    let lightMultiplier = token.get("light_multiplier");
     if (lightMultiplier !== null && lightMultiplier !== "") {
         lightMultiplier = parseFloat(lightMultiplier);
     } else {
         lightMultiplier = 1.0;
     }
-    var characterId = token.get("represents");
+    let characterId = token.get("represents");
     if (characterId === null) {
         // This isn't a character, so nothing to do.
         return;
     }
     log("    Character has sight.");
-    var vision = getAttrByName(characterId, "vision");
+    let vision = getAttrByName(characterId, "vision");
     if (vision !== null && vision !== "") {
         vision = vision.toLowerCase();
     } else {
@@ -205,7 +206,7 @@ PfLight.setVision = function(token, radius, dimRadius) {
     // If a character has darkvision, then increase their vision out
     // to their darkvision limit.
     if (vision.indexOf("darkvision") > -1) {
-        var dr = vision.replace(/.*darkvision +([0-9]+).*/, "$1");
+        let dr = vision.replace(/.*darkvision +([0-9]+).*/, "$1");
         if (parseInt(dr) > 0) {
             dr = parseInt(dr);
             log("    Character has darkvision " + dr);
@@ -225,10 +226,10 @@ PfLight.setVision = function(token, radius, dimRadius) {
         }
     }
     // A character's Perception can modify how far they can see.
-    var perception = getAttrByName(characterId, "Perception");
+    let perception = getAttrByName(characterId, "Perception");
     log("    Character Perception " + perception);
     if (perception !== null && parseInt(perception) !== 0 && radius !== null) {
-        var bonus = parseInt(perception) * (radius / 20.0);
+        let bonus = parseInt(perception) * (radius / 20.0);
         radius += parseInt(bonus);
         if (dimRadius !== null && dimRadius >= 0) {
             dimRadius += parseInt(bonus);
@@ -252,31 +253,31 @@ PfLight.takeCommand = function(player, token) {
         PfLight.error(player, "You must specify a character token.");
         return;
     }
-    var characterId = token.get("represents");
+    let characterId = token.get("represents");
     if (characterId === null) {
         PfLight.error(player, "Selected token is not a character.");
         return;
     }
-    var x = token.get("left");
-    var y = token.get("top");
-    var tokenName = token.get("name");
+    let x = token.get("left");
+    let y = token.get("top");
+    let tokenName = token.get("name");
 
     log(tokenName + " is at " + x + "," + y);
-    var objects = findObjs({
+    let objects = findObjs({
         _pageid: Campaign().get("playerpageid"),
         _type: "graphic", _subtype: "token", _name: "Light"
     });
     log(objects.length);
-    var takenItem = null;
-    for (var i=0; i < objects.length; i++) {
+    let takenItem = null;
+    for (let i=0; i < objects.length; i++) {
         log("Checking object " + i);
-        var object = objects[i];
+        let object = objects[i];
         if (object === null) {
             PfLight.error(player, "Returned object is null");
             continue;
         }
-        var ox = object.get("left");
-        var oy = object.get("top");
+        let ox = object.get("left");
+        let oy = object.get("top");
         if (Math.abs(ox - x) <= PfLight.VARIANCE && Math.abs(oy - y) <= PfLight.VARIANCE) {
             takenItem = object;
             break;
@@ -291,20 +292,20 @@ PfLight.takeCommand = function(player, token) {
             PfLight.error(player, "Found item does not represent a character.");
             return;
         }
-        var itemCharacter = getObj("character", takenItem.get("represents"));
+        let itemCharacter = getObj("character", takenItem.get("represents"));
         if (itemCharacter === null) {
             PfLight.error(player, "Found item has an invalid character.");
             return;
         }
-        var message = tokenName + " picks up a " + itemCharacter.get("name") + ".";
+        let message = tokenName + " picks up a " + itemCharacter.get("name") + ".";
         PfLight.actionMessage(token, message);
         toBack(takenItem);
         takenItem.set({
             'left': x,
             'top': y
         });
-        var character = getObj("character", characterId);
-        var attribute = findObjs({
+        let character = getObj("character", characterId);
+        let attribute = findObjs({
             type: 'attribute',
             characterid: characterId,
             name: PfLight.ATTRIBUTE
@@ -329,9 +330,9 @@ PfLight.dropCommand = function(player, token) {
         log("No token specified.");
         return;
     }
-    var characterId = token.get("represents");
-    var character = getObj("character", characterId);
-    var attribute = findObjs({
+    let characterId = token.get("represents");
+    let character = getObj("character", characterId);
+    let attribute = findObjs({
         type: 'attribute',
         characterid: characterId,
         name: PfLight.ATTRIBUTE
@@ -340,7 +341,7 @@ PfLight.dropCommand = function(player, token) {
     if (!attribute || attribute.get("current") === "") {
         PfLight.error(player, token.get("_name") + " is not carrying anything.");
     } else {
-        var message = token.get("_name") + " drops what they are carrying.";
+        let message = token.get("_name") + " drops what they are carrying.";
         PfLight.actionMessage(token, message);
         attribute.set({
             current: ""
@@ -356,11 +357,11 @@ on("change:graphic", function(obj) {
 });
 
 PfLight.move = function(token) {
-    var characterId = token.get("represents");
+    let characterId = token.get("represents");
     if (characterId !== null && token.get("light_hassight") === true) {
-        var carrying = getAttrByName(characterId, PfLight.ATTRIBUTE, "current");
+        let carrying = getAttrByName(characterId, PfLight.ATTRIBUTE, "current");
         if (carrying !== null && carrying !== "") {
-            var takenItem = getObj("graphic", carrying);
+            let takenItem = getObj("graphic", carrying);
             if (takenItem === null || takenItem === undefined) {
                 PfLight.dropCommand(null, token);
             } else {
@@ -375,11 +376,11 @@ PfLight.move = function(token) {
 
 
 PfLight.setVisionCommand = function(lightLevel, selected) {
-    var radius = null;
-    var dimRadius = null;
-    var mesg = null;
+    let radius = null;
+    let dimRadius = null;
+    let mesg = null;
 
-    var VISION = [];
+    let VISION = [];
     VISION['day'] = { 'light': 960, 'dim': null, 'msg': "Full daylight" };
     VISION['overcast'] = { 'light': 480, 'dim': 360, 'msg': "Overcast daylight" };
     VISION['twilight'] = { 'light': 240, 'dim': 120, 'msg': "Twilight" };
@@ -391,22 +392,26 @@ PfLight.setVisionCommand = function(lightLevel, selected) {
     VISION['dark'] = { 'light': null, 'dim': null, 'msg': "Complete darkness" };
 
     if (lightLevel) {
-        if (VISION[lightLevel] !== null) {
+        if (VISION[lightLevel]) {
             radius = VISION[lightLevel].light;
             dimRadius = VISION[lightLevel].dim;
             mesg = VISION[lightLevel].msg;
         } else {
-            log("Unrecognised light level argument");
+            let options = "";
+            for (let o in VISION) {
+                options += o + " ";
+            }
+            PfInfo.error(null, `Unrecognised light level argument. Use one of [ ${options.trim()} ]`);
             return;
         }
     } else {
-        log("No light level argument provided");
+        PfInfo.error(null, "No light level argument provided.");
         return;
     }
     log(radius + ", " + dimRadius);
-    var message = "Setting light level to be <b>" + mesg + "</b>";
+    let message = "Setting light level to be <b>" + mesg + "</b>";
     if (radius !== null) {
-        var dim = "";
+        let dim = "";
         if (dimRadius !== null && dimRadius < 0) {
             dim = "dim to ";
         }
@@ -417,19 +422,19 @@ PfLight.setVisionCommand = function(lightLevel, selected) {
     } else {
         message += ".";
     }
-    sendChat("PfLight", "/w GM <div style='" + PfLight.BOX_STYLE + "'>" + message + "</div>");
+    PfInfo.whisper("PfLights", message);
 
     if (selected && selected.length > 0) {
         log("Using selected characters");
-        for (var i=0; i < selected.length; i++) {
-            var token = getObj("graphic", selected[i]._id);
+        for (let i=0; i < selected.length; i++) {
+            let token = getObj("graphic", selected[i]._id);
             if (token.get("name")) {
                 log("Selected object: " + token.get("name"));
                 PfLight.setVision(token, radius, dimRadius);
             }
         }
     } else {
-        var currentObjects = findObjs({
+        let currentObjects = findObjs({
             _pageid: Campaign().get("playerpageid"),
             _type: "graphic"
         });
@@ -442,7 +447,7 @@ PfLight.setVisionCommand = function(lightLevel, selected) {
 };
 
 PfLight.lightsCommand = function(duration, token) {
-    var message = "";
+    let message = "";
     if (duration < 1) {
         // Output nothing.
     } else {
@@ -454,7 +459,7 @@ PfLight.lightsCommand = function(duration, token) {
         sendChat("PfLight", "/w GM <div style='" + PfLight.BOX_STYLE + "'>" + message + "</div>");
     }
 
-    var objects = null;
+    let objects = null;
     if (!token) {
         objects = findObjs({
             _pageid: Campaign().get("playerpageid"),
@@ -464,25 +469,25 @@ PfLight.lightsCommand = function(duration, token) {
         objects = [ token ];
     }
 
-    for (var i=0; i < objects.length && objects[i]; i++) {
-        var obj = objects[i];
-        var notes = obj.get("gmnotes");
+    for (let i=0; i < objects.length && objects[i]; i++) {
+        let obj = objects[i];
+        let notes = obj.get("gmnotes");
         if (notes) {
             notes = unescape(notes);
             if (notes.indexOf("!Light") > -1) {
-                var max = obj.get("bar2_max");
-                var current = obj.get("bar2_value");
-                var onOff = obj.get("bar3_value");
+                let max = obj.get("bar2_max");
+                let current = obj.get("bar2_value");
+                let onOff = obj.get("bar3_value");
 
-                var params = notes.split(" ");
-                var type = params[1];
-                var defaultLight = params[2];
-                var defaultDim = params[3];
+                let params = notes.split(" ");
+                let type = params[1];
+                let defaultLight = params[2];
+                let defaultDim = params[3];
 
-                var lightRadius = obj.get("light_radius");
-                var dimRadius = obj.get("light_dimradius");
+                let lightRadius = obj.get("light_radius");
+                let dimRadius = obj.get("light_dimradius");
 
-                var spell = false;
+                let spell = false;
                 if (obj.get("name").indexOf("Spell") > -1) {
                     spell = true;
                 }
@@ -513,7 +518,7 @@ PfLight.lightsCommand = function(duration, token) {
                     continue;
                 }
 
-                for (var d=0; d < duration; d++) {
+                for (let d=0; d < duration; d++) {
                     if (current === 0 && lightRadius === "" && dimRadius === "") {
                         // Nothing to do.
                         obj.set({
@@ -600,7 +605,7 @@ PfLight.turnLightCommand = function(token, direction) {
         return;
     }
 
-    var rotation = token.get("rotation");
+    let rotation = token.get("rotation");
     if (rotation) {
         rotation = parseInt(rotation);
     } else {
