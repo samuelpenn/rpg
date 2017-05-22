@@ -29,34 +29,59 @@
 
 var PfNames = PfNames || {};
 
+PfNames.VERSION = "1.0";
+
+on("ready", function() {
+   log(`==== PfNames Version ${PfNames.VERSION} ====`);
+
+   if (!PfInfo) {
+       log("PfNames is dependent on PfInfo, which is not available.");
+       sendChat("PfNames", "/w GM PfNames is dependent on PfInfo, which is not available.");
+       return;
+   }
+
+   PfInfo.addGmHelp("!pfname", "Automatically sets the name of every selected token based on the " +
+            "details set in their Pathfinder character. Uses the 'race' and 'gender' fields if they " +
+            "are set, or otherwise appends a unique numerical suffix to them.");
+});
+
 
 on("chat:message", function(msg) {
     if (msg.type !== "api") {
         return;
     }
-    if (msg.content.split(" ", 1)[0] != "!pfname") {
+
+    if (!PfInfo) {
+        sendChat("PfNames", "Cannot run PfName without the PfInfo script.");
         return;
     }
 
-    var nameList = null;
-    if (msg.selected.length > 0) {
-        for (var i=0; i < msg.selected.length; i++) {
-            var tokenId = msg.selected[i]._id;
-            var token = getObj("graphic", tokenId);
-            if (token != null) {
-                if (nameList == null) {
-                    nameList = PfNames.getCurrentNames(token);
-                }
-                var character_id = token.get("represents");
-                if (character_id == null) {
-                    continue;
-                }
-                var character = getObj("character", character_id);
-                PfNames.generate(token, character, nameList);
+    let args = PfInfo.getArgs(msg);
+    let command = args.shift();
+    let player = getObj("player", msg.playerid);
+
+    if (command === "!pfname") {
+        if (!playerIsGM(player.get("_id"))) {
+            sendChat("PNames", `/w "${player.get('displayname')}" You must be the GM to run this.`);
+            return;
+        }
+        let results = "";
+        let nameList = null;
+        let tokenList = PfInfo.getSelectedTokens(msg);
+        for (let i = 0; i < tokenList.length; i++) {
+            let token = tokenList[i];
+            if (!nameList) {
+                // Do this here, because we need a token to find the current page.
+                nameList = PfNames.getCurrentNames(token);
             }
+            // Token should be guaranteed to have a valid character.
+            let character = getObj("character", token.get("represents"));
+            results += PfNames.generate(token, character, nameList);
+        }
+        if (results) {
+            PfInfo.whisper(player, results, "Setting Names");
         }
     }
-    return;
 });
 
 /**
@@ -67,32 +92,30 @@ on("chat:message", function(msg) {
  * @param token Token to use in order to determine the current page.
  */
 PfNames.getCurrentNames = function(token) {
-    var nameList = {};
+    let nameList = {};
 
-    if (token == null || token.get("_pageid") == null) {
+    if (!token || !token.get("_pageid")) {
         return nameList;
     }
 
-    var tokens = findObjs({
+    let tokens = findObjs({
         _pageid: token.get("_pageid"),
         _type: "graphic"
     });
-    for (var i=0; i < tokens.length; i++) {
-        var t = tokens[i];
-        if (t != null && t.get("name") != null && t.get("name") != "") {
-            var name = t.get("name");
-            if (nameList[name] == null) {
+    for (let i=0; i < tokens.length; i++) {
+        let t = tokens[i];
+        if (t && t.get("name")) {
+            let name = t.get("name");
+            if (!nameList[name]) {
                 nameList[name] = 1;
             } else {
                 nameList[name] ++;
             }
-            log("[" + name +"]: " + nameList[name]);
         }
     }
 
     return nameList;
-
-}
+};
 
 /**
  * Generates a random name for the token. Uses the nameList to ensure that
@@ -108,40 +131,43 @@ PfNames.getCurrentNames = function(token) {
  * trying to find a new name.
  */
 PfNames.generate = function(token, character, nameList) {
-    var race = getAttrByName(character.id, "race");
-    var gender = getAttrByName(character.id, "gender");
-    var currentName = token.get("name");
-    var name = null;
+    let race = getAttrByName(character.id, "race");
+    let gender = getAttrByName(character.id, "gender");
+    let currentName = token.get("name");
+    let name = null;
+    let results = "";
 
     // If the character is of a known race, select a random name.
-    if (race != null && gender != null && PfNames.names[race] != null && PfNames.names[race][gender] != null) {
-        var list = PfNames.names[race][gender];
+    if (race && gender && PfNames.names[race] && PfNames.names[race][gender]) {
+        let list = PfNames.names[race][gender];
 
         // Find a unique random name. After a few attempts, we fall back
         // to using a indexed name.
-        for (var attempt=3; attempt > 0; attempt--) {
+        for (let attempt=3; attempt > 0; attempt--) {
             name = list[randomInteger(list.length -1)];
-            if (nameList[name] == null) {
+            if (!nameList[name]) {
                 token.set("name", name);
+                results += `${race} (${gender}) -> ${name}<br/>`;
                 break;
             }
             currentName = name;
             name = null;
         }
     }
-    if (name == null) {
+    if (!name) {
         // Haven't yet set a new name.
-        if (currentName.indexOf("#") != -1) {
+        if (currentName.indexOf("#") !== -1) {
             // Is already a numbered mook. Is it a duplicate?
             if (nameList[currentName] > 1) {
                 currentName = currentName.replace(/ #.*/, "");
             }
         }
 
-        if (currentName.indexOf("#") == -1) {
-            for (var suffix = 1; suffix < 1000; suffix ++) {
+        if (currentName.indexOf("#") === -1) {
+            for (let suffix = 1; suffix < 1000; suffix ++) {
                 name = currentName + " #" + suffix;
-                if (nameList[name] == null) {
+                if (!nameList[name]) {
+                    results += `${currentName} -> ${name}<br/>`;
                     token.set("name", name);
                     nameList[name] = 1;
                     break;
@@ -150,8 +176,8 @@ PfNames.generate = function(token, character, nameList) {
         }
     }
     log("Set name to " + name);
-
-}
+    return results;
+};
 
 
 
@@ -238,7 +264,9 @@ PfNames.names["Human/Kellid"]["Female"] = [
     "Shalka", "Veshki", "Yannet", "Yannka", "Yelen",
 ];
 
-
+/*
+ * Goblin names.
+ */
 PfNames.names["Goblin"] = {};
 PfNames.names["Goblin"]["Male"] = [
     "Arg", "Bog", "Chog", "Dorl", "Eb", "Fod", "Gorn", "Hab",
@@ -263,6 +291,9 @@ PfNames.names["Goblin"]["Female"] = [
     "Woba", "Wibi", "Yani", "Yarli", "Yigga"
 ];
 
+/*
+ * Hobgoblin names.
+ */
 PfNames.names["Hobgoblin"] = {};
 PfNames.names["Hobgoblin"]["Male"] = [
     "Nerlet", "Hivtug", "Hikluk", "Gethir", "Praldor", "Siltem", "Dorkong", "Prughad",
@@ -275,33 +306,21 @@ PfNames.names["Hobgoblin"]["Female"] = [
     "Simku", "Toszosdes", "Wustithum"
 ];
 
+/*
+ * Derro names.
+ */
 PfNames.names["Derro"] = {};
 PfNames.names["Derro"]["Male"] = [
-    "Adjgarfal", "Adjwoldin", "Adjgholthor", "Adjardan",
-    "Arihorg", "Arisanakon",
-    "Diinja", "Diinkoloba", "Diinjagog",
-    "Diirghol", "Diirthok",
-    "Fakasol", "Fakakoloba",
-    "Inkamor", "Inkajan", "Inkajal",
-    "Karadumm", "Karadorthag", "Karanavak",
-    "Miirnwoldin", "Miirnjagog", "Miirnsold",
-    "Secgholthor", "Secardan", "Secthok",
-    "Uriinana", "Uriikoloba", "Uriisanakon", "Uriitotha",
-    "Xeerjarda", "Xeerxanso",
+    "Adjgarfal", "Adjwoldin", "Adjgholthor", "Adjardan", "Arihorg", "Arisanakon",
+    "Diinja", "Diinkoloba", "Diinjagog", "Diirghol", "Diirthok", "Fakasol", "Fakakoloba",
+    "Inkamor", "Inkajan", "Inkajal", "Karadumm", "Karadorthag", "Karanavak",
+    "Miirnwoldin", "Miirnjagog", "Miirnsold", "Secgholthor", "Secardan", "Secthok",
+    "Uriinana", "Uriikoloba", "Uriisanakon", "Uriitotha", "Xeerjarda", "Xeerxanso",
     "Zandabra", "Zannakon"
 ];
 PfNames.names["Derro"]["Female"] = [
-    "Adjoolsii", "Adjaana",
-    "Ariankoolaa",
-    "Diinaanii", "Diijuulaa",
-    "Diiruuba",
-    "Fakasoolaarn", "Fakakuubaa",
-    "Inkakaazuu",
-    "Karameetoo", "Karajaataa",
-    "Miirnooluum",
-    "Secooraa",
-    "Uriinaanaa",
-    "Xeeroolee",
-    "Zaneelaa",
+    "Adjoolsii", "Adjaana", "Ariankoolaa", "Diinaanii", "Diijuulaa", "Diiruuba",
+    "Fakasoolaarn", "Fakakuubaa", "Inkakaazuu", "Karameetoo", "Karajaataa",
+    "Miirnooluum", "Secooraa", "Uriinaanaa", "Xeeroolee", "Zaneelaa",
 ];
 
