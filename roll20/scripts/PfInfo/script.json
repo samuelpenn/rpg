@@ -1,0 +1,21 @@
+{
+  "name": "Pathfinder Information",
+  "script": "PfInfo.js",
+  "version": "2.0",
+  "previousversions": [ ],
+  "description": "Outputs information and status for a Pathfinder character to the chat window.",
+
+  "authors": "Samuel Penn",
+  "roll20userid": "85252",
+  "useroptions": [ ],
+  "dependencies": [ ],
+  "modifies": {
+    "state.autoStaggered": "read,write",
+    "state.autoRecovery": "read,write",
+    "token.bar1_link": "read,write",
+    "token.bar2_link": "read,write",
+    "token.bar3_link": "read,write",
+    "attribute.id": "read,write"
+  },
+  "conflicts": [ ]
+}
