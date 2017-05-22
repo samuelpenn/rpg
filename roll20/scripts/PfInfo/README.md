@@ -11,6 +11,17 @@ Commands
 
 **!pfhelp** - Provides help text to players and GM.
 
-**!pfinfo** - Displays information about the selected character token in
+**!pfinfo** tokenId - Displays information about the selected character token in
  the chat window, whispered to the GM.
- 
+
+It is normally best to set up a macro which shows a token action to run the
+following command:
+````
+!pfinfo @{selected|token_id}
+````
+
+This will output something like the following to the chat window:
+
+![Info](docs/example_info.png)
+
+
