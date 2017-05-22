@@ -94,7 +94,8 @@ displayed at the bottom. Only text within !! delimiters will be displayed.
 This is so other information can be stored here.
 
 For example:
-``
+
+```
 !!This orc is carrying a +2 sword!!
 Orc witnessed the event so if captured alive will be able to
 give information.
