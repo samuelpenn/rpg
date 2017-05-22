@@ -86,6 +86,18 @@ If the `GMNotes` field of the character is set, then the contents of this
 will be output as a text block beneath the status values. This means the
 notes field should be limited in length so as not to overwhelm the output.
 
+If you want to include notes that don't appear in the info block, then
+put '--' on a line by itself. Only content before that line will be
+displayed.
+
+Important Notes
+---------------
+
+If there's something important about a character that should be noted,
+create a note (on the Notes tabe of the character sheet) with a title
+of NB. The content of this note will be output in red after the character
+notes, so hopefully you won't forget it in the heat of running combat.
+
 Token Notes
 -----------
 
@@ -102,4 +114,8 @@ give information.
 ```
 
 Will cause just ``This orc is carrying a +2 sword`` to be output in the
-info block.
+info block. Multiple entries can be included, as long as they are each
+between !! delimiters.
+
+Note that ~~ is used by **PfDescribe** to output token specific details
+to players.

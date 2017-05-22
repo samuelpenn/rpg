@@ -449,6 +449,10 @@ PfInfo.infoCommand = function(playerId, token) {
     // Call asynchronous function.
     character.get("gmnotes", function(notes) {
         if (notes !== null && notes !== "" && notes !== "null") {
+            log(notes);
+            if (notes.indexOf("<br>--<br>") !== -1) {
+                notes = notes.substring(0, notes.indexOf("<br>--<br>"));
+            }
             html += PfInfo.inset(notes);
         }
 
