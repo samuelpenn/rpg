@@ -62,6 +62,15 @@ PfInfo.addPlayerHelp = function(command, text) {
     PfInfo.playerHelp[command] = text;
 };
 
+PfInfo.getArgs = function(msg) {
+    if (msg && msg.content) {
+        return msg.content.split(" ");
+    }  else {
+        return [];
+    }
+};
+
+
 PfInfo.help = function(playerId) {
     let html = `<div style='${PfInfo.BOX_STYLE}'>`;
     let player = getObj("player", playerId);
@@ -102,6 +111,9 @@ PfInfo.error = function(playerId, message) {
  * controlled tokens if none are selected. List is returned as an
  * array of token ids.
  *
+ * Tokens are guaranteed to have a name, and to represent a valid
+ * character.
+ *
  * If forceExplicit is passed as true, then only allow a single
  * target unless they are explicity selected.
  */
@@ -124,7 +136,14 @@ PfInfo.getSelectedTokens = function (msg, forceExplicit) {
             if (!token || !token.get("name") || !token.get("represents")) {
                 continue;
             }
-            tokenList.push(msg.selected[i]._id);
+            let characterId = token.get("represents");
+            if (characterId) {
+                let character = getObj("character", characterId);
+                if (!character) {
+                    continue;
+                }
+            }
+            tokenList.push(token);
         }
     } else if (!playerIsGM(msg.playerid)) {
         let currentObjects = findObjs({
@@ -150,7 +169,7 @@ PfInfo.getSelectedTokens = function (msg, forceExplicit) {
                 // player. Tokens controlled by "all" are never included. This is
                 // to ignore tokens such as spell templates, torches etc.
                 if (controlledBy.indexOf(msg.playerid) > -1) {
-                    tokenList.push(token.get("_id"));
+                    tokenList.push(token);
                 }
             }
         }
@@ -459,7 +478,7 @@ PfInfo.infoCommand = function(playerId, token) {
         }
 
         html += "</div>";
-        PfInfo.message(character, displayName, token, html);
+        PfInfo.infoBlock(character, displayName, token, html);
     });
 };
 
@@ -528,7 +547,7 @@ PfInfo.BOX_STYLE="background-color: #EEEEDD; color: #000000; margin-top: 0px; " 
                  "font-weight: normal; font-style: normal; text-align: left; "+
                  "background-image: url(http://imgsrv.roll20.net/?src=i.imgur.com/BLDFC8xg.jpg)";
 
-PfInfo.message = function(character, displayName, token, message, func) {
+PfInfo.infoBlock = function(character, displayName, token, message, func) {
     if (message) {
         let image = token.get("imgsrc");
         let name = token.get("name");
@@ -546,3 +565,28 @@ PfInfo.message = function(character, displayName, token, message, func) {
     }
 };
 
+PfInfo.message = function(player, message, title) {
+    if (message) {
+        let html = "<div style='" + PfInfo.BOX_STYLE + "'>";
+        if (title) {
+            html += `<h3>${title}</h3>`;
+        }
+        html += message;
+        html += "</div>";
+
+        sendChat(`player|${player.get("_id")}`, `/desc ${html}`);
+    }
+};
+
+PfInfo.whisper = function(player, message, title) {
+    if (message) {
+        let html = "<div style='" + PfInfo.BOX_STYLE + "'>";
+        if (title) {
+            html += `<h3>${title}</h3>`;
+        }
+        html += message;
+        html += "</div>";
+
+        sendChat(`player|${player.get("_id")}`, `/w "${player.get('displayname')}" ${html}`);
+    }
+};
