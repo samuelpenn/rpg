@@ -51,7 +51,8 @@ on("ready", function() {
     log(`Type !pfhelp for help.`);
 
     PfInfo.addPlayerHelp("!pfhelp", "This message text.");
-    PfInfo.addGmHelp("!pfinfo", "Args: <b>tokenId</b><br/>Output status and information on a token and character.")
+    PfInfo.addPlayerHelp("!pfsetstatus", "Args: <b>status</b><br/>Set the status on the selected token.");
+    PfInfo.addGmHelp("!pfinfo", "Args: <b>tokenId</b><br/>Output status and information on a token and character.");
 });
 
 PfInfo.addGmHelp = function(command, text) {
@@ -205,6 +206,16 @@ on("chat:message", function(msg) {
                 PfInfo.error(playerId, "Specified token id is invalid.");
             }
         }
+    } else if (command == "!pfsetstatus") {
+        let status = args.shift();
+        let tokenId = args.shift();
+        let tokens = [];
+        if (tokenId) {
+            tokens.push(getObj("graphic", tokenId));
+        } else {
+            tokens = PfInfo.getSelectedTokens(msg, false);
+        }
+        PfInfo.setStatusCommand(playerId, status, tokens);
     } else if (command === "!pfhelp") {
         PfInfo.help(playerId);
     }
@@ -247,7 +258,8 @@ PfInfo.inset = function(text, emphasis) {
     return `<div style="${PfInfo.INSET_STYLE}${emphasis}">${text}</div>`;
 };
 
-PfInfo.status = function( token, symbol, name, text) {
+PfInfo.showStatus = function( token, symbol, name, text) {
+
     let html = "";
     let statuses = [
         'red', 'blue', 'green', 'brown', 'purple', 'pink', 'yellow', // 0-6
@@ -264,7 +276,7 @@ PfInfo.status = function( token, symbol, name, text) {
         'angel-outfit', 'archery-target'
     ];
 
-    let value = token.get("status_" + symbol);
+    let value = token?token.get("status_" + symbol):true;
     if (value) {
         let i = _.indexOf(statuses, symbol);
         let number = parseInt(value);
@@ -449,7 +461,6 @@ PfInfo.infoCommand = function(playerId, token) {
     // Call asynchronous function.
     character.get("gmnotes", function(notes) {
         if (notes !== null && notes !== "" && notes !== "null") {
-            log(notes);
             if (notes.indexOf("<br>--<br>") !== -1) {
                 notes = notes.substring(0, notes.indexOf("<br>--<br>"));
             }
@@ -491,59 +502,97 @@ PfInfo.INSET_STYLE = "font-style: italic; border: 1px dotted black; margin: 3px;
 PfInfo.getStatusText = function(target) {
     let html = "";
 
-    let value = target.get("status_green");
-    if (value) {
-
-    }
-
-    html += PfInfo.status(target, "green", "Stablized", "Is unconscious but not dying.");
+    html += PfInfo.showStatus(target, "green", "Stablized", "Is unconscious but not dying.");
     if (!target.get("status_red")) {
         // We show both red and brown status symbols for accessibility reasons,
         // but the actual descriptive text only needs to display the worst.
-        html += PfInfo.status(target, "brown", "Moderately wounded", "Has less than two third hitpoints.");
+        html += PfInfo.showStatus(target, "brown", "Moderately wounded", "Has less than two third hitpoints.");
     }
-    html += PfInfo.status(target, "red", "Heavily Wounded", "Has less than one third hitpoints.");
+    html += PfInfo.showStatus(target, "red", "Heavily Wounded", "Has less than one third hitpoints.");
 
-    html += PfInfo.status(target, "bleeding-eye", "Blind", "-2 penalty to AC; loses Dex bonus to AC; -4 penalty of most Dex and Str checks and opposed Perception checks; Opponents have 50% concealment; Acrobatics DC 10 if move faster than half speed, or prone.");
-
-    html += PfInfo.status(target, "screaming", "Confused", "01-25: Act Normally; 26-50: Babble; 51-75: 1d8 + Str damage to self; 76-100: Attack nearest.");
-
-    html += PfInfo.status(target, "overdrive", "Dazzled", "-1 penalty on attacks and sight based perception checks.");
-
-    html += PfInfo.status(target, "fishing-net", "Entangled", "No movement if anchored, otherwise half speed. -2 attack, -4 Dex. Concentration check to cast spells.");
-
-    html += PfInfo.status(target, "sleepy", "Exhausted", "Half-speed, -6 to Str and Dex. Rest 1 hour to become fatigued.");
-
-    html += PfInfo.status(target, "half-haze", "Fatigued", "Cannot run or charge; -2 to Str and Dex. Rest 8 hours to recover.");
-
-    html += PfInfo.status(target, "broken-heart", "Frightened", "-2 attacks, saves, skills and ability checks; must flee from source.");
-
-    html += PfInfo.status(target, "padlock", "Grappled", "Cannot move or take actions that require hands. -4 Dex, -2 attacks and combat maneuvers except to escape. Concentration to cast spells, do not threaten.");
-
-    html += PfInfo.status(target, "radioactive", "Nauseated", "Can only take a single move action, no spells attacks or concentration.");
-
-    html += PfInfo.status(target, "half-heart", "Panicked", "-2 attacks, saves, skills and ability checks; drops items and must flee from source.");
-
-    html += PfInfo.status(target, "cobweb", "Paralyzed", "Str and Dex reduced to zero. Flyers fall. Helpless.");
-
-    html += PfInfo.status(target, "chained-heart", "Shaken", "-2 penalty on all attacks, saves, skills and ability checks.");
-
-    html += PfInfo.status(target, "arrowed", "Prone", "-4 penalty to attack roles and can't use most ranged weapons. Has +4 AC bonus against ranged, but -4 AC against melee.");
-
-    html += PfInfo.status(target, "drink-me", "Sickened", "-2 penalty on all attacks, damage, saves, skills and ability checks.");
-
-    html += PfInfo.status(target, "pummeled", "Staggered", "Only a move or standard action (plus swift and immediate).");
-
-    html += PfInfo.status(target, "interdiction", "Stunned", "Cannot take actions, drops everything held, takes a -2 penalty to AC, loses its Dex bonus to AC.");
-
-
-    html += PfInfo.status(target, "fist", "Power Attack", "Penalty to hit and bonus to damage based on BAB. Lasts until start of next turn.");
-
-    html += PfInfo.status(target, "skull", "Unconscious", "Is unconscious and possibly dying.");
-
-    html += PfInfo.status(target, "dead", "Dead", "Creature is dead. Gone. Destroyed.");
+    let status = "";
+    for (status in PfInfo.statusEffects) {
+        let effect = PfInfo.statusEffects[status];
+        html += PfInfo.showStatus(target, effect.status, status, effect.description);
+    }
 
     return html;
+};
+
+PfInfo.statusEffects = {
+    'Blind': { status: "bleeding-eye", description:
+                "-2 penalty to AC; loses Dex bonus to AC; -4 penalty of most Dex and Str checks and opposed Perception "+
+                "checks; Opponents have 50% concealment; Acrobatics DC 10 if move faster than half speed, or prone." },
+    'Confused': { status: "screaming", description:
+                "01-25: Act Normally; 26-50: Babble; 51-75: 1d8 + Str damage to self; 76-100: Attack nearest." },
+    'Dazzled': { status: "overdrive", description:
+                "-1 attacks and sight based perception checks." },
+    'Entangled': { status: "fishing-net", description:
+                "No movement if anchored, otherwise half speed. -2 attack, -4 Dex. Concentration check to cast spells." },
+    'Exhausted': { status: "sleepy", description:
+                "Half-speed, -6 to Str and Dex. Rest 1 hour to become fatigued." },
+    'Fatigued': { status: "half-haze", description:
+                "Cannot run or charge; -2 to Str and Dex. Rest 8 hours to recover." },
+    'Frightened': { status: "broken-heart", description:
+                "-2 attacks, saves, skills and ability checks; must flee from source." },
+    'Grappled': { status: "padlock", description:
+                "Cannot move or take actions that require hands. -4 Dex, -2 attacks and combat maneuvers except to "+
+                "escape. Concentration to cast spells, do not threaten." },
+    'Nauseated': { status: "radioactive", description: "Can only take a single move action, no spells attacks or "+
+                "concentration." },
+    'Panicked': { status: "half-heart", description: "-2 attacks, saves, skills and ability checks; drops items and "+
+                "must flee from source." },
+    'Paralyzed': { status: "cobweb", description:
+                "Str and Dex reduced to zero. Flyers fall. Helpless." },
+    'Prone': { status: "arrowed", description: "-4 penalty to attack roles and can't use most ranged weapons. "+
+                "Has +4 AC bonus against ranged, but -4 AC against melee." },
+    'Shaken': { status: "chained-heart", description:
+                "-2 penalty on all attacks, saves, skills and ability checks." },
+    'Sickened': { status: "drink-me", description:
+                "-2 penalty on all attacks, damage, saves, skills and ability checks." },
+    'Slowed': { status: "snail", description:
+                "Half normal speed (round down), only a single move or standard action. -1 to attack, AC and reflex." },
+    'Stabilized': { status: "green", description:
+                "Creature has stopped bleeding." },
+    'Staggered': { status: "pummeled", description:
+                "Only a move or standard action (plus swift and immediate)." },
+    'Stunned': { status: "interdiction", description:
+                "Cannot take actions, drops everything held, takes a -2 penalty to AC, loses its Dex bonus to AC." },
+    'Power Attack': { status: "fist", description:
+                "Penalty to hit and bonus to damage based on BAB. Lasts until start of next turn." },
+    'Unconscious': { status: "skull", description:
+                "Creature is unconscious and possibly dying." },
+    'Dead': { status: "dead", description:
+                "Creature is dead. Gone. Destroyed." }
+};
+
+
+PfInfo.setStatusCommand = function(playerId, status, tokens, set = true) {
+    let player = getObj("player", playerId);
+
+    if (PfInfo.statusEffects[status]) {
+        let effect = PfInfo.statusEffects[status];
+        for (let i=0; i < tokens.length; i++) {
+            // Need to reset flags each time, since each call to token.set() updates it.
+            let flags = [];
+            flags['status_' + effect.status ] = set;
+            tokens[i].set( flags );
+        }
+        PfInfo.whisper(player, PfInfo.showStatus(null, effect.status, status, effect.description));
+
+        return 0;
+    } else {
+        let msg = "";
+        for (s in PfInfo.statusEffects) {
+            if (msg) {
+                msg += ", " + s;
+            } else {
+                msg = s;
+            }
+        }
+        PfInfo.error(playerId, `Unknown status '${status}', use one of: ${msg}`);
+        return -1;
+    }
 };
 
 PfInfo.BOX_STYLE="background-color: #EEEEDD; color: #000000; margin-top: 0px; " +
