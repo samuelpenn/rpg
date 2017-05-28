@@ -52,6 +52,7 @@ on("ready", function() {
 
     PfInfo.addPlayerHelp("!pfhelp", "This message text.");
     PfInfo.addPlayerHelp("!pfsetstatus", "Args: <b>status</b><br/>Set the status on the selected token.");
+    PfInfo.addPlayerHelp("!pfunsetstatus", "Args: <b>status</b><br/>Unset the status on the selected token.");
     PfInfo.addGmHelp("!pfinfo", "Args: <b>tokenId</b><br/>Output status and information on a token and character.");
 });
 
@@ -206,7 +207,7 @@ on("chat:message", function(msg) {
                 PfInfo.error(playerId, "Specified token id is invalid.");
             }
         }
-    } else if (command == "!pfsetstatus") {
+    } else if (command === "!pfsetstatus" || command === "!pfunsetstatus") {
         let status = args.shift();
         let tokenId = args.shift();
         let tokens = [];
@@ -215,7 +216,7 @@ on("chat:message", function(msg) {
         } else {
             tokens = PfInfo.getSelectedTokens(msg, false);
         }
-        PfInfo.setStatusCommand(playerId, status, tokens);
+        PfInfo.setStatusCommand(playerId, status, tokens, (command === "!pfsetstatus"));
     } else if (command === "!pfhelp") {
         PfInfo.help(playerId);
     }
@@ -510,8 +511,7 @@ PfInfo.getStatusText = function(target) {
     }
     html += PfInfo.showStatus(target, "red", "Heavily Wounded", "Has less than one third hitpoints.");
 
-    let status = "";
-    for (status in PfInfo.statusEffects) {
+    for (let status in PfInfo.statusEffects) {
         let effect = PfInfo.statusEffects[status];
         html += PfInfo.showStatus(target, effect.status, status, effect.description);
     }
@@ -519,49 +519,105 @@ PfInfo.getStatusText = function(target) {
     return html;
 };
 
+/**
+ * Returns true if the character represented by this token is a single
+ * individual. It is considered unique if the token's hitpoints are linked
+ * to the character's hitpoints.
+ */
+PfInfo.isNamedCharacter = function(token) {
+    if (token) {
+        let characterId = token.get("represents");
+        let link = token.get("bar1_link");
+
+        if (getObj("character", characterId) && link) {
+            return true;
+        }
+    }
+    return false;
+};
+
+/**
+ * Returns true iff the player has permission to edit the character that this
+ * token represents.
+ *
+ * @param player    Player doing the action.
+ * @param token     Token being acted upon.
+ */
+PfInfo.hasPermission = function(player, token) {
+    if (!player || !token) {
+        return false;
+    }
+    let characterId = token.get("represents");
+    if (characterId) {
+        let character = getObj("character", characterId);
+        if (character) {
+            let controlledBy = character.get("controlledby");
+            if (controlledBy) {
+                log("ControlledBy: " + controlledBy);
+                let controllers = controlledBy.split(",");
+                for (let p = 0;  p < controllers.length; p++) {
+                    let id = controllers[p].trim();
+                    if (id === "all" || id === player.get("_id")) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    return false;
+};
+
+
 PfInfo.statusEffects = {
-    'Blind': { status: "bleeding-eye", description:
+    'Blind': { status: "bleeding-eye", attribute: "condition-Blinded", value: "2", description:
                 "-2 penalty to AC; loses Dex bonus to AC; -4 penalty of most Dex and Str checks and opposed Perception "+
                 "checks; Opponents have 50% concealment; Acrobatics DC 10 if move faster than half speed, or prone." },
     'Confused': { status: "screaming", description:
                 "01-25: Act Normally; 26-50: Babble; 51-75: 1d8 + Str damage to self; 76-100: Attack nearest." },
-    'Dazzled': { status: "overdrive", description:
+    'Dazzled': { status: "overdrive", attribute: "condition-Dazzled", value: "1", description:
                 "-1 attacks and sight based perception checks." },
-    'Entangled': { status: "fishing-net", description:
+    'Entangled': { status: "fishing-net", attribute: "condition-Entangled", value: "2", description:
                 "No movement if anchored, otherwise half speed. -2 attack, -4 Dex. Concentration check to cast spells." },
-    'Exhausted': { status: "sleepy", description:
+    'Exhausted': { status: "sleepy", attribute: "condition-Fatigued", value: "3", description:
                 "Half-speed, -6 to Str and Dex. Rest 1 hour to become fatigued." },
-    'Fatigued': { status: "half-haze", description:
+    'Fatigued': { status: "half-haze", attribute: "condition-Fatigued", value: "3", description:
                 "Cannot run or charge; -2 to Str and Dex. Rest 8 hours to recover." },
-    'Frightened': { status: "broken-heart", description:
+    'Frightened': { status: "broken-heart", attribute: "condition-Fear", value: "2", description:
                 "-2 attacks, saves, skills and ability checks; must flee from source." },
-    'Grappled': { status: "padlock", description:
-                "Cannot move or take actions that require hands. -4 Dex, -2 attacks and combat maneuvers except to "+
-                "escape. Concentration to cast spells, do not threaten." },
+    'Grappled': { status: "fist", attribute: "condition-Grappled", value: "2", description:
+                "Cannot move or take actions that require hands. -4 Dex, -2 attacks and combat maneuvers "+
+                "except to escape. Concentration to cast spells, do not threaten." },
+    'Pinned': { status: "padlock", attribute: "condition-Pinned", value: "4", description:
+                "Cannot move or take actions that require hands. -4 AC, -4 Dex, -2 attacks and combat maneuvers "+
+                "except to escape. Concentration to cast spells, do not threaten." },
     'Nauseated': { status: "radioactive", description: "Can only take a single move action, no spells attacks or "+
                 "concentration." },
     'Panicked': { status: "half-heart", description: "-2 attacks, saves, skills and ability checks; drops items and "+
                 "must flee from source." },
     'Paralyzed': { status: "cobweb", description:
                 "Str and Dex reduced to zero. Flyers fall. Helpless." },
-    'Prone': { status: "arrowed", description: "-4 penalty to attack roles and can't use most ranged weapons. "+
+    'Prone': { status: "arrowed", attribute: "condition-Prone", value: "4", description:
+                "-4 penalty to attack roles and can't use most ranged weapons. "+
                 "Has +4 AC bonus against ranged, but -4 AC against melee." },
     'Shaken': { status: "chained-heart", description:
                 "-2 penalty on all attacks, saves, skills and ability checks." },
-    'Sickened': { status: "drink-me", description:
+    'Sickened': { status: "drink-me", attribute: "condition-Sickened", value: "2", description:
                 "-2 penalty on all attacks, damage, saves, skills and ability checks." },
     'Slowed': { status: "snail", description:
                 "Half normal speed (round down), only a single move or standard action. -1 to attack, AC and reflex." },
     'Stabilized': { status: "green", description:
-                "Creature has stopped bleeding." },
+                "Is unconscious but not dying." },
     'Staggered': { status: "pummeled", description:
                 "Only a move or standard action (plus swift and immediate)." },
-    'Stunned': { status: "interdiction", description:
+    'Stunned': { status: "interdiction", attribute: "condition-Stunned", value: "2", description:
                 "Cannot take actions, drops everything held, takes a -2 penalty to AC, loses its Dex bonus to AC." },
-    'Power Attack': { status: "fist", description:
-                "Penalty to hit and bonus to damage based on BAB. Lasts until start of next turn." },
+    'Invisible': { status: "aura", attribute: "condition-Invisible", value: "2", description:
+                "+2 to attacks." },
+    'Helpless': { status: "aura", attribute: "condition-Helpless", value: "1", description:
+                "Dexterity is 0 (-5)." },
     'Unconscious': { status: "skull", description:
-                "Creature is unconscious and possibly dying." },
+                "Is unconscious and dying." },
     'Dead': { status: "dead", description:
                 "Creature is dead. Gone. Destroyed." }
 };
@@ -574,9 +630,16 @@ PfInfo.setStatusCommand = function(playerId, status, tokens, set = true) {
         let effect = PfInfo.statusEffects[status];
         for (let i=0; i < tokens.length; i++) {
             // Need to reset flags each time, since each call to token.set() updates it.
+            if (!playerIsGM(player.get("_id")) && !PfInfo.hasPermission(player, tokens[i])) {
+                log("No permission on " + tokens[i].get("name"));
+                continue;
+            }
             let flags = [];
             flags['status_' + effect.status ] = set;
             tokens[i].set( flags );
+            if (PfInfo.isNamedCharacter(tokens[i])) {
+                PfInfo.setCharacterStatus(tokens[i], effect, set);
+            }
         }
         PfInfo.whisper(player, PfInfo.showStatus(null, effect.status, status, effect.description));
 
@@ -593,6 +656,58 @@ PfInfo.setStatusCommand = function(playerId, status, tokens, set = true) {
         PfInfo.error(playerId, `Unknown status '${status}', use one of: ${msg}`);
         return -1;
     }
+};
+
+/**
+ * Set the given status on the token's character sheet.
+ *
+ * @param token     Token that represents the character.
+ * @param status    Status information to set.
+ * @param set       If true, then set, otherwise unset.
+ */
+PfInfo.setCharacterStatus = function(token, status, set) {
+    if (!token || !status) {
+        return;
+    }
+    let characterId = token.get("represents");
+    if (!characterId) {
+        return;
+    }
+    let character = getObj("character", characterId);
+    if (!character) {
+        return;
+    }
+    if (status.attribute) {
+        let value = 0;
+        if (!set) {
+            value = 0;
+        } else if (status.value) {
+            value = status.value;
+        } else {
+            value = 1;
+        }
+        log("Setting character attribute " + status.attribute + " to " + value);
+        let  attributes = findObjs({
+            _type: "attribute",
+            _characterid: characterId,
+            name: status.attribute
+        });
+        if (attributes && attributes.length > 0) {
+            let attr = attributes[0];
+            log("Have attribute");
+            attr.set("current", value);
+        } else {
+            log("Creating attribute");
+            createObj("attribute", {
+                type: "attribute",
+                name: status.attribute,
+                characterid: characterId,
+                current: value
+            });
+        }
+    }
+
+
 };
 
 PfInfo.BOX_STYLE="background-color: #EEEEDD; color: #000000; margin-top: 0px; " +
