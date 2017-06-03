@@ -131,7 +131,6 @@ PfInfo.getSelectedTokens = function (msg, forceExplicit) {
         forceExplicit = false;
     }
 
-
     if (msg.selected && msg.selected.length > 0) {
         for (let i=0; i < msg.selected.length; i++) {
             token = getObj("graphic", msg.selected[i]._id);
@@ -359,6 +358,14 @@ PfInfo.infoCommand = function(playerId, token) {
     currentHitpoints = parseInt(currentHitpoints);
     totalHitpoints = parseInt(totalHitpoints);
     nonlethalDamage = parseInt(nonlethalDamage);
+
+    if (size) {
+        // Size attribute used to be capitalised, now we need to
+        // enforce this manually.
+        size  = size.substr(0, 1).toUpperCase() + size.substr(1);
+    } else {
+        size = "";
+    }
 
     let c = 0;
     let classLevels = "";
@@ -733,6 +740,13 @@ PfInfo.infoBlock = function(character, displayName, token, message, func) {
     }
 };
 
+/**
+ * Display a message in the chat window to everyone.
+ *
+ * @param player    Player object or string describing who message came from, or null.
+ * @param message   The message to be output.
+ * @param title     Title to be displayed at top of message box. Null for no message.
+ */
 PfInfo.message = function(player, message, title) {
     if (message) {
         let html = "<div style='" + PfInfo.BOX_STYLE + "'>";

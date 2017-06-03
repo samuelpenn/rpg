@@ -12,9 +12,9 @@
   "modifies": {
     "state.autoStaggered": "read,write",
     "state.autoRecovery": "read,write",
-    "token.bar1_link": "read,write",
-    "token.bar2_link": "read,write",
-    "token.bar3_link": "read,write",
+    "token.bar1_link": "read",
+    "token.bar2_link": "read",
+    "token.bar3_link": "read",
     "attribute.id": "read,write"
   },
   "conflicts": [ ]
