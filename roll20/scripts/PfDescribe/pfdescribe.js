@@ -57,148 +57,153 @@
  * SOFTWARE.
  */
 
+var PfDescribe = PfDescribe || {};
+PfDescribe.VERSION = "2.0";
+
+on("ready", function() {
+    log(`==== PfDescribe Version ${PfDescribe.VERSION} ====`);
+
+    if (PfInfo) {
+        // Player commands.
+        PfInfo.addPlayerHelp("!pfdescribe", "Args: <b>tokenId</b><br/>Describe the selected token, " +
+                             "outputting avatar and description to the chat window.");
+
+        // GM Only commands.
+        //PfInfo.addGmHelp("!pflights", "Args: <b>duration</b>, <b>tokenId</b><br/>Reduce time left on light sources.");
+    } else {
+        sendChat("PfDescribe", "PfDescribe API depends on PfInfo, which is missing.");
+    }
+});
+
+
+
 // API COMMAND HANDLER
 on("chat:message", function(msg) {
     if (msg.type !== "api") return;
 
-    var player = getObj("player", msg.playerid);
-    var args = msg.content.split(" ");
+    let player = getObj("player", msg.playerid);
+    let args = PfInfo.getArgs(msg);
 
-    if (args == null || args.length == 0) {
-        sendChat("", "/w " + player.get("displayname") + " No command found");
+    if (!args || args.length === 0) {
+        sendChat("", "/w " + player.get("_displayname") + " No command found");
         return;
     }
 
-    var command = args.shift();
+    let command = args.shift();
 
-    if (command == "!describe") {
-        if (args.length == 0) {
-            Describe.error(player, "!describe expects a parameter, e.g. !describe &#64;{selected|token_id}");
+    if (command === "!pfdescribe") {
+        if (args.length === 0) {
+            PfInfo.error(player, "!pfdescribe expects a parameter, e.g. !pfdescribe &#64;{selected|token_id}");
             return;
         }
-        var id = args.shift();
-        Describe.describe(msg, player, id);
-        return;
-    } else if (command == "!missions") {
-        var verbose = false;
-        var whisper = false;
+        let id = args.shift();
+
+        PfDescribe.describe(msg, player, id);
+    } else if (command === "!missions") {
+        let verbose = false;
+        let whisper = false;
         while (flag = args.shift()) {
-            if (flag == "verbose") {
+            if (flag === "verbose") {
                 verbose = true;
             }
-            if (flag == "whisper") {
+            if (flag === "whisper") {
                 whisper = true;
             }
         }
-        Describe.missions(msg, player, verbose, whisper);
-        return;
+        PfDescribe.missions(msg, player, verbose, whisper);
     } else if (command === "!mission") {
-        if (args.length == 0) {
-            Describe.error(player, "!mission expects a parameter. Use !missions to get list of missions.");
+        if (args.length === 0) {
+            PfInfo.error(player, "!mission expects a parameter. Use !missions to get list of missions.");
             return;
         }
-        var id = args.shift();
-        log(id);
+        let id = args.shift();
+
         if (id === "Job:") {
             if (playerIsGM(player.get("id"))) {
-                var title = msg.content.replace(/!mission /g, "");
-                var list = findObjs({
+                let title = msg.content.replace(/!mission /g, "");
+                let list = findObjs({
                     _type: "handout",
                     name: title
                 });
-                if (list == null || list.length == 0) {
-                    Describe.error(player, "Cannot find mission \"" + title + "\"");
+                if (list === null || list.length === 0) {
+                    PfInfo.error(player, "Cannot find mission \"" + title + "\"");
                     return;
                 }
                 id = list[0].get("id");
-                Describe.mission(msg, player, id, true);
+                PfDescribe.mission(msg, player, id, true);
             } else{
-                Describe.error(player, "Only the GM can do this.");
-                return;
+                PfDescribe.error(player, "Only the GM can do this.");
             }
         } else {
-            var whisper = args.shift();
-            if (whisper == "whisper") {
-                Describe.mission(msg, player, id, true);
+            let whisper = args.shift();
+            if (whisper === "whisper") {
+                PfDescribe.mission(msg, player, id, true);
             } else {
-                Describe.mission(msg, player, id);
+                PfDescribe.mission(msg, player, id);
             }
         }
-        return;
     }
 
 });
 
-var Describe = Describe || {};
 
-Describe.BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px solid black; border-radius: 5px 5px 10px 10px;";
-Describe.TITLE_STYLE="background-color: black; color: #FFFFFF; padding: 1px; font-style: normal; text-align: center; border-radius: 5px 5px 0px 0px;";
-Describe.TEXT_STYLE="padding: 5px; text-align: left; font-weight: normal; font-style: normal";
-
-
-/**
- * Displays an error back to the player. Errors are always whispered so
- * as not to annoy everyone else.
- */
-Describe.error = function(player, message) {
-    sendChat("pfDescribe", "/w \"" + player.get("displayname") + "\" " + message);
-};
+PfDescribe.BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px solid black; border-radius: 5px 5px 10px 10px;";
+PfDescribe.TITLE_STYLE="background-color: black; color: #FFFFFF; padding: 1px; font-style: normal; text-align: center; border-radius: 5px 5px 0px 0px;";
+PfDescribe.TEXT_STYLE="padding: 5px; text-align: left; font-weight: normal; font-style: normal";
 
 
-Describe.getHTML = function(title, image, text, extra) {
-    var html = "<div style='" + Describe.BOX_STYLE + "'>";
+PfDescribe.getHTML = function(title, image, text, extra) {
+    let html = "";
 
-    if (title == null) {
+    if (!title) {
         title = "";
     }
 
-    html += "<div style='" + Describe.TITLE_STYLE + "'>" + title + "</div>";
-    if (image != null && image != "") {
+    if (image) {
         html += "<img src='" + image + "' width='100%'/>";
     }
-    html += "<div style='" + Describe.TEXT_STYLE + "'>" + text + "</div>";
-    if (extra != null) {
+    html += "<div>" + text + "</div>";
+    if (extra) {
         html += extra;
     }
-    html += "</div>";
 
     return html;
 };
 
-Describe.missionHandout = function(handout, player, callback, whisper=false) {
-    if (handout == null) {
-        Describe.error(player, "No mission handout defined.");
+PfDescribe.missionHandout = function(handout, player, callback, whisper=false) {
+    if (!handout) {
+        PfInfo.error(player, "No mission handout defined.");
         return;
     }
     handout.get("notes", function(notes) {
-        var notes = unescape(notes);
+        let notes = unescape(notes);
 
         handout.get("gmnotes", function(gmnotes) {
             gmnotes = unescape(gmnotes);
 
-            var firstline = gmnotes.replace(/<br>.*/, "");
-            var title = handout.get("name").replace(/Job: */, "");
+            let firstline = gmnotes.replace(/<br>.*/, "");
+            let title = handout.get("name").replace(/Job: */, "");
 
-            var faction = null;
-            var reward = null;
-            var complexity = null;
-            if (firstline.indexOf(",") != -1) {
-                var details = firstline.split(",");
+            let faction = null;
+            let reward = null;
+            let complexity = null;
+            if (firstline.indexOf(",") !== -1) {
+                let details = firstline.split(",");
                 faction = details.shift();
                 reward = details.shift();
                 complexity = details.shift();
 
-                if (faction == "" || faction == null) {
+                if (!faction) {
                     faction = null;
                 } else {
                     faction = faction.trim();
                 }
-                if (reward == "" || reward == null) {
+                if (!reward) {
                     reward = null;
                 } else {
                     reward = reward.trim();
                 }
-                if (complexity == "" || complexity == null) {
+                if (!complexity) {
                     complexity = null;
                 } else {
                     complexity = complexity.trim();
@@ -216,39 +221,39 @@ Describe.missionHandout = function(handout, player, callback, whisper=false) {
  * character id of a matching character formatted for use in a
  * sendChat() call. e.g. "character|aBcD34567".
  */
-Describe.getFaction = function(faction) {
-    if (faction == null || faction == "") {
+PfDescribe.getFaction = function(faction) {
+    if (!faction) {
         return null;
     }
 
-    var list = findObjs({
+    let list = findObjs({
         _type: "character",
         _name: faction
     });
-    if (list == null || list.length == 0) {
+    if (!list) {
         return faction;
     }
     return "character|" + list[0].get("id");
-}
+};
 
-Describe.getFactionImage = function(faction) {
-    if (faction == null || faction == "") {
+PfDescribe.getFactionImage = function(faction) {
+    if (!faction) {
         return null;
     }
 
-    var list = findObjs({
+    let list = findObjs({
         _type: "character",
         _name: faction
     });
-    if (list == null || list.length == 0) {
+    if (!list) {
         return null;
     }
     return list[0].get("avatar");
-}
+};
 
-Describe.missionDetails = function(handout, player, title, faction, reward, complexity, notes, whisper) {
-    var text = "";
-    if (faction != null) {
+PfDescribe.missionDetails = function(handout, player, title, faction, reward, complexity, notes, whisper) {
+    let text = "";
+    if (faction) {
         /*
         var image = Describe.getFactionImage(faction);
         if (image != null) {
@@ -257,81 +262,81 @@ Describe.missionDetails = function(handout, player, title, faction, reward, comp
         */
         text += "<b>Faction: </b>" + faction + "<br/>";
     }
-    if (reward != null) {
+    if (reward) {
         text += "<b>Reward: </b>" + reward + "<br/>";
     }
-    if (complexity != null) {
+    if (complexity) {
         text += "<b>Complexity: </b>" + complexity + "<br/>";
     }
-    if (faction != null || reward != null) {
+    if (faction || reward) {
         text += "<br/>";
     }
-    var avatar = handout.get("avatar");
+    let avatar = handout.get("avatar");
     if (avatar !== null) {
         text += "<img src='" + avatar + "' width='100%'/>";
     }
 
     text += notes;
 
-    faction = Describe.getFaction(faction);
+    faction = PfDescribe.getFaction(faction);
     if (playerIsGM(player.get("id")) && !whisper) {
-        sendChat(faction?faction:"", "" + Describe.getHTML(title, null, text));
+        sendChat(faction?faction:"", "" + PfDescribe.getHTML(title, null, text));
     } else {
-        sendChat(faction?faction:"", "/w \"" + player.get("displayname") + "\" " + Describe.getHTML(title, null, text));
+        sendChat(faction?faction:"", "/w \"" + player.get("displayname") + "\" " + PfDescribe.getHTML(title, null, text));
     }
-}
+};
 
-Describe.missionList = function(handout, player, title, faction, reward, complexity, notes, whisper) {
-    if (reward != null) {
+PfDescribe.missionList = function(handout, player, title, faction, reward, complexity, notes, whisper) {
+    if (reward) {
         title += " (" + reward + ")";
     }
     if (whisper) {
-        var text = "[" + title + "](!mission " + handout.get("_id") + " whisper)";
+        let text = "[" + title + "](!mission " + handout.get("_id") + " whisper)";
     } else {
-        var text = "[" + title + "](!mission " + handout.get("_id") + ")";
+        let text = "[" + title + "](!mission " + handout.get("_id") + ")";
     }
 
-    faction = Describe.getFaction(faction);
+    faction = PfDescribe.getFaction(faction);
     if (playerIsGM(player.get("id")) && !whisper) {
         sendChat(faction?faction:"", text);
     } else {
         sendChat(faction?faction:"", "/w \"" + player.get("displayname") + "\" " + text);
     }
-}
+};
 
-Describe.mission = function(msg, player, id, whisper = false) {
-    var list = findObjs({
+PfDescribe.mission = function(msg, player, id, whisper = false) {
+    let list = findObjs({
         _type: "handout",
         _id: id
     });
-    if (list == null || list.length == 0) {
-        Describe.error(player, "Failed to find mission handout with id [" + id + "]");
+    if (!list || list.length === 0) {
+        PfDescribe.error(player, "Failed to find mission handout with id [" + id + "]");
         return;
     }
-    var handout = list[0];
-    Describe.missionHandout(handout, player, Describe.missionDetails, whisper);
+    let handout = list[0];
+    PfDescribe.missionHandout(handout, player, PfDescribe.missionDetails, whisper);
 };
 
 
-Describe.missions = function(msg, player, verbose = false, whisper = false) {
+PfDescribe.missions = function(msg, player, verbose = false, whisper = false) {
     if (whisper && playerIsGM(player.get("id"))) {
-        var list = findObjs({
+        let list = findObjs({
             _type: "handout",
             archived: false
         });
     } else {
-        var list = findObjs({
+        let list = findObjs({
             _type: "handout",
             inplayerjournals: "all",
             archived: false
         });
     }
-    if (list == null || list.length == 0) {
-        Describe.error(player, "No missions are currently available for listing.");
+    if (!list || list.length === 0) {
+        PfDescribe.error(player, "No missions are currently available for listing.");
         return;
     }
-    var jobs = [];
-    for (var i=0; i < list.length; i++) {
+    let jobs = [];
+    for (let i=0; i < list.length; i++) {
         if (list[i].get("name").startsWith("Job:")) {
             jobs.push(list[i]);
         }
@@ -345,77 +350,139 @@ Describe.missions = function(msg, player, verbose = false, whisper = false) {
                  "/w \"" + player.get("displayname") + "\" " +
                  "The following jobs are currently listed as being available.");
     }
-    for (var i=0; i < jobs.length; i++) {
-        var handout = jobs[i];
-        if (verbose == true) {
-            Describe.missionHandout(handout, player, Describe.missionDetails, whisper);
+    for (let i=0; i < jobs.length; i++) {
+        let handout = jobs[i];
+        if (verbose === true) {
+            PfDescribe.missionHandout(handout, player, PfDescribe.missionDetails, whisper);
         } else {
-            Describe.missionHandout(handout, player, Describe.missionList, whisper);
+            PfDescribe.missionHandout(handout, player, PfDescribe.missionList, whisper);
         }
     }
 };
 
-Describe.describe = function(msg, player, target_id) {
-    var target = getObj("graphic", target_id);
-    if (target != undefined) {
-        var title = target.get("name");
-        if (title != undefined ) {
+/**
+ * Given the name of a handout, finds the handout and returns the URL of
+ * the image for that handout, or null if none is found.
+ */
+PfDescribe.getHandoutImage = function(handoutName) {
+    if (handoutName) {
+        let list = findObjs({
+            _type: "handout",
+            name: handoutName
+        });
+        if (list && list.length > 0) {
+            let handout = list[0];
+            if (handout) {
+                log("Got handout");
+                let avatarUrl = handout.get("avatar");
+                if (avatarUrl) {
+                    return avatarUrl;
+                }
+            }
+        }
+    }
+    return null;
+};
 
+/**
+ * Given unescaped text, searches for text between << and >>, and replaces that
+ * with the image from the handout of the same name. This allows images to be
+ * inserted into descriptive text.
+ */
+PfDescribe.convertLinks = function(text) {
+    if (text && text.indexOf("&lt;&lt;") > -1) {
+        let matches = text.match(/&lt;&lt;(.*?)&gt;&gt;/g);
+        if (matches && matches.length > 0) {
+            let replacedText = text;
+            for (var i=0; i < matches.length; i++) {
+                let match = matches[i].replace(/&..;/g, "");
+                let avatarUrl = PfDescribe.getHandoutImage(match);
+                if (avatarUrl) {
+                    let left = replacedText.substring(0, replacedText.indexOf("&lt;&lt;"));
+                    let right = replacedText.substring(replacedText.indexOf("&gt;&gt;") + 8);
+
+                    replacedText = left + "<img src='" + avatarUrl + "' width='100%'/>" + right;
+                }
+            }
+            return replacedText;
+        }
+    }
+
+    return text;
+};
+
+PfDescribe.describe = function(msg, player, target_id) {
+    let target = getObj("graphic", target_id);
+    if (target) {
+        let title = target.get("name");
+        if (title) {
             if (title.split(":").length > 1) {
                 title = title.split(":")[1];
             }
         }
-        var character_id = target.get("represents");
-        var character = getObj("character", character_id);
-        if (character == null) {
+        let character_id = target.get("represents");
+        let character = getObj("character", character_id);
+        if (!character) {
             // This might be a map symbol that links to a handout.
             // Look for a handout with the same name.
-            var list = findObjs({
+            let list = findObjs({
                 _type: "handout",
                 name: title
             });
-            if (list == null || list.length == 0) {
-                Describe.error(player, "Target [" + title + "] has no associated character or handout.", target);
-                return;
-            }
-            var handout = list[0];
-            var image = handout.get("avatar");
-            if (image == "") {
-                image = null;
-            }
-            handout.get("notes", function(notes) {
-                var text = Describe.getHTML(title, image, unescape(notes));
+            if (!list || list.length === 0) {
+                let image = target.get("imgsrc");
+                let text = unescape(target.get("gmnotes"));
+                text = text.replace(/<br>--<br>.*/, "");
+                text = PfDescribe.convertLinks(text);
+
+                let description = PfDescribe.getHTML(title, null, text);
                 if (playerIsGM(player.get("id"))) {
-                    sendChat("Map", "/desc " + text);
+                    PfInfo.message(title, description);
                 } else {
-                    sendChat("Map", "/w \"" + player.get("displayname") + "\" " + text);
+                    PfInfo.whisper(title, description);
                 }
-            });
-        } else {
-            var image = null;
-            if (image == null || image == "") {
-                image = character.get("avatar");
+            } else {
+                let handout = list[0];
+                let image = handout.get("avatar");
+                if (!image) {
+                    image = null;
+                }
+                handout.get("notes", function (notes) {
+                    let text = PfDescribe.getHTML(title, image, unescape(notes));
+                    if (playerIsGM(player.get("id"))) {
+                        sendChat(title, "/desc " + text);
+                    } else {
+                        sendChat(title, "/w \"" + player.get("displayname") + "\" " + text);
+                    }
+                });
             }
+        } else {
+            let image = character.get("avatar");
             character.get("bio", function(bio) {
-                if (bio == undefined || bio.length == 0 || bio == "null") {
-                    Describe.error(player, "Character has no bio defined.");
+                if (!bio || bio === "null") {
+                    PfInfo.error(player, "Character has no bio defined.");
                     return;
                 } else {
-                    bio = bio.replace(/<br>-- <br>.*/, "");
-                    if (title != null && title != "") {
-                        var size = getAttrByName(character.id, "size_display");
-                        if (size != null && size != "" && size != "Medium") {
-                            title += "<br/>(" + size + ")";
+                    bio = bio.replace(/<br>--<br>.*/, "");
+                    if (title) {
+                        let size = getAttrByName(character.id, "size_display");
+                        if (size) {
+                            // Size attribute used to be capitalised, now we need to
+                            // enforce this manually.
+                            size  = size.substr(0, 1).toUpperCase() + size.substr(1);
+                            if (size !== "Medium") {
+                                title += "<br/>(" + size + ")";
+                            }
                         }
                     }
 
-                    var extra = "";
+                    let extra = "";
                     gmnotes = target.get("gmnotes");
                     if (gmnotes != null && gmnotes != "" && gmnotes != "null") {
                         gmnotes = unescape(gmnotes);
-                        matches = gmnotes.match(/~~(.*?)~~/g);
+                        let matches = gmnotes.match(/~~(.*?)~~/g);
                         if (matches != null && matches.length > 0) {
-                            extra += "<div style='" + Describe.TEXT_STYLE + "'>";
+                            extra += "<div style='font-style: italic'>";
                             for (var i=0; i < matches.length; i++) {
                                 text = matches[i];
                                 text = text.replace(/~~/g, "");
@@ -425,24 +492,23 @@ Describe.describe = function(msg, player, target_id) {
                         }
                     }
 
-                    if (typeof Info !== 'undefined') {
-                        var statusText = Info.getStatusText(target);
-                        if (statusText != "") {
-                            extra += "<div style='" + Describe.TEXT_STYLE + "'>" + statusText + "</div>";
+                    if (typeof PfInfo !== 'undefined') {
+                        let statusText = PfInfo.getStatusText(target);
+                        if (statusText) {
+                            extra += "<div style='" + PfDescribe.TEXT_STYLE + "'>" + statusText + "</div>";
                         }
                     }
-                    var html = Describe.getHTML(title, image, unescape(bio) + extra);
+                    let description = PfDescribe.getHTML(title, image, unescape(bio) + extra);
 
                     if (playerIsGM(player.get("id"))) {
-                        sendChat("character|"+character.get("id"), "/desc " + html);
+                        PfInfo.message(player, description, title);
                     } else {
-                        sendChat("character|"+character.get("id"),
-                                 "/w \"" + player.get("displayname") + "\" " + html);
+                        PfInfo.whisper(player, description, title);
                     }
                 }
             });
         }
     } else {
-        Describe.error(player, "Nothing selected.");
+        PfInfo.error(player, "Nothing selected.");
     }
 };
