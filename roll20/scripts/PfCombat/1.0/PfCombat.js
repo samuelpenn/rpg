@@ -82,14 +82,20 @@
 
 
 var PfCombat = PfCombat || {};
+PfCombat.VERSION = "2.0";
+
+on("ready", function() {
+    log(`==== PfCombat Version ${PfCombat.VERSION} ====`);
+});
+
 
 /**
  * Single event handler for all chat messages.
  */
 on("chat:message", function(msg) {
     if (msg.type !== "api") return;
-    var args = msg.content.split(" ");
-    var command = args.shift();
+    let args = msg.content.split(" ");
+    let command = args.shift();
 
     if (command === "!pfheal") {
         PfCombat.healCommand(msg);
@@ -127,43 +133,43 @@ on("change:graphic", function(obj, prev) {
  * target unless they are explicity selected.
  */
 PfCombat.getSelectedTokens = function (msg, forceExplicit) {
-    var tokenList = [];
-    if (forceExplicit == null) {
+    let tokenList = [];
+    if (!forceExplicit) {
         forceExplicit = false;
     }
 
-    if (msg == null || msg == undefined) {
+    if (!msg) {
         return null;
     }
 
-    if (msg.selected != null && msg.selected.length > 0) {
-        for (var i=0; i < msg.selected.length; i++) {
-            var token = getObj("graphic", msg.selected[i]._id);
-            if (token == null || token.get("name") == null || token.get("name") == "") {
+    if (msg.selected && msg.selected.length > 0) {
+        for (let i=0; i < msg.selected.length; i++) {
+            let token = getObj("graphic", msg.selected[i]._id);
+            if (!token || !token.get("name")) {
                 continue;
             }
-            if (token.get("represents") == null) {
+            if (!token.get("represents")) {
                 continue;
             }
             tokenList.push(msg.selected[i]._id);
         }
     } else if (!playerIsGM(msg.playerid)) {
-        var currentObjects = findObjs({
+        let currentObjects = findObjs({
             _pageid: Campaign().get("playerpageid"),
             _type: "graphic",
         });
-        for (var i=0; i < currentObjects.length; i++) {
-            var token = currentObjects[i];
+        for (let i=0; i < currentObjects.length; i++) {
+            let token = currentObjects[i];
             if (!token.get("name")) {
                 continue;
             }
-            var characterId = token.get("represents");
+            let characterId = token.get("represents");
             if (characterId) {
-                var character = getObj("character", characterId);
+                let character = getObj("character", characterId);
                 if (!character) {
                     continue;
                 }
-                var controlledBy = character.get("controlledby");
+                let controlledBy = character.get("controlledby");
                 if (!controlledBy) {
                     continue;
                 }
@@ -185,23 +191,23 @@ PfCombat.getSelectedTokens = function (msg, forceExplicit) {
 };
 
 PfCombat.statusCommand = function(msg) {
-    var tokenList = PfCombat.getSelectedTokens(msg);
-    if (tokenList == null || tokenList.length == 0) {
+    let tokenList = PfInfo.getSelectedTokens(msg);
+    if (!tokenList || tokenList.length == 0) {
         return;
     }
 
-    var html = "";
-    for (var i=0; i < tokenList.length; i++) {
-        var token = getObj("graphic", tokenList[i]);
-        var currentHp = parseInt(token.get("bar1_value"));
-        var maxHp = parseInt(token.get("bar1_max"));
-        var nonlethalDamage = parseInt(token.get("bar3_value"));
-        var stable = token.get("status_green");
-        var dead = token.get("status_dead");
+    let html = "";
+    for (let i=0; i < tokenList.length; i++) {
+        let token = tokenList[i];
+        let currentHp = parseInt(token.get("bar1_value"));
+        let maxHp = parseInt(token.get("bar1_max"));
+        let nonlethalDamage = parseInt(token.get("bar3_value"));
+        let stable = token.get("status_green");
+        let dead = token.get("status_dead");
 
         currentHp -= nonlethalDamage;
 
-        var message = "<b>"+token.get("name") + "</b> ";
+        let message = "<b>"+token.get("name") + "</b> ";
         if (dead == true) {
             message += "is dead.";
         } else if (currentHp >= maxHp) {
@@ -238,7 +244,7 @@ PfCombat.HP_MAX = 4;
  * HP_MAX: Maximum hitpoints.
  */
 PfCombat.getHitPoints = function(hitdie, option) {
-    var hp = 0;
+    let hp = 0;
 
     switch (option) {
         case PfCombat.HP_LOW:
@@ -271,11 +277,11 @@ PfCombat.getHitPoints = function(hitdie, option) {
  * above average or maximum hitpoints.
  */
 PfCombat.setHitPoints = function(msg, args) {
-    var tokenList = PfCombat.getSelectedTokens(msg);
+    let tokenList = PfInfo.getSelectedTokens(msg);
     if (tokenList && tokenList.length > 0) {
-        var option = PfCombat.HP_NORMAL;
+        let option = PfCombat.HP_NORMAL;
         if (args && args.length > 0) {
-            var arg = args.shift();
+            let arg = args.shift();
             if (arg === "low") {
                 option = PfCombat.HP_LOW;
             } else if (arg === "average") {
@@ -287,23 +293,21 @@ PfCombat.setHitPoints = function(msg, args) {
             }
         }
 
-        for (var i=0; i < tokenList.length; i++) {
-            var tokenId = tokenList[i];
-            var token = getObj("graphic", tokenId);
-
-            var character_id = token.get("represents");
+        for (let i=0; i < tokenList.length; i++) {
+            let token = tokenList[i];
+            let character_id = token.get("represents");
             if (!character_id) {
                 continue;
             }
-            var maxHpLevel1 = getAttrByName(character_id, "maxhp_lvl1");
-            var hpAbilityMod = getAttrByName(character_id, "HP-ability-mod");
-            var hpFormulaMod = getAttrByName(character_id, "HP-formula-mod");
-            var hitpoints = 0;
+            let maxHpLevel1 = getAttrByName(character_id, "maxhp_lvl1");
+            let hpAbilityMod = getAttrByName(character_id, "HP-ability-mod");
+            let hpFormulaMod = getAttrByName(character_id, "HP-formula-mod");
+            let hitpoints = 0;
 
             // Get hitpoints from racial Hit Dice.
-            var npcHd = getAttrByName(character_id, "npc-hd");
-            var npcLevel = getAttrByName(character_id, "npc-hd-num");
-            if (npcHd != null && npcLevel != null) {
+            let npcHd = getAttrByName(character_id, "npc-hd");
+            let npcLevel = getAttrByName(character_id, "npc-hd-num");
+            if (npcHd && npcLevel) {
                 npcHd = parseInt(npcHd);
                 npcLevel = parseInt(npcLevel);
 
@@ -314,10 +318,10 @@ PfCombat.setHitPoints = function(msg, args) {
             }
 
             // Get hitpoints from class Hit Dice.
-            for (var classIndex=0; classIndex < 10; classIndex++) {
-                var hd = getAttrByName(character_id, "class-" + classIndex + "-hd");
-                var level = getAttrByName(character_id, "class-" + classIndex + "-level");
-                if (hd == null || level == null || hd == "" || level == "") {
+            for (let classIndex=0; classIndex < 10; classIndex++) {
+                let hd = getAttrByName(character_id, "class-" + classIndex + "-hd");
+                let level = getAttrByName(character_id, "class-" + classIndex + "-level");
+                if (!hd || !level) {
                     break;
                 }
                 hd = parseInt(hd);
@@ -328,7 +332,7 @@ PfCombat.setHitPoints = function(msg, args) {
 
                 log(hd + ", " + level);
 
-                if (classIndex == 0 && maxHpLevel1 == 1) {
+                if (classIndex === 0 && maxHpLevel1 === 1) {
                     hitpoints = parseInt(hd) + parseInt(hpAbilityMod);
                     if (hitpoints < 1) {
                         hitpoints = 1;
@@ -337,7 +341,7 @@ PfCombat.setHitPoints = function(msg, args) {
                     log("First level hitpoints is " + hitpoints);
                 }
                 for (;level > 0; level--) {
-                    var hp = parseInt(PfCombat.getHitPoints(hd, option)) + parseInt(hpAbilityMod);
+                    let hp = parseInt(PfCombat.getHitPoints(hd, option)) + parseInt(hpAbilityMod);
                     if (hp < 1) {
                         hp = 1;
                     }
@@ -350,7 +354,7 @@ PfCombat.setHitPoints = function(msg, args) {
             token.set("bar1_value", hitpoints);
             token.set("bar1_max", hitpoints);
 
-            sendChat(token.get("name"), "/w GM hitpoints set to " + hitpoints);
+            PfInfo.whisper(token.get("name"), `Hitpoints set to ${hitpoints}`);
         }
     }
 };
@@ -359,7 +363,7 @@ PfCombat.setHitPoints = function(msg, args) {
  * Heal all selected tokens to full hit points. Also removes status effects.
  */
 PfCombat.healCommand = function(msg) {
-    var healing = null;
+    let healing = null;
 
     n = msg.content.split(" ");
     if (n.length > 1) {
@@ -368,26 +372,26 @@ PfCombat.healCommand = function(msg) {
             return;
         }
     }
-    var tokenList = PfCombat.getSelectedTokens(msg);
+    let tokenList = PfCombat.getSelectedTokens(msg);
     if (tokenList && tokenList.length > 0) {
-        for (var i=0; i < tokenList.length; i++) {
-            var tokenId = tokenList[i];
-            var token = getObj("graphic", tokenId);
+        for (let i=0; i < tokenList.length; i++) {
+            let tokenId = tokenList[i];
+            let token = getObj("graphic", tokenId);
             if (token) {
-                var prev = {};
+                let prev = {};
                 prev["bar1_value"] = token.get("bar1_value");
                 prev["bar3_value"] = token.get("bar3_value");
 
                 if (healing) {
-                    var nonLethal = parseInt(token.get("bar3_value"));
+                    let nonLethal = parseInt(token.get("bar3_value"));
                     if (nonLethal > 0) {
                         nonLethal -= healing;
                         if (nonLethal < 0) {
                             nonLethal = 0;
                         }
                     }
-                    var hp = parseInt(token.get("bar1_value"));
-                    var hpMax = parseInt(token.get("bar1_max"));
+                    let hp = parseInt(token.get("bar1_value"));
+                    let hpMax = parseInt(token.get("bar1_max"));
                     hp += healing;
                     if (hp > hpMax) {
                         hp = hpMax;
@@ -441,42 +445,42 @@ PfCombat.healCommand = function(msg) {
  * add it into the tracker.
  */
 PfCombat.initCommand = function(msg, args) {
-    var initRoll = null;
+    let initRoll = null;
     
     if (args && args.length > 0) {
         initRoll = parseInt(args[0]);
     }
-    
-    var turnOrder = [];
+
+    let turnOrder = [];
     if (Campaign().get("turnorder") !== "") {
         turnOrder = JSON.parse(Campaign().get("turnorder"));
     }
-    var tokenList = PfCombat.getSelectedTokens(msg);
-    for (var i=0; i < tokenList.length; i++) {
-        for (var ti=0; ti < turnOrder.length; ti++) {
+    let tokenList = PfCombat.getSelectedTokens(msg);
+    for (let i=0; i < tokenList.length; i++) {
+        for (let ti=0; ti < turnOrder.length; ti++) {
             if (turnOrder[ti].id === tokenList[i]) {
                 turnOrder.splice(ti, 1);
             }
         }
     }
 
-    for (var tIdx=0; tIdx < tokenList.length; tIdx++) {
-        var tokenId = tokenList[tIdx];
-        var token = getObj("graphic", tokenId);
+    for (let tIdx=0; tIdx < tokenList.length; tIdx++) {
+        let tokenId = tokenList[tIdx];
+        let token = getObj("graphic", tokenId);
 
-        var character_id = token.get("represents");
+        let character_id = token.get("represents");
         if (!character_id) {
             continue;
         }
-        var character = getObj("character", character_id);
-        var init = getAttrByName(character_id, "init");
-        var dex = getAttrByName(character_id, "DEX-base");
+        let character = getObj("character", character_id);
+        let init = getAttrByName(character_id, "init");
+        let dex = getAttrByName(character_id, "DEX-base");
         // Avoid dividing by 100, since this sometimes gives arithmetic
         // errors with too many dp.
         if (parseInt(dex) < 10) {
             dex = ("0" + dex);
         }
-        var message = "Initiative is [[d20 + " + init + " + 0." + dex + "]]";
+        let message = "Initiative is [[d20 + " + init + " + 0." + dex + "]]";
         if (initRoll || initRoll === 0) {
             message = "Initiative is [[d0 + " + initRoll + " + 0." + dex + "]]";
         }
@@ -497,17 +501,17 @@ PfCombat.initCommand = function(msg, args) {
  * so this will put it just before the current token comes up again).
  */
 PfCombat.addCustomInitCommand = function(msg, args) {
-    var turnOrder = [];
+    let turnOrder = [];
     if (Campaign().get("turnorder") != "") {
         turnOrder = JSON.parse(Campaign().get("turnorder"));
     }
-    var tokenList = PfCombat.getSelectedTokens(msg, true);
+    let tokenList = PfCombat.getSelectedTokens(msg, true);
 
-    var tokenId = tokenList[0];
-    var token = getObj("graphic", tokenId);
+    let tokenId = tokenList[0];
+    let token = getObj("graphic", tokenId);
 
-    var customName = token.get("name") + ":";
-    var turns = args.shift();
+    let customName = token.get("name") + ":";
+    let turns = args.shift();
     log("Custom init for " + customName + " for " + turns);
     while (args.length > 0) {
         customName += " " + args.shift();
@@ -532,8 +536,8 @@ PfCombat.addCustomInitCommand = function(msg, args) {
  */
 function initiativeMsgCallback(tokenId, turnOrder, token, isGM) {
     return function(ops) {
-        var rollresult = ops[0];
-        var result = rollresult.inlinerolls[0].results.total;
+        let rollresult = ops[0];
+        let result = rollresult.inlinerolls[0].results.total;
 
         if (turnOrder == null) {
             log("turnOrder is not set in initiativeMsgCallback");
@@ -560,37 +564,37 @@ function initiativeMsgCallback(tokenId, turnOrder, token, isGM) {
 }
 
 PfCombat.savesCommand = function(msg) {
-    var params = msg.content.split(" ");
+    let params = msg.content.split(" ");
     if (params.length < 2) {
         PfCombat.usageSaves(msg, "Must specify at least a save type.");
         return;
     }
-    var saveType = (""+params[1]).toLowerCase();
-    var saveName = "";
-    var dc = 0;
+    let saveType = (""+params[1]).toLowerCase();
+    let saveName = "";
+    let dc = 0;
 
     if (params.length > 2) {
         dc = parseInt(params[2]);
     }
 
-    var setDamage = false, setStatus = false;
-    var damage = null, halfDamage = null, status = null;
+    let setDamage = false, setStatus = false;
+    let damage = null, halfDamage = null, status = null;
 
-    for (var i=3; i < params.length; i++) {
-        var arg = params[i];
+    for (let i=3; i < params.length; i++) {
+        let arg = params[i];
 
         if (arg == "0" || parseInt(arg) > 0) {
-            if (damage == null) {
+            if (!damage) {
                 damage = parseInt(arg);
 
                 setDamage = true;
-            } else if (halfDamage == null) {
+            } else if (!halfDamage) {
                 halfDamage = parseInt(arg);
             } else {
                 PfCombat.usageSaves(msg, "Can only specify two damages.");
                 return;
             }
-        } else if (status == null) {
+        } else if (!status) {
             status = arg.replace(/-/, " ").toLowerCase();
             status = status.replace(/\w\S*/g, function (txt) { return txt.charAt(0).toUpperCase() + txt.substr(1); } );
             if (PfCombat.status[status] == null) {
@@ -619,36 +623,36 @@ PfCombat.savesCommand = function(msg) {
         return;
     }
 
-    var tokenList = PfCombat.getSelectedTokens(msg);
+    let tokenList = PfCombat.getSelectedTokens(msg);
     if (tokenList != null && tokenList.length > 0) {
-        for (var tIdx=0; tIdx < tokenList.length; tIdx++) {
-            var tokenId = tokenList[tIdx];
-            var token = getObj("graphic", tokenId);
+        for (let tIdx=0; tIdx < tokenList.length; tIdx++) {
+            let tokenId = tokenList[tIdx];
+            let token = getObj("graphic", tokenId);
 
-            var character_id = token.get("represents");
+            let character_id = token.get("represents");
             if (character_id == null) {
                 sendChat("", "/w GM " + token.get("name") + " has no associated character");
                 return;
             }
-            var character = getObj("character", character_id);
+            let character = getObj("character", character_id);
 
-            var score = getAttrByName(character_id, saveType);
+            let score = getAttrByName(character_id, saveType);
             if (score == null) {
                 sendChat("", "/w GM " + token.get("name") + " has no associated save attribute");
                 return;
             }
-            var message = "";
-            if (dc == 0) {
+            let message = "";
+            if (dc === 0) {
                 message = "Rolls a <b>" + saveName + "</b> save of [[d20 + " + score + "]].";
                 PfCombat.message(token, PfCombat.line(message));
                 continue;
             }
 
 
-            var autoSuccess = false;
-            var autoFail = false;
-            var autoMsg = "";
-            var check = randomInteger(20);
+            let autoSuccess = false;
+            let autoFail = false;
+            let autoMsg = "";
+            let check = randomInteger(20);
             if (check == 1) {
                 autoFail = true;
                 autoMsg = " Natural [1]";
@@ -661,8 +665,8 @@ PfCombat.savesCommand = function(msg) {
             if (!playerIsGM(msg.playerid)) {
                 message += PfCombat.line("Rolls " + check + "" + autoMsg + ". ");
             }
-            var flags = [];
-            var prev = [];
+            let flags = [];
+            let prev = [];
             prev["bar1_value"] = token.get("bar1_value");
             prev["bar1_max"] = token.get("bar1_max");
             prev["bar3_value"] = token.get("bar3_value");
@@ -670,9 +674,9 @@ PfCombat.savesCommand = function(msg) {
 
             if (!autoFail && (check >= dc || autoSuccess)) {
                 flags['status_flying-flag'] = false;
-                var text = "Succeeds on a " + saveName + " DC " + dc + " check.";
+                let text = "Succeeds on a " + saveName + " DC " + dc + " check.";
                 if (setDamage && halfDamage > 0) {
-                    var currentHp = parseInt(token.get("bar1_value"));
+                    let currentHp = parseInt(token.get("bar1_value"));
                     currentHp -= halfDamage;
 
                     token.set("bar1_value", currentHp);
@@ -681,9 +685,9 @@ PfCombat.savesCommand = function(msg) {
                 message += PfCombat.line(text);
             } else {
                 if (setDamage || setStatus) {
-                    var text = "Fails a " + saveName + " DC " + dc + " check.";
+                    let text = "Fails a " + saveName + " DC " + dc + " check.";
                     if (setDamage) {
-                        var currentHp = parseInt(token.get("bar1_value"));
+                        let currentHp = parseInt(token.get("bar1_value"));
                         currentHp -= damage;
 
                         token.set("bar1_value", currentHp);
@@ -693,8 +697,8 @@ PfCombat.savesCommand = function(msg) {
                         }
                     }
                     if (setStatus) {
-                        var symbol = PfCombat.status[status].status;
-                        var effect = PfCombat.status[status].description;
+                        let symbol = PfCombat.status[status].status;
+                        let effect = PfCombat.status[status].description;
                         flags["status_" + symbol] = true;
 
                         message += PfCombat.getSymbolHtml(symbol);
@@ -722,8 +726,8 @@ PfCombat.savesCommand = function(msg) {
  * Damage is either lethal or nonlethal.
  */
 PfCombat.damageCommand = function(msg) {
-    var damage = 1;
-    var nonlethal = false;
+    let damage = 1;
+    let nonlethal = false;
     n = msg.content.split(" ");
 
     if (n.length > 1) {
@@ -736,21 +740,21 @@ PfCombat.damageCommand = function(msg) {
         nonlethal = true;
     }
 
-    var tokenList = PfCombat.getSelectedTokens(msg, true);
+    let tokenList = PfCombat.getSelectedTokens(msg, true);
     if (!tokenList) {
         PfCombat.error("Cannot determine list of selected tokens.");
         return;
     }
     if (tokenList.length > 0) {
-        for (var i=0; i < tokenList.length; i++) {
-            var tokenId = tokenList[i];
-            var token = getObj("graphic", tokenId);
+        for (let i=0; i < tokenList.length; i++) {
+            let tokenId = tokenList[i];
+            let token = getObj("graphic", tokenId);
 
             log(token.get("name"));
 
-            var currentHp = parseInt(token.get("bar1_value"));
-            var nonlethalDamage = parseInt(token.get("bar3_value"));
-            var prev = {};
+            let currentHp = parseInt(token.get("bar1_value"));
+            let nonlethalDamage = parseInt(token.get("bar3_value"));
+            let prev = {};
             prev["bar1_value"] = currentHp;
             prev["bar3_value"] = nonlethalDamage;
 
@@ -771,30 +775,30 @@ PfCombat.damageCommand = function(msg) {
  * Check to see if any of the selected tokens stabilise.
  */
 PfCombat.stabiliseCommand = function(msg) {
-    var tokenList = PfCombat.getSelectedTokens(msg, true);
+    let tokenList = PfCombat.getSelectedTokens(msg, true);
     if (tokenList && tokenList.length > 0) {
-        for (var i=0; i < tokenList.length; i++) {
-            var tokenId = tokenList[i];
-            var token = getObj("graphic", tokenId);
+        for (let i=0; i < tokenList.length; i++) {
+            let tokenId = tokenList[i];
+            let token = getObj("graphic", tokenId);
             if (!token) {
                 continue;
             }
 
-            var tokenName = token.get("name");
-            var character_id = token.get("represents");
+            let tokenName = token.get("name");
+            let character_id = token.get("represents");
             if (!character_id) {
                 sendChat("", "/w GM " + tokenName + " has no associated character");
                 return;
             }
-            var character = getObj("character", character_id);
+            let character = getObj("character", character_id);
 
-            var hpMax = token.get("bar1_max");
-            var hpCurrent = token.get("bar1_value");
-            var nonlethalDamage = token.get("bar3_value");
-            var stable = token.get("status_green");
-            var dead = token.get("status_dead");
+            let hpMax = token.get("bar1_max");
+            let hpCurrent = token.get("bar1_value");
+            let nonlethalDamage = token.get("bar3_value");
+            let stable = token.get("status_green");
+            let dead = token.get("status_dead");
 
-            var constitution = getAttrByName(character_id, 'CON-mod');
+            let constitution = getAttrByName(character_id, 'CON-mod');
             if (!constitution) {
                 constitution = 0;
             }
@@ -807,8 +811,8 @@ PfCombat.stabiliseCommand = function(msg) {
             } else if (stable === true) {
                 sendChat("", "/w GM " + tokenName + " is stable.");
             } else {
-                var dc = 10 - hpCurrent;
-                var check = randomInteger(20) + parseInt(constitution);
+                let dc = 10 - hpCurrent;
+                let check = randomInteger(20) + parseInt(constitution);
                 log(tokenName + " rolls " + check + " to stabilise.");
                 if (check >= dc || check === constitution + 20) {
                     token.set({
@@ -830,7 +834,7 @@ PfCombat.stabiliseCommand = function(msg) {
 
 
 PfCombat.getSymbolHtml = function(symbol) {
-    var statuses = [
+    let statuses = [
         'red', 'blue', 'green', 'brown', 'purple', 'pink', 'yellow', // 0-6
         'skull', 'sleepy', 'half-heart', 'half-haze', 'interdiction',
         'snail', 'lightning-helix', 'spanner', 'chained-heart',
@@ -844,12 +848,12 @@ PfCombat.getSymbolHtml = function(symbol) {
         'grab', 'screaming', 'grenade', 'sentry-gun', 'all-for-one',
         'angel-outfit', 'archery-target'
     ];
-    var i = _.indexOf(statuses, symbol);
+    let i = _.indexOf(statuses, symbol);
 
     if (i < 0) {
         return "";
     } else if (i < 7) {
-        var colours = [ '#ff0000', '#0000ff', '#00ff00', '#ff7700', '#ff00ff', '#ff7777', '#ffff00' ];
+        let colours = [ '#ff0000', '#0000ff', '#00ff00', '#ff7700', '#ff00ff', '#ff7777', '#ffff00' ];
         return "<div style='float: left; background-color: " + colours[i] + "; border-radius: 12px; width: 12px; height: 18px; display: inline-block; margin: 0; border: 0; padding: 0px 3px; margin-right: 6px'></div>";
     } else {
         return '<div style="float: left; width: 24px; height: 24px; display: inline-block; margin: 0; border: 0; cursor: pointer; padding: 0px 3px; background: url(\'https://app.roll20.net/images/statussheet.png\'); background-repeat: no-repeat; background-position: '+((-34)*(i-7))+'px 0px;"></div>';
@@ -857,10 +861,10 @@ PfCombat.getSymbolHtml = function(symbol) {
 };
 
 PfCombat.usageSaves = function(msg, errorText) {
-    var text = "<i>" + errorText + "</i><br/>";
+    let text = "<i>" + errorText + "</i><br/>";
     text += "Use !pfsaves &lt;Ref|Fort|Will&gt; &lt;DC&gt; [&lt;Damage&gt; [&lt;Half-Damage&gt;]] [&lt;Effect&gt;]<br/>";
     text += "Allowed effects: ";
-    for (var s in PfCombat.status) {
+    for (let s in PfCombat.status) {
         text += s.replace(/ /, "-") + ", ";
     }
     text = text.replace(/, $/, ".");
@@ -909,15 +913,15 @@ PfCombat.update = function(obj, prev, message) {
     }
     //log("PfCombat.update: " + obj.get("name") + ((prev==null)?"":", <prev>") + ", [" + message + "]");
 
-    var takenDamage = false;
-    var name = obj.get("name");
-    var hpMax = parseInt(obj.get("bar1_max"));
-    var hpCurrent = parseInt(obj.get("bar1_value"));
-    var nonlethalDamage = parseInt(obj.get("bar3_value"));
-    var stable = obj.get("status_green");
-    var previousHitpoints = hpCurrent;
+    let takenDamage = false;
+    let name = obj.get("name");
+    let hpMax = parseInt(obj.get("bar1_max"));
+    let hpCurrent = parseInt(obj.get("bar1_value"));
+    let nonlethalDamage = parseInt(obj.get("bar3_value"));
+    let stable = obj.get("status_green");
+    let previousHitpoints = hpCurrent;
 
-    if (prev != null) {
+    if (prev) {
         if (hpCurrent == prev["bar1_value"] && hpMax == prev["bar1_max"] && nonlethalDamage == prev["bar3_value"]) {
             // Whatever has changed is nothing to do with us.
             return;
@@ -948,25 +952,25 @@ PfCombat.update = function(obj, prev, message) {
     if (nonlethalDamage === "") {
         nonlethalDamage = 0;
     }
-    var hpActual = hpCurrent - nonlethalDamage;
+    let hpActual = hpCurrent - nonlethalDamage;
 
-    var character_id = obj.get("represents");
-    if (character_id == null) {
+    let character_id = obj.get("represents");
+    if (!character_id) {
         return;
     }
-    var character = getObj("character", character_id);
-    if (character == null) {
+    let character = getObj("character", character_id);
+    if (!character) {
         return;
     }
-    var constitution = getAttrByName(character.id, 'CON');
-    if (constitution == null) {
+    let constitution = getAttrByName(character.id, 'CON');
+    if (!constitution) {
         constitution = 10;
     }
-    var type = getAttrByName(character_id, 'npc-type');
-    if (type == null) {
+    let type = getAttrByName(character_id, 'npc-type');
+    if (!type) {
         type = "";
     }
-    var living = true;
+    let living = true;
 
     // Non-living have special rules.
     if (type.indexOf("Undead") > -1 || type.indexOf("Construct") > -1 || type.indexOf("Inevitable") > -1 || type.indexOf("Swarm") > -1 ) {
@@ -1037,7 +1041,7 @@ PfCombat.update = function(obj, prev, message) {
         } else {
             message += PfCombat.line("<b>" + name + "</b> is <i>unconscious</i>.");
         }
-    } else if (hpActual == 0) {
+    } else if (hpActual === 0) {
         // Staggered. Note that a character is staggered if either
         // nonlethal damage increases to their current hitpoints,
         // or their current hitpoints drops to zero.
@@ -1049,8 +1053,8 @@ PfCombat.update = function(obj, prev, message) {
             status_brown: false,
             status_green: false
         });
-        var msg = "They can only make one standard or move action each round.";
-        if (hpCurrent == 0) {
+        let msg = "They can only make one standard or move action each round.";
+        if (hpCurrent === 0) {
             message += PfCombat.getSymbolHtml("pummeled");
             message += PfCombat.line("<b>" + name + "</b> is <i>disabled</i>. " + msg);
         } else {
@@ -1066,7 +1070,7 @@ PfCombat.update = function(obj, prev, message) {
             status_brown: true,
             status_green: false
         });
-        if (prev != null && previousHitpoints > hpMax / 3) {
+        if (prev && previousHitpoints > hpMax / 3) {
             message += PfCombat.getSymbolHtml("red");
             message += PfCombat.line("<b>" + name + "</b> is now <i>heavily wounded</i>.");
         }
@@ -1079,7 +1083,7 @@ PfCombat.update = function(obj, prev, message) {
             status_brown: true,
             status_green: false
         });
-        if (prev != null && previousHitpoints > hpMax * (2/3)) {
+        if (prev && previousHitpoints > hpMax * (2/3)) {
             message += PfCombat.getSymbolHtml("brown");
             message += PfCombat.line("<b>" + name + "</b> is now <i>moderately wounded</i>.");
         }
@@ -1093,7 +1097,7 @@ PfCombat.update = function(obj, prev, message) {
             status_green: false
         });
     }
-    if (prev != null && !takenDamage && previousHitpoints < hpActual) {
+    if (prev && !takenDamage && previousHitpoints < hpActual) {
         // Probably been healed.
         if (hpActual >= hpMax && previousHitpoints < hpMax) {
             message += PfCombat.line("<b>" + name + "</b> is now fully healed.");
@@ -1107,23 +1111,23 @@ PfCombat.update = function(obj, prev, message) {
             message += PfCombat.line("<b>" + name + "</b> is now more alive than dead.");
         }
     }
-    if (message != "") {
+    if (message) {
         PfCombat.message(obj, message);
     }
 };
 
 PfCombat.getMessageBox = function(token, message, whisper = null) {
-    var html = "";
-    var x = 30, y = 5;
+    let html = "";
+    let x = 30, y = 5;
     if (whisper) {
         x += 30;
         y += 25;
     }
-    if (message != null && token != null) {
-        var image = token.get("imgsrc");
-        var name = token.get("name");
-        html += "<div style='" + PfCombat.BOX_STYLE + "'>";
-        html += "<img src='"+image+"' width='50px' style='position: absolute; top: " + y +
+    if (message && token) {
+        let image = token.get("imgsrc");
+        let name = token.get("name");
+        html += "<div style='" + PfInfo.BOX_STYLE + "'>";
+        html += "<img src='"+image+"' width='50px' height='50px' style='position: absolute; top: " + y +
                 "px; left: " + x + "px; background-color: white; border-radius: 25px'/>";
 
         html += "<div style='position: absolute; top: " + (y+17) +
@@ -1134,7 +1138,7 @@ PfCombat.getMessageBox = function(token, message, whisper = null) {
         html += "</div>";
 
         return html;
-    } else if (message != null) {
+    } else if (message) {
         html += "<div style='" + PfCombat.BOX_STYLE + "'>";
         html += "<div style='margin-top: 20px; padding-left: 5px'>" + message + "</div>";
         html += "</div>";
@@ -1143,17 +1147,24 @@ PfCombat.getMessageBox = function(token, message, whisper = null) {
 };
 
 PfCombat.message = function(token, message, func) {
-    var html = PfCombat.getMessageBox(token, message);
-    if (func == null) {
+    //let character = getObj("character", token.get("represents"));
+
+    //let html = PfInfo.infoBlock(character, token.get("name"), token, message);
+
+    PfInfo.message(token.get("name"), message);
+/*
+    //let html = PfCombat.getMessageBox(token, message);
+    if (!func) {
         sendChat("", "/desc " + html);
     } else {
         sendChat("", "/desc " + html, func);
     }
+    */
 };
 
 PfCombat.whisper = function(token, message, func) {
-    var html = PfCombat.getMessageBox(token, message, true);
-    if (func == null) {
+    let html = PfCombat.getMessageBox(token, message, true);
+    if (!func) {
         sendChat("GM", "/w GM " + html);
     } else {
         sendChat("GM", "/w GM " + html, func);
@@ -1163,9 +1174,9 @@ PfCombat.whisper = function(token, message, func) {
 PfCombat.ERROR_STYLE="background-color: #FFDDDD; color: #000000; margin-top: 30px; padding:0px; border:1px dashed black; border-radius: 10px; padding: 3px; text-align: left; font-style: normal; font-weight: normal";
 
 PfCombat.error = function(message) {
-    if (message != null && message != "") {
+    if (message) {
         log("PfCombat Error: " + message);
-        var html = "<div style='" + PfCombat.ERROR_STYLE + "'><b>PfCombat Error:</b> " + message + "</div>";
+        let html = "<div style='" + PfCombat.ERROR_STYLE + "'><b>PfCombat Error:</b> " + message + "</div>";
         sendChat("", "/desc " + html);
     }
 };
