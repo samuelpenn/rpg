@@ -339,7 +339,7 @@ PfLight.dropCommand = function(player, token) {
     }, {caseInsensitive: false})[0];
 
     if (!attribute || attribute.get("current") === "") {
-        PfLight.error(player, token.get("_name") + " is not carrying anything.");
+        //PfLight.error(player, token.get("_name") + " is not carrying anything.");
     } else {
         let message = token.get("_name") + " drops what they are carrying.";
         PfLight.actionMessage(token, message);
@@ -360,9 +360,9 @@ PfLight.move = function(token) {
     let characterId = token.get("represents");
     if (characterId !== null && token.get("light_hassight") === true) {
         let carrying = getAttrByName(characterId, PfLight.ATTRIBUTE, "current");
-        if (carrying !== null && carrying !== "") {
+        if (carrying) {
             let takenItem = getObj("graphic", carrying);
-            if (takenItem === null || takenItem === undefined) {
+            if (!takenItem) {
                 PfLight.dropCommand(null, token);
             } else {
                 takenItem.set({
