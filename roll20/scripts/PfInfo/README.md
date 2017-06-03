@@ -1,8 +1,8 @@
 PfInfo
 ======
 
-Provides information on Pathfinder characters, working in conjunction with 
-the _Pathfinder Character Sheet_ to determine character statistics. The 
+Provides information on Pathfinder characters, working in conjunction with
+the _Pathfinder Character Sheet_ to determine character statistics. The
 information is output to the chat window so the GM doesn't have to open
 the full character sheet.
 
@@ -24,6 +24,25 @@ This will output something like the following to the chat window:
 
 ![Info](docs/example_info.png)
 
+**!pfsetstatus** - Sets a status on the selected tokens. The status types are
+based on Pathfinder conditions, and apply a marker to the token so that the
+status effect is visible. If applicable, it will also update the character
+sheet as long as this is a unique character.
+
+It is recommended that the following macro is used for this API command, since
+it provides a drop down list of all the correct status types.
+
+````
+!pfsetstatus ?{What status|Blind|Confused|Dazzled|Entangled|Exhausted|Fatigued|Frightened|Grappled|Pinned|Nauseated|Panicked|Paralyzed|Prone|Shaken|Sickened|Slowed|Stabilized|Staggered|Stunned|Invisible|Helpless|Unconscious|Dead}
+````
+
+**!pfunsetstatus** - Unsets the specified status from the selected tokens.
+
+As with the set status command, it is recommended that a macro is used.
+
+````
+!pfunsetstatus ?{What status|Blind|Confused|Dazzled|Entangled|Exhausted|Fatigued|Frightened|Grappled|Pinned|Nauseated|Panicked|Paralyzed|Prone|Shaken|Sickened|Slowed|Stabilized|Staggered|Stunned|Invisible|Helpless|Unconscious|Dead}
+````
 
 Advanced
 --------
@@ -78,6 +97,11 @@ Other status icons are used as follows:
 The **PfCombat** API will set some of these automatically. A summery of
 the Pathfinder rules for the condition will be provided for tokens that
 have the right status set.
+
+The **!pfsetstatus** API can be used to set a status manually on a token.
+When this is used, a check is done to see if the hitpoints (bar3) are
+directly linked to the character sheet. If they are, then the condition
+flags on the character sheet are also updated where applicable.
 
 Character Notes
 ---------------

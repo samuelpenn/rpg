@@ -95,16 +95,22 @@ PfInfo.help = function(playerId) {
     sendChat("PfInfo", `/w "${player.get('_displayname')}" ${html}`);
 };
 
-PfInfo.error = function(playerId, message) {
+PfInfo.error = function(player, message) {
     if (!message) {
         message = "Unknown error.";
     }
 
-    if (playerId) {
-        let player = getObj("player", playerId);
-        sendChat("PfInfo", `/w "${player.get('_displayname')}" ${message}`);
+    if (player && typeof(player) === "object") {
+        sendChat("PfInfo", `/w "${player.get("_displayname")}" ${message}`);
+    } else if (player && typeof(player) === "string") {
+        let player = getObj("player", player);
+        if (player) {
+            sendChat("PfInfo", `/w "${player.get("_displayname")}" ${message}`);
+        } else {
+            sendChat("PfInfo", `/w GM ${message}`);
+        }
     } else {
-        sendChat("PfInfo", `/w GM ${message}`)
+        sendChat("PfInfo", `/w GM ${message}`);
     }
 };
 
@@ -575,6 +581,37 @@ PfInfo.hasPermission = function(player, token) {
     return false;
 };
 
+/**
+ * Return array containing a list of the players that have permission
+ * to edit this token. Only applies if the token has a character sheet
+ * associated with it.
+ *
+ * @param token     Token to check ownership of.
+ */
+PfInfo.getOwners = function(token) {
+    let ownersList = [];
+
+    if (token && token.get("represents")) {
+        let character = getObj("character", token.get("represents"));
+        if (character) {
+            let controlledBy = character.get("controlledby");
+            let controllers = controlledBy.split(",");
+            for (let p = 0; p < controllers.length; p++) {
+                let id = controllers[p].trim();
+                if (id === "all") {
+                    return [ "all" ];
+                } else {
+                    let player = getObj("player", id);
+                    if (player) {
+                        ownersList.push(player);
+                    }
+                }
+            }
+        }
+    }
+
+    return ownersList;
+};
 
 PfInfo.statusEffects = {
     'Blind': { status: "bleeding-eye", attribute: "condition-Blinded", value: "2", description:
