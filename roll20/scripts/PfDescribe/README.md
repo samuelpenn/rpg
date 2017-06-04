@@ -100,3 +100,22 @@ It also displays that both goblins are *Small* creatures. The size of a
 creature is displayed if they aren't Medium sized.
 
 ![Goblin 1](docs/goblin-1.png) ![Goblin 2](docs/goblin-2.png)
+
+!pfdescribe also handles tokens that aren't characters. Selecting
+*The Celwynvian Charge* point of interest on the map outputs text
+taken from the Handout of the same name. If that had an image
+associated with it, then this would have been shown as well.
+
+![The Celwynvian Charge](docs/poi-1.png)
+
+Finally, a non-character token that doesn't have a matching handout is
+the token *K19: Cob's Alley*. This is designed for putting room 
+descriptions on a map, which may have room numbers associated with them.
+Anything before the colon (:) is actually stripped out of the title
+before being displayed, and then the text from the *gmnotes* field
+of the token is shown.
+
+![Dark Alley](docs/room-1.png) ![Notes](docs/gmnotes-1.png)
+
+Since the notes text references a named handout within chevrons, the
+image from that note is inserted inline into the text output.
