@@ -368,7 +368,7 @@ PfDescribe.getHandoutImage = function(handoutName) {
     if (handoutName) {
         let list = findObjs({
             _type: "handout",
-            name: handoutName
+            name: handoutName.trim()
         });
         if (list && list.length > 0) {
             let handout = list[0];
@@ -437,9 +437,9 @@ PfDescribe.describe = function(msg, player, target_id) {
 
                 let description = PfDescribe.getHTML(title, null, text);
                 if (playerIsGM(player.get("id"))) {
-                    PfInfo.message(title, description);
+                    PfInfo.message(player, description, title);
                 } else {
-                    PfInfo.whisper(title, description);
+                    PfInfo.whisper(player, description, title);
                 }
             } else {
                 let handout = list[0];
@@ -450,9 +450,9 @@ PfDescribe.describe = function(msg, player, target_id) {
                 handout.get("notes", function (notes) {
                     let text = PfDescribe.getHTML(title, image, unescape(notes));
                     if (playerIsGM(player.get("id"))) {
-                        sendChat(title, "/desc " + text);
+                        PfInfo.message(player, text, title);
                     } else {
-                        sendChat(title, "/w \"" + player.get("displayname") + "\" " + text);
+                        PfInfo.whisper(player, text, title);
                     }
                 });
             }
@@ -464,14 +464,15 @@ PfDescribe.describe = function(msg, player, target_id) {
                     return;
                 } else {
                     bio = bio.replace(/<br>--<br>.*/, "");
-                    if (title) {
+                    if (bio) {
                         let size = getAttrByName(character.id, "size_display");
                         if (size) {
                             // Size attribute used to be capitalised, now we need to
                             // enforce this manually.
                             size  = size.substr(0, 1).toUpperCase() + size.substr(1);
                             if (size !== "Medium") {
-                                title += "<br/>(" + size + ")";
+                                size = "<div style='text-align: center; font-style: italic'>(" + size + ")</div>";
+                                bio = size + bio;
                             }
                         }
                     }
