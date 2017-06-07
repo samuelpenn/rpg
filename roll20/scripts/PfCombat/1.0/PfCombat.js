@@ -485,7 +485,9 @@ PfCombat.initCommand = function(msg, args) {
             message = "Initiative is [[d0 + " + initRoll + " + 0." + dex + "]]";
         }
         message = PfCombat.line(message);
-        PfCombat.message(token, message, initiativeMsgCallback(tokenId, turnOrder, token, playerIsGM(msg.playerid)));
+        let player = getObj("player", msg.playerid);
+        sendChat(`player|${msg.playerid}`, message,
+            initiativeMsgCallback(tokenId, turnOrder, token, player));
     }
 };
 
@@ -502,7 +504,7 @@ PfCombat.initCommand = function(msg, args) {
  */
 PfCombat.addCustomInitCommand = function(msg, args) {
     let turnOrder = [];
-    if (Campaign().get("turnorder") != "") {
+    if (Campaign().get("turnorder")) {
         turnOrder = JSON.parse(Campaign().get("turnorder"));
     }
     let tokenList = PfCombat.getSelectedTokens(msg, true);
@@ -512,11 +514,11 @@ PfCombat.addCustomInitCommand = function(msg, args) {
 
     let customName = token.get("name") + ":";
     let turns = args.shift();
-    log("Custom init for " + customName + " for " + turns);
+    log("Custom init for [" + customName + "] lasts [" + turns + "] turns.");
     while (args.length > 0) {
         customName += " " + args.shift();
     }
-    log("Custom init for " + customName);
+    log("Description is [" + customName + "]");
 
     turnOrder.push({
         "id": "-1",
@@ -525,8 +527,6 @@ PfCombat.addCustomInitCommand = function(msg, args) {
         "formula": -1,
     });
     Campaign().set("turnorder", JSON.stringify(turnOrder));
-
-    return;
 };
 
 /**
@@ -534,13 +534,17 @@ PfCombat.addCustomInitCommand = function(msg, args) {
  * is executed, the value of tokenId that is in scope has changed, and we
  * just end up adding the last token multiple times.
  */
-function initiativeMsgCallback(tokenId, turnOrder, token, isGM) {
+function initiativeMsgCallback(tokenId, turnOrder, token, player) {
     return function(ops) {
         let rollresult = ops[0];
         let result = rollresult.inlinerolls[0].results.total;
 
         if (turnOrder == null) {
             log("turnOrder is not set in initiativeMsgCallback");
+            return;
+        }
+        if (!token) {
+            log("token is undefined in initiativeMsgCallback");
             return;
         }
 
@@ -555,10 +559,11 @@ function initiativeMsgCallback(tokenId, turnOrder, token, isGM) {
             pr: result
         });
         Campaign().set("turnorder", JSON.stringify(turnOrder));
-        if (isGM) {
-            PfCombat.whisper(token, PfCombat.line("Joins combat on initiative [[d0 + " + result + "]]"));
+        let text = `${token.get("name")} joins combat on initiative [[d0 + ${result} ]]`;
+        if (playerIsGM(player.get("id"))) {
+            PfInfo.whisper(token.get("name"), text, token.get("name"));
         } else {
-            PfCombat.message(token, PfCombat.line("Joins combat on initiative [[d0 + " + result + "]]"));
+            PfInfo.message(`player|${player.get("id")}`, text, token.get("name"));
         }
     };
 }
@@ -1151,7 +1156,7 @@ PfCombat.message = function(token, message, func) {
 
     //let html = PfInfo.infoBlock(character, token.get("name"), token, message);
 
-    PfInfo.message(token.get("name"), message);
+    PfInfo.message(token.get("name"), message, null, func);
 /*
     //let html = PfCombat.getMessageBox(token, message);
     if (!func) {
@@ -1167,7 +1172,7 @@ PfCombat.whisper = function(token, message, func) {
     if (!func) {
         sendChat("GM", "/w GM " + html);
     } else {
-        sendChat("GM", "/w GM " + html, func);
+        sendChat("GM", "/w GM " + html, null, func);
     }
 };
 

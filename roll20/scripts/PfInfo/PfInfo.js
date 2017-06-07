@@ -784,7 +784,7 @@ PfInfo.infoBlock = function(character, displayName, token, message, func) {
  * @param message   The message to be output.
  * @param title     Title to be displayed at top of message box. Null for no message.
  */
-PfInfo.message = function(player, message, title) {
+PfInfo.message = function(player, message, title, func) {
     if (message) {
         let html = "<div style='" + PfInfo.BOX_STYLE + "'>";
         if (title) {
@@ -794,16 +794,16 @@ PfInfo.message = function(player, message, title) {
         html += "</div>";
 
         if (player && typeof(player) === "object") {
-            sendChat(`player|${player.get("_id")}`, `/desc ${html}`);
+            sendChat(`player|${player.get("_id")}`, `/desc ${html}`, func);
         } else if (player && typeof(player) === "string") {
-            sendChat(player, `/desc ${html}`);
+            sendChat(player, `/desc ${html}`, func);
         } else {
-            sendChat("", `/desc ${html}`);
+            sendChat("", `/desc ${html}`, func);
         }
     }
 };
 
-PfInfo.whisper = function(player, message, title) {
+PfInfo.whisper = function(player, message, title, func) {
     if (message) {
         let html = "<div style='" + PfInfo.BOX_STYLE + "'>";
         if (title) {
@@ -813,11 +813,11 @@ PfInfo.whisper = function(player, message, title) {
         html += "</div>";
 
         if (player && typeof(player) === "object") {
-            sendChat(`player|${player.get("_id")}`, `/w GM ${html}`);
+            sendChat(`player|${player.get("_id")}`, `/w GM ${html}`, func);
         } else if (player && typeof(player) === "string") {
-            sendChat(player, `/w GM ${html}`);
+            sendChat(player, `/w GM ${html}`, func);
         } else {
-            sendChat("", `/w GM ${html}`);
+            sendChat("", `/w GM ${html}`, func);
         }
     }
 };
