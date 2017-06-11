@@ -269,7 +269,7 @@ PfInfo.inset = function(text, emphasis) {
     return `<div style="${PfInfo.INSET_STYLE}${emphasis}">${text}</div>`;
 };
 
-PfInfo.showStatus = function( token, symbol, name, text) {
+PfInfo.showStatus = function( token, symbol, name, text, value) {
 
     let html = "";
     let statuses = [
@@ -287,7 +287,9 @@ PfInfo.showStatus = function( token, symbol, name, text) {
         'angel-outfit', 'archery-target'
     ];
 
-    let value = token?token.get("status_" + symbol):true;
+    if (!value) {
+        value = token ? token.get("status_" + symbol) : true;
+    }
     if (value) {
         let i = _.indexOf(statuses, symbol);
         let number = parseInt(value);
@@ -465,11 +467,14 @@ PfInfo.infoCommand = function(playerId, token) {
     cmbNotes = PfInfo.parseCustomFields(characterName, cmbNotes);
     let attackNotes = getAttrByName(character.id, "attack-notes");
     attackNotes = PfInfo.parseCustomFields(characterName, attackNotes);
+    let defenseNotes = getAttrByName(character.id, "defense-notes");
+    defenseNotes = PfInfo.parseCustomFields(characterName, defenseNotes);
 
     html += PfInfo.line("Melee Attacks", meleeAttackNotes);
     html += PfInfo.line("Ranged Attacks", rangedAttackNotes);
     html += PfInfo.line("CMB", cmbNotes);
     html += PfInfo.line("Attacks", attackNotes);
+    html += PfInfo.line("Defence", defenseNotes);
 
     // Token statuses
     html += PfInfo.getStatusText(token);
@@ -670,7 +675,10 @@ PfInfo.statusEffects = {
                 "Is unconscious and dying." },
     'Dead': { status: "dead", description:
                 "Creature is dead. Gone. Destroyed." },
-    'Bleeding': { status: "pink", description: "Is bleeding HP every round. Heal DC 15 or cure effect to stop." }
+    'Bleeding': { status: "pink", description: "Is bleeding HP every round. Heal DC 15 or cure effect to stop." },
+    'Attack Bonus': { status: "all-for-one", description: "Gets a bonus to all attack rolls." },
+    'Damage Bonus': { status: "grenade", description: "Gets a bonus to all damage rolls." },
+    'AC Bonus': { status: "bolt-shield", description: "Gets a bonus to AC." }
 };
 
 
@@ -683,6 +691,12 @@ PfInfo.setStatusCommand = function(playerId, status, tokens, value, set = true) 
     }
     if (value && (parseInt(value) < 0 || parseInt(value) > 9)) {
         PfInfo.error(player, "Status value must be between 0 and 9 inclusive.");
+        return;
+    }
+    if (status) {
+        status = status.replace(/-/, " ");
+    } else {
+        PfInfo.error(player, "No status provided.");
         return;
     }
 
@@ -703,10 +717,23 @@ PfInfo.setStatusCommand = function(playerId, status, tokens, value, set = true) 
             tokens[i].set( flags );
             if (PfInfo.isNamedCharacter(tokens[i])) {
                 PfInfo.setCharacterStatus(tokens[i], effect, set);
+                /*
+                if (set && playerIsGM(player.get("_id"))) {
+                    let character = getObj("character", tokens[i].get("represents"));
+                    let controlledBy = character.get("controlledby");
+                    if (controlledBy) {
+                        let controllers = controlledBy.split(",");
+                        for (let p = 0; p < controllers.length; p++) {
+                            let id = controllers[p].trim();
+
+                        }
+                    }
+                }
+                */
             }
         }
         if (set) {
-            PfInfo.whisper(player, PfInfo.showStatus(null, effect.status, status, effect.description));
+            PfInfo.whisper(player, PfInfo.showStatus(null, effect.status, status, effect.description, value));
         }
 
         return 0;

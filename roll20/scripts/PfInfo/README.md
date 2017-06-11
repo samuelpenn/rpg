@@ -33,7 +33,7 @@ It is recommended that the following macro is used for this API command, since
 it provides a drop down list of all the correct status types.
 
 ````
-!pfsetstatus ?{What status|Bleeding|Blind|Confused|Dazzled|Entangled|Exhausted|Fatigued|Frightened|Grappled|Helpless|Invisible|Pinned|Nauseated|Panicked|Paralyzed|Prone|Shaken|Sickened|Slowed|Stabilized|Staggered|Stunned|Unconscious|Dead} ?{Value}
+!pfsetstatus ?{What status|Bleeding|Blind|Confused|Dazzled|Entangled|Exhausted|Fatigued|Frightened|Grappled|Helpless|Invisible|Pinned|Nauseated|Panicked|Paralyzed|Prone|Shaken|Sickened|Slowed|Stabilized|Staggered|Stunned|Unconscious|Dead|Attack-Bonus|Damage-Bonus|AC-Bonus} ?{Value}
 ````
 
 **!pfunsetstatus** - Unsets the specified status from the selected tokens.
@@ -41,7 +41,7 @@ it provides a drop down list of all the correct status types.
 As with the set status command, it is recommended that a macro is used.
 
 ````
-!pfunsetstatus ?{What status|Bleeding|Blind|Confused|Dazzled|Entangled|Exhausted|Fatigued|Frightened|Grappled|Helpless|Invisible|Pinned|Nauseated|Panicked|Paralyzed|Prone|Shaken|Sickened|Slowed|Stabilized|Staggered|Stunned|Unconscious|Dead}
+!pfunsetstatus ?{What status|Bleeding|Blind|Confused|Dazzled|Entangled|Exhausted|Fatigued|Frightened|Grappled|Helpless|Invisible|Pinned|Nauseated|Panicked|Paralyzed|Prone|Shaken|Sickened|Slowed|Stabilized|Staggered|Stunned|Unconscious|Dead|Attack-Bonus|Damage-Bonus|AC-Bonus}
 ````
 
 Advanced
@@ -84,17 +84,20 @@ Other status icons are used as follows:
 | sleepy       | Exhausted.          | |
 | half-haze    | Fatigued.           | |
 | broken-heart | Frightened.         | |
-| padlock      | Grappled.           | |
+| fist         | Grappled.           | |
 | ninja-mask   | Invisible.          | |
 | radioactive  | Nauseated           | |
 | half-heart   | Panicked.           | |
-| Cobweb       | Paralyzed.          | |
+| cobweb       | Paralyzed.          | |
+| padlock      | Pinned.             | |
 | chained-heart| Shaken.             | |
 | arrowed      | Prone.              | |
 | drink-me     | Sickened.           | |
 | pummeled     | Staggered.          | On zero hitpoints. |
 | interdiction | Stunned.            | |
-| fist         | Power Attack.       | Just used to aid in memory. |
+| all-for-one  | Attack Bonus.       | Used in conjunction with a value to specify the bonus. | 
+| grenade      | Damage Bonus.       | Used in conjunction with a value to specify the bonus. | 
+| bolt-shield  | AC Bonus.           | Used in conjunction with a value to specify the bonus. | 
 
 The **PfCombat** API will set some of these automatically. A summery of
 the Pathfinder rules for the condition will be provided for tokens that
