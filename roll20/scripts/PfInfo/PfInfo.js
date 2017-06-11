@@ -668,7 +668,7 @@ PfInfo.statusEffects = {
     'Staggered': { status: "pummeled", description:
                 "Only a move or standard action (plus swift and immediate)." },
     'Stunned': { status: "interdiction", attribute: "condition-Stunned", value: "2", description:
-                "Cannot take actions, drops everything held, takes a -2 penalty to AC, loses its Dex bonus to AC." },
+                "Cannot take actions, drops everything held, takes a -2 penalty to AC, loses Dex bonus to AC." },
     'Helpless': { status: "aura", attribute: "condition-Helpless", value: "1", description:
                 "Dexterity is 0 (-5)." },
     'Unconscious': { status: "skull", description:
@@ -717,19 +717,24 @@ PfInfo.setStatusCommand = function(playerId, status, tokens, value, set = true) 
             tokens[i].set( flags );
             if (PfInfo.isNamedCharacter(tokens[i])) {
                 PfInfo.setCharacterStatus(tokens[i], effect, set);
-                /*
                 if (set && playerIsGM(player.get("_id"))) {
+                    log("Player is GM");
                     let character = getObj("character", tokens[i].get("represents"));
                     let controlledBy = character.get("controlledby");
+                    log("Controlled By = " + controlledBy);
                     if (controlledBy) {
                         let controllers = controlledBy.split(",");
                         for (let p = 0; p < controllers.length; p++) {
                             let id = controllers[p].trim();
-
+                            log(id);
+                            let otherPlayer = getObj("player", id);
+                            if (otherPlayer) {
+                                log("Whispering to " + otherPlayer.get("displayname"));
+                                PfInfo.whisperTo(tokens[i].get("name"), otherPlayer, PfInfo.showStatus(null, effect.status, status, effect.description, value));
+                            }
                         }
                     }
                 }
-                */
             }
         }
         if (set) {
@@ -850,6 +855,14 @@ PfInfo.message = function(player, message, title, func) {
     }
 };
 
+/**
+ * Whisper message to the GM only.
+ *
+ * @param player
+ * @param message
+ * @param title
+ * @param func
+ */
 PfInfo.whisper = function(player, message, title, func) {
     if (message) {
         let html = "<div style='" + PfInfo.BOX_STYLE + "'>";
@@ -865,6 +878,34 @@ PfInfo.whisper = function(player, message, title, func) {
             sendChat(player, `/w GM ${html}`, func);
         } else {
             sendChat("", `/w GM ${html}`, func);
+        }
+    }
+};
+
+/**
+ * Whispher message to another player.
+ *
+ * @param from
+ * @param to
+ * @param message
+ * @param title
+ * @param func
+ */
+PfInfo.whisperTo = function(from, to, message, title, func) {
+    if (message && to) {
+        let html = "<div style='" + PfInfo.BOX_STYLE + "'>";
+        if (title) {
+            html += `<h3>${title}</h3>`;
+        }
+        html += message;
+        html += "</div>";
+
+        if (from && typeof(from) === "object") {
+            sendChat(`player|${from.get("_id")}`, `/w "${to.get("displayname")}" ${html}`, func);
+        } else if (from && typeof(from) === "string") {
+            sendChat(from, `/w "${to.get("displayname")}" ${html}`, func);
+        } else {
+            sendChat("", `/w "${to.get("displayname")}" ${html}`, func);
         }
     }
 };
