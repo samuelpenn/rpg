@@ -1152,19 +1152,13 @@ PfCombat.getMessageBox = function(token, message, whisper = null) {
 };
 
 PfCombat.message = function(token, message, func) {
-    //let character = getObj("character", token.get("represents"));
-
-    //let html = PfInfo.infoBlock(character, token.get("name"), token, message);
-
-    PfInfo.message(token.get("name"), message, null, func);
-/*
-    //let html = PfCombat.getMessageBox(token, message);
-    if (!func) {
-        sendChat("", "/desc " + html);
+    // If object is on player object layer, broadcast the message, otherwise
+    // whisper it to the GM.
+    if (token.get("layer") === "objects") {
+        PfInfo.message(token.get("name"), message, null, func);
     } else {
-        sendChat("", "/desc " + html, func);
+        PfInfo.whisper(token.get("name"), message, null, func);
     }
-    */
 };
 
 PfCombat.whisper = function(token, message, func) {
