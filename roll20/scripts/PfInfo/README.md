@@ -33,7 +33,7 @@ It is recommended that the following macro is used for this API command, since
 it provides a drop down list of all the correct status types.
 
 ````
-!pfsetstatus ?{What status|Blind|Confused|Dazzled|Entangled|Exhausted|Fatigued|Frightened|Grappled|Pinned|Nauseated|Panicked|Paralyzed|Prone|Shaken|Sickened|Slowed|Stabilized|Staggered|Stunned|Invisible|Helpless|Unconscious|Dead}
+!pfsetstatus ?{What status|Bleeding|Blind|Confused|Dazzled|Entangled|Exhausted|Fatigued|Frightened|Grappled|Helpless|Invisible|Pinned|Nauseated|Panicked|Paralyzed|Prone|Shaken|Sickened|Slowed|Stabilized|Staggered|Stunned|Unconscious|Dead} ?{Value}
 ````
 
 **!pfunsetstatus** - Unsets the specified status from the selected tokens.
@@ -41,7 +41,7 @@ it provides a drop down list of all the correct status types.
 As with the set status command, it is recommended that a macro is used.
 
 ````
-!pfunsetstatus ?{What status|Blind|Confused|Dazzled|Entangled|Exhausted|Fatigued|Frightened|Grappled|Pinned|Nauseated|Panicked|Paralyzed|Prone|Shaken|Sickened|Slowed|Stabilized|Staggered|Stunned|Invisible|Helpless|Unconscious|Dead}
+!pfunsetstatus ?{What status|Bleeding|Blind|Confused|Dazzled|Entangled|Exhausted|Fatigued|Frightened|Grappled|Helpless|Invisible|Pinned|Nauseated|Panicked|Paralyzed|Prone|Shaken|Sickened|Slowed|Stabilized|Staggered|Stunned|Unconscious|Dead}
 ````
 
 Advanced
@@ -73,9 +73,10 @@ Other status icons are used as follows:
 | ------------ | ------------------- | ----------- |
 | brown        | Moderately wounded. | 2/3 hitpoints or fewer. |
 | red          | Heavily wounded.    | 1/3 hitpoints or fewer. |
-| green        | Stablised.          | On negative hitpoints, but not bleeding. |
+| green        | Stablised.          | On negative hitpoints, but not dying. |
 | skull        | Unconscious.        | Negative hitpoints and unconscious. |
 | dead         | Dead.               | Creature is dead, destroyed or dispersed. |
+| pink         | Bleeding.           | Bleeding HP each round. |
 | bleeding-eye | Blind.              | |
 | screaming    | Confused.           | |
 | overdrive    | Dazzled             | |
@@ -84,6 +85,7 @@ Other status icons are used as follows:
 | half-haze    | Fatigued.           | |
 | broken-heart | Frightened.         | |
 | padlock      | Grappled.           | |
+| ninja-mask   | Invisible.          | |
 | radioactive  | Nauseated           | |
 | half-heart   | Panicked.           | |
 | Cobweb       | Paralyzed.          | |

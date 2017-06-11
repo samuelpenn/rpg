@@ -51,8 +51,8 @@ on("ready", function() {
     log(`Type !pfhelp for help.`);
 
     PfInfo.addPlayerHelp("!pfhelp", "This message text.");
-    PfInfo.addPlayerHelp("!pfsetstatus", "Args: <b>status</b><br/>Set the status on the selected token.");
-    PfInfo.addPlayerHelp("!pfunsetstatus", "Args: <b>status</b><br/>Unset the status on the selected token.");
+    PfInfo.addPlayerHelp("!pfsetstatus", "Args: <b>status</b>, <b>[value]</b><br/>Set the status on the selected token.");
+    PfInfo.addPlayerHelp("!pfunsetstatus", "Args: <b>status</b>, <b>[value]</b><br/>Unset the status on the selected token.");
     PfInfo.addGmHelp("!pfinfo", "Args: <b>tokenId</b><br/>Output status and information on a token and character.");
 });
 
@@ -100,17 +100,21 @@ PfInfo.error = function(player, message) {
         message = "Unknown error.";
     }
 
-    if (player && typeof(player) === "object") {
-        sendChat("PfInfo", `/w "${player.get("_displayname")}" ${message}`);
-    } else if (player && typeof(player) === "string") {
-        let player = getObj("player", player);
-        if (player) {
+    try {
+        if (player && typeof(player) === "object") {
             sendChat("PfInfo", `/w "${player.get("_displayname")}" ${message}`);
+        } else if (player && typeof(player) === "string") {
+            let player = getObj("player", player);
+            if (player) {
+                sendChat("PfInfo", `/w "${player.get("_displayname")}" ${message}`);
+            } else {
+                sendChat("PfInfo", `/w GM ${message}`);
+            }
         } else {
             sendChat("PfInfo", `/w GM ${message}`);
         }
-    } else {
-        sendChat("PfInfo", `/w GM ${message}`);
+    } catch (err) {
+        sendChat("PfInfo", `/w GM Something went very wrong reporting error: ${message}`);
     }
 };
 
@@ -214,6 +218,7 @@ on("chat:message", function(msg) {
         }
     } else if (command === "!pfsetstatus" || command === "!pfunsetstatus") {
         let status = args.shift();
+        let value = args.shift();
         let tokenId = args.shift();
         let tokens = [];
         if (tokenId) {
@@ -221,7 +226,7 @@ on("chat:message", function(msg) {
         } else {
             tokens = PfInfo.getSelectedTokens(msg, false);
         }
-        PfInfo.setStatusCommand(playerId, status, tokens, (command === "!pfsetstatus"));
+        PfInfo.setStatusCommand(playerId, status, tokens, value, (command === "!pfsetstatus"));
     } else if (command === "!pfhelp") {
         PfInfo.help(playerId);
     }
@@ -288,8 +293,8 @@ PfInfo.showStatus = function( token, symbol, name, text) {
         let number = parseInt(value);
 
         if (number > 0) {
-            number = "<span style='color:#ff0000; background-color: white; font-weight: bold; font-size: 120%; " +
-                     "text-align: right; vertical-align: bottom;'>" + number + "</span>";
+            name = name + " (<span style='color:red'>" + number + "</span>)";
+            number = "";
         } else {
             number = "";
         }
@@ -632,6 +637,9 @@ PfInfo.statusEffects = {
     'Grappled': { status: "fist", attribute: "condition-Grappled", value: "2", description:
                 "Cannot move or take actions that require hands. -4 Dex, -2 attacks and combat maneuvers "+
                 "except to escape. Concentration to cast spells, do not threaten." },
+    'Invisible': { status: "ninja-mask", attribute: "condition-Invisible", value: "2", description:
+                "+2 bonus on attacks, ignores Dex bonus to AC. +40/+20 bonus to stealth if stationary/moving. "+
+                "50% concealment." },
     'Pinned': { status: "padlock", attribute: "condition-Pinned", value: "4", description:
                 "Cannot move or take actions that require hands. -4 AC, -4 Dex, -2 attacks and combat maneuvers "+
                 "except to escape. Concentration to cast spells, do not threaten." },
@@ -656,19 +664,27 @@ PfInfo.statusEffects = {
                 "Only a move or standard action (plus swift and immediate)." },
     'Stunned': { status: "interdiction", attribute: "condition-Stunned", value: "2", description:
                 "Cannot take actions, drops everything held, takes a -2 penalty to AC, loses its Dex bonus to AC." },
-    'Invisible': { status: "aura", attribute: "condition-Invisible", value: "2", description:
-                "+2 to attacks." },
     'Helpless': { status: "aura", attribute: "condition-Helpless", value: "1", description:
                 "Dexterity is 0 (-5)." },
     'Unconscious': { status: "skull", description:
                 "Is unconscious and dying." },
     'Dead': { status: "dead", description:
-                "Creature is dead. Gone. Destroyed." }
+                "Creature is dead. Gone. Destroyed." },
+    'Bleeding': { status: "pink", description: "Is bleeding HP every round. Heal DC 15 or cure effect to stop." }
 };
 
 
-PfInfo.setStatusCommand = function(playerId, status, tokens, set = true) {
+PfInfo.setStatusCommand = function(playerId, status, tokens, value, set = true) {
     let player = getObj("player", playerId);
+
+    if (!player || !playerId) {
+        PfInfo.error(null, "No player found.");
+        return;
+    }
+    if (value && (parseInt(value) < 0 || parseInt(value) > 9)) {
+        PfInfo.error(player, "Status value must be between 0 and 9 inclusive.");
+        return;
+    }
 
     if (PfInfo.statusEffects[status]) {
         let effect = PfInfo.statusEffects[status];
@@ -679,13 +695,19 @@ PfInfo.setStatusCommand = function(playerId, status, tokens, set = true) {
                 continue;
             }
             let flags = [];
-            flags['status_' + effect.status ] = set;
+            if (value && set) {
+                flags['status_' + effect.status] = value;
+            } else {
+                flags['status_' + effect.status] = set;
+            }
             tokens[i].set( flags );
             if (PfInfo.isNamedCharacter(tokens[i])) {
                 PfInfo.setCharacterStatus(tokens[i], effect, set);
             }
         }
-        PfInfo.whisper(player, PfInfo.showStatus(null, effect.status, status, effect.description));
+        if (set) {
+            PfInfo.whisper(player, PfInfo.showStatus(null, effect.status, status, effect.description));
+        }
 
         return 0;
     } else {
@@ -697,7 +719,7 @@ PfInfo.setStatusCommand = function(playerId, status, tokens, set = true) {
                 msg = s;
             }
         }
-        PfInfo.error(playerId, `Unknown status '${status}', use one of: ${msg}`);
+        PfInfo.error(player, `Unknown status '${status}', use one of: ${msg}`);
         return -1;
     }
 };
@@ -750,8 +772,6 @@ PfInfo.setCharacterStatus = function(token, status, set) {
             });
         }
     }
-
-
 };
 
 PfInfo.BOX_STYLE="background-color: #EEEEDD; color: #000000; margin-top: 0px; " +
