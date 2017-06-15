@@ -67,6 +67,7 @@ on("ready", function() {
         // Player commands.
         PfInfo.addPlayerHelp("!pfdescribe", "Args: <b>tokenId</b><br/>Describe the selected token, " +
                              "outputting avatar and description to the chat window.");
+        PfInfo.addPlayerHelp("!pfmissions", "List all available currently active jobs.");
 
         // GM Only commands.
         //PfInfo.addGmHelp("!pflights", "Args: <b>duration</b>, <b>tokenId</b><br/>Reduce time left on light sources.");
@@ -99,7 +100,7 @@ on("chat:message", function(msg) {
         let id = args.shift();
 
         PfDescribe.describe(msg, player, id);
-    } else if (command === "!missions") {
+    } else if (command === "!pfmissions") {
         let verbose = false;
         let whisper = false;
         while (flag = args.shift()) {
@@ -111,9 +112,9 @@ on("chat:message", function(msg) {
             }
         }
         PfDescribe.missions(msg, player, verbose, whisper);
-    } else if (command === "!mission") {
+    } else if (command === "!pfmission") {
         if (args.length === 0) {
-            PfInfo.error(player, "!mission expects a parameter. Use !missions to get list of missions.");
+            PfInfo.error(player, "!pfmission expects a parameter. Use !pfmissions to get list of missions.");
             return;
         }
         let id = args.shift();
@@ -176,7 +177,7 @@ PfDescribe.missionHandout = function(handout, player, callback, whisper=false) {
         return;
     }
     handout.get("notes", function(notes) {
-        let notes = unescape(notes);
+        notes = unescape(notes);
 
         handout.get("gmnotes", function(gmnotes) {
             gmnotes = unescape(gmnotes);
@@ -290,10 +291,11 @@ PfDescribe.missionList = function(handout, player, title, faction, reward, compl
     if (reward) {
         title += " (" + reward + ")";
     }
+    let text = "";
     if (whisper) {
-        let text = "[" + title + "](!mission " + handout.get("_id") + " whisper)";
+        text = "[" + title + "](!pfmission " + handout.get("_id") + " whisper)";
     } else {
-        let text = "[" + title + "](!mission " + handout.get("_id") + ")";
+        text = "[" + title + "](!pfmission " + handout.get("_id") + ")";
     }
 
     faction = PfDescribe.getFaction(faction);
@@ -319,13 +321,14 @@ PfDescribe.mission = function(msg, player, id, whisper = false) {
 
 
 PfDescribe.missions = function(msg, player, verbose = false, whisper = false) {
+    let list = null;
     if (whisper && playerIsGM(player.get("id"))) {
-        let list = findObjs({
+        list = findObjs({
             _type: "handout",
             archived: false
         });
     } else {
-        let list = findObjs({
+        list = findObjs({
             _type: "handout",
             inplayerjournals: "all",
             archived: false
