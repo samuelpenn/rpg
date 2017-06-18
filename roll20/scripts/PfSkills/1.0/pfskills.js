@@ -261,15 +261,15 @@ PfSkills.setupTemplate = function(name, character, title) {
  * things to make as few requests as possible.
  */
 PfSkills.getSkill = function(characterName, list, skill, d20roll, name) {
-    var ranks = PfSkills.getAttributeValue(list, skill + "-ranks");
-    if (!ranks) {
-        var reqTrain = PfSkills.getAttributeValue(list, skill + "-ReqTrain");
-        if (reqTrain === 1) {
+    let ranks = PfSkills.getAttributeValue(list, skill + "-ranks");
+
+    if (!ranks || parseInt(ranks) === 0) {
+        let reqTrain = PfSkills.getAttributeValue(list, skill + "-ReqTrain");
+        if (reqTrain && parseInt(reqTrain) === 1) {
             return "";
         }
     }
-    log("Calculating character name to be " + characterName);
-    var skillNote = PfSkills.getAttributeValue(list, skill + "-note");
+    let skillNote = PfSkills.getAttributeValue(list, skill + "-note");
 
     if (skillNote) {
         skillNote = "\n" + skillNote.replace(/@{([^|}]*)}/g, "@{"+characterName+"|$1}");
@@ -277,23 +277,24 @@ PfSkills.getSkill = function(characterName, list, skill, d20roll, name) {
         skillNote = "";
     }
 
-    var score = parseInt(PfSkills.getAttributeValue(list, skill));
+    let score = parseInt(PfSkills.getAttributeValue(list, skill));
     if (score !== parseInt(score)) {
         return "";
     }
 
     skill = skill.replace("-", " ");
+    let template = "";
     if (d20roll) {
-        var template = "{{<b>" + name + " (" + score + ")</b>" + skillNote + "=<b>" + (d20roll + score) + "</b>}}";
+        template = "{{<b>" + name + " (" + score + ")</b>" + skillNote + "=<b>" + (d20roll + score) + "</b>}}";
     } else {
-        var template = "{{<b>" + name + " (" + score + ")</b>" + skillNote + "=[[d20 + " + score + "]]}}";
+        template = "{{<b>" + name + " (" + score + ")</b>" + skillNote + "=[[d20 + " + score + "]]}}";
     }
     return template;
 };
 
 PfSkills.getAttribute = function(list, attribute, d20roll, name) {
-    var base = parseInt(PfSkills.getAttributeValue(list, attribute+"-base"));
-    var cond = parseInt(PfSkills.getAttributeValue(list, "checks-cond"));
+    let base = parseInt(PfSkills.getAttributeValue(list, attribute+"-base"));
+    let cond = parseInt(PfSkills.getAttributeValue(list, "checks-cond"));
 
     // Calculate score ourselves, because we can do it quicker than reading
     // it from the character sheet.
@@ -319,11 +320,11 @@ PfSkills.getDefaultValue = function(list, key) {
         return PfSkills.defaults[key];
     }
 
-    var characterId = list[0].get("_characterid");
-    var value = getAttrByName(characterId, key);
+    let characterId = list[0].get("_characterid");
+    let value = getAttrByName(characterId, key);
 
     PfSkills.defaults[key] = value;
-    log("Default [" + key + "]: [" + value + "]");
+    //log("Default [" + key + "]: [" + value + "]");
 
     return value;
 };
