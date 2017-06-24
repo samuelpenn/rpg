@@ -27,47 +27,54 @@
  */
 
 
-var Treasure = Treasure || {};
+var PfTreasure = PfTreasure || {};
+PfTreasure.VERSION = "2.0";
 
+on("ready", function() {
+    log(`==== PfTreasure Version ${PfTreasure.VERSION} ====`);
+
+    if (PfInfo) {
+        // Player commands.
+        PfInfo.addPlayerHelp("!pftreasure", "Args: <b>tokenId</b><br/>Generate random treasure for the token.");
+        // GM Only commands.
+        //PfInfo.addGmHelp("!pflights", "Args: <b>duration</b>, <b>tokenId</b><br/>Reduce time left on light sources.");
+    } else {
+        sendChat("PfDescribe", "PfTreasure API depends on PfInfo, which is missing.");
+    }
+});
 
 /**
  * Treasure.
  */
 on("chat:message", function(msg) {
-    if (msg.type !== "api") return;
-    if (msg.content.split(" ", 1)[0] != "!pftreasure") {
-        return;
-    }
+    let args = PfInfo.getArgs(msg);
+    let command = args.shift();
 
-    var store = true;
-    if (msg.content.split(" ", 2)[1] == "nostore") {
-        store = false;
-    }
+    if (command === "!pftreasure") {
+        let store = true;
+        let option = args.shift();
+        if (option === "nostore") {
+            store = false;
+        }
 
-    if (msg.selected.length > 0) {
-        for (var i=0; i < msg.selected.length; i++) {
-            var tokenId = msg.selected[i]._id;
-            var token = getObj("graphic", tokenId);
-            if (token != null) {
-                var character_id = token.get("represents");
-                if (character_id == null) {
-                    continue;
-                }
-                var character = getObj("character", character_id);
-                Treasure.generate(token, character, store);
+        let tokens = PfInfo.getSelectedTokens(msg);
+        if (tokens && tokens.length > 0) {
+            for (let i=0; i < tokens.length; i++) {
+                let characterId = tokens[i].get("represents");
+                let character = getObj("character", characterId);
+                PfTreasure.generate(tokens[i], character, store);
             }
         }
     }
-    return;
 });
 
 
-Treasure.BOX_STYLE="background-color: #DDDDAA; color: #000000; padding:0px; border:1px solid black; border-radius: 5px";
-Treasure.TITLE_STYLE="background-color: #000000; color: #FFFFFF; padding: 1px; text-align: center";
+PfTreasure.BOX_STYLE="background-color: #DDDDAA; color: #000000; padding:0px; border:1px solid black; border-radius: 5px";
+PfTreasure.TITLE_STYLE="background-color: #000000; color: #FFFFFF; padding: 1px; text-align: center";
 
-Treasure.line = function(message) {
+PfTreasure.line = function(message) {
     return "<p style='margin-bottom: 0px'>" + message + "</p>";
-}
+};
 
 /**
  * Format the output using the special replacement syntax. There are two replacement
@@ -75,20 +82,20 @@ Treasure.line = function(message) {
  * <<a|b|c>> - Select a random item from the list, delimited with |.
  * !!Var - Replace with a random item from the named variable list.
  */
-Treasure.format = function(message) {
+PfTreasure.format = function(message) {
     while (message.indexOf("<<") > -1) {
-        var left = message.substring(0, message.indexOf("<<") );
-        var right = message.substring(message.indexOf(">>") + 2);
-        var array = message.substring(message.indexOf("<<") + 2, message.indexOf(">>") ).split("|");
-        var chosen = array[randomInteger(array.length - 1)];
+        let left = message.substring(0, message.indexOf("<<") );
+        let right = message.substring(message.indexOf(">>") + 2);
+        let array = message.substring(message.indexOf("<<") + 2, message.indexOf(">>") ).split("|");
+        let chosen = array[randomInteger(array.length - 1)];
 
         message = left + chosen + right;
     }
     while (list = message.match(/!![A-Za-z]+/)) {
-        var variable = list[0].replace(/!/g, "");
-        var result = "";
-        if (Treasure.vars[variable] != null) {
-            var vars = Treasure.vars[variable];
+        let variable = list[0].replace(/!/g, "");
+        let result = "";
+        if (Treasure.vars[variable]) {
+            let vars = Treasure.vars[variable];
             result = vars[randomInteger(vars.length -1)];
         } else {
             result = "XXXX";
@@ -97,11 +104,11 @@ Treasure.format = function(message) {
     }
 
     return message;
-}
+};
 
-Treasure.generate = function(token, character, store) {
-    var treasureType = getAttrByName(character.id, "TreasureType");
-    var treasureValue = getAttrByName(character.id, "TreasureType", "max");
+PfTreasure.generate = function(token, character, store) {
+    let treasureType = getAttrByName(character.id, "TreasureType");
+    let treasureValue = getAttrByName(character.id, "TreasureType", "max");
 
     // Treasure types are:
     //   common
@@ -109,38 +116,38 @@ Treasure.generate = function(token, character, store) {
     //   noble
     //   thug
     //   beggar
-    if (treasureType == null) {
+    if (!treasureType) {
         treasureType = "Scum";
     }
-    if (treasureValue == null) {
+    if (!treasureValue) {
         treasureValue = 1;
     }
-    var gmnotes = token.get("gmnotes");
-    var message = "";
+    let gmnotes = token.get("gmnotes");
+    let message = "";
 
-    if (store == false || (gmnotes != null && gmnotes.indexOf("TREASURE") == -1)) {
-        var items = Treasure.getRandomTreasure(treasureType, treasureValue);
+    if (!store || (gmnotes  && gmnotes.indexOf("TREASURE") === -1)) {
+        let items = PfTreasure.getRandomTreasure(treasureType, treasureValue);
 
         if (items.length > 0) {
-            var sortedItems = items.sort(function(a, b) { return a[0] - b[0] } );
-            var dc = 0;
-            for (var i = 0; i < sortedItems.length; i++) {
+            let sortedItems = items.sort(function(a, b) { return a[0] - b[0] } );
+            let dc = 0;
+            for (let i = 0; i < sortedItems.length; i++) {
                 if (sortedItems[i][0] > dc) {
                     dc = sortedItems[i][0];
-                    message += Treasure.line("<span style='font-weight: bold; border: 1pt solid black; border-radius: 3px; padding: 0px 3px 0px 3px; background-color: #DDCC77'>DC " + dc + "</span>");
+                    message += PfTreasure.line("<span style='font-weight: bold; border: 1pt solid black; border-radius: 3px; padding: 0px 3px 0px 3px; background-color: #DDCC77'>DC " + dc + "</span>");
                 }
-                var text = Treasure.format(sortedItems[i][1]);
+                let text = PfTreasure.format(sortedItems[i][1]);
                 if (sortedItems[i].length > 2) {
-                    var specialTable = sortedItems[i][2];
-                    var special = Treasure.getFromSpecialTable(specialTable);
-                    if (special != null) {
-                        text += " <em>" + Treasure.format(special[0]) + "</em>";
+                    let specialTable = sortedItems[i][2];
+                    let special = PfTreasure.getFromSpecialTable(specialTable);
+                    if (special) {
+                        text += " <em>" + PfTreasure.format(special[0]) + "</em>";
                     }
                 }
-                message += Treasure.line(Treasure.inlineRolls(text));
+                message += PfTreasure.line(PfTreasure.inlineRolls(text));
             }
         } else {
-            message += Treasure.line("Nothing.");
+            message += PfTreasure.line("Nothing.");
         }
         if (store) {
             token.set({
@@ -153,86 +160,82 @@ Treasure.generate = function(token, character, store) {
         message = message.substring(message.indexOf("<span"));
     }
 
-    Treasure.message(character, token.get("name") + ": " + treasureType + " / " + treasureValue, message);
-}
+    PfTreasure.message(character, token.get("name") + ": " + treasureType + " / " + treasureValue, message);
+};
 
 /**
  * Roll a number of dice of a given size and return the total.
  */
-Treasure.getRoll = function(sides, dice) {
-    var total = 0;
+PfTreasure.getRoll = function(sides, dice) {
+    let total = 0;
     for (; dice > 0; dice--) {
         total += randomInteger(sides);
     }
     return total;
-}
+};
 
 /**
  * Find all references to [[xdy+z]] in the text, and replace with the results.
  * Returns the message text. This is a simple dice roller.
  */
-Treasure.inlineRolls = function(message) {
-    if (message == null) {
+PfTreasure.inlineRolls = function(message) {
+    if (!message) {
         return "";
     }
     while (message.indexOf("[[") > -1) {
-        var inline = message.substring(message.indexOf("[[")+2, message.indexOf("]]")).replace(/ /g, "");
-        var total = 0;
+        let inline = message.substring(message.indexOf("[[")+2, message.indexOf("]]")).replace(/ /g, "");
+        let total = 0;
         if (inline.indexOf("d")) {
-            var number = parseInt(inline.replace(/d.*/, ""));
-            var sides = parseInt(inline.replace(/.*d([0-9]+)/, "$1"));
-            total = Treasure.getRoll(sides, number);
+            let number = parseInt(inline.replace(/d.*/, ""));
+            let sides = parseInt(inline.replace(/.*d([0-9]+)/, "$1"));
+            total = PfTreasure.getRoll(sides, number);
             if (inline.indexOf("+")) {
                 total += parseInt(inline.replace(/.*\+([0-9]+).*/, "$1"));
             }
         }
 
-        var result = total;
-
-        message = message.replace(/\[\[.*?\]\]/, result);
+        message = message.replace(/\[\[.*?\]\]/, total);
     }
 
     return message;
-}
+};
 
-Treasure.getFromSpecialTable = function(tableName) {
-    var table = Treasure.special[tableName].table;
+PfTreasure.getFromSpecialTable = function(tableName) {
+    let table = PfTreasure.special[tableName].table;
 
-    if (table == null) {
+    if (!table) {
         log("No such special table [" + tableName + "]");
         return null;
     }
 
-    var size = table.length;
+    let size = table.length;
 
-    var item = table[randomInteger(size) - 1]
+    return table[randomInteger(size) - 1];
+};
 
-    return item;
-}
-
-Treasure.getItemFromTable = function(tableName) {
-    if (Treasure.lists[tableName] == null) {
+PfTreasure.getItemFromTable = function(tableName) {
+    if (!PfTreasure.lists[tableName]) {
         return null;
     }
 
-    var table = Treasure.lists[tableName].table;
+    let table = PfTreasure.lists[tableName].table;
 
-    if (table == null) {
+    if (!table) {
         log("No such treasure table [" + tableName + "]");
         return null;
     }
 
-    var size = table.length;
+    let size = table.length;
 
-    var item = table[randomInteger(size) - 1]
+    let item = table[randomInteger(size) - 1];
 
-    if (item[0] == 0) {
+    if (parseInt(item[0]) === 0) {
         // Use a different table.
-        item = Treasure.getItemFromTable(item[1])
+        item = PfTreasure.getItemFromTable(item[1])
     }
 
     return item;
-}
+};
 
 /**
  * Gets an array of random items from the specified table. If no items are
@@ -249,51 +252,51 @@ Treasure.getItemFromTable = function(tableName) {
  * 'A' represents the cheapest items, 'G' represents the most expensive
  * (though most things cap out at 'E').
  */
-Treasure.getItems = function(tableName, number) {
-    var items = [];
+PfTreasure.getItems = function(tableName, number) {
+    let items = [];
 
-    if (tableName == null || number == null || number < 1) {
+    if (!tableName || !number) {
         return [];
     }
 
-    if (Treasure.lists[tableName] == null || Treasure.lists[tableName].table == null) {
+    if (!PfTreasure.lists[tableName] || !PfTreasure.lists[tableName].table) {
         // Table doesn't exist. Can we find a parent? If table
-        var subTables = "ABCDEFG";
-        var baseName = tableName.replace(/(.*) [A-G]$/, "$1");
-        var suffix = tableName.replace(/.* ([A-G])$/, "$1");
+        let subTables = "ABCDEFG";
+        let baseName = tableName.replace(/(.*) [A-G]$/, "$1");
+        let suffix = tableName.replace(/.* ([A-G])$/, "$1");
 
-        if (suffix != null && suffix.length == 1) {
-            if (subTables.indexOf(suffix) == 0) {
-                return Treasure.getItems(baseName, number);
+        if (suffix && suffix.length === 1) {
+            if (subTables.indexOf(suffix) === 0) {
+                return PfTreasure.getItems(baseName, number);
             } else if (subTables.indexOf(suffix) > 0) {
-                var i = subTables.indexOf(suffix) - 1;
-                return Treasure.getItems(baseName + " " + subTables.substring(i, i + 1), number);
+                let i = subTables.indexOf(suffix) - 1;
+                return PfTreasure.getItems(baseName + " " + subTables.substring(i, i + 1), number);
             }
         } else {
             return [];
         }
     }
 
-    for (var i=0; i < number; i++) {
-        var item = Treasure.getItemFromTable(tableName);
+    for (let i=0; i < number; i++) {
+        let item = PfTreasure.getItemFromTable(tableName);
 
-        if (item != null) {
+        if (item) {
             items.push(item);
         }
     }
 
     return items;
-}
+};
 
-Treasure.getRandomCoins = function(tableName, value) {
-    var table = Treasure.lists[tableName];
+PfTreasure.getRandomCoins = function(tableName, value) {
+    let table = PfTreasure.lists[tableName];
 
-    if (table == null || table.coins == null) {
+    if (!table || !table.coins) {
         log("No such treasure table [" + tableName + "]");
         return null;
     }
-    var coins = table.coins(parseInt(value));
-    var msg = "";
+    let coins = table.coins(parseInt(value));
+    let msg = "";
 
     if (coins.cp > 0) {
         msg += "" + coins.cp + " copper pinches; ";
@@ -310,66 +313,66 @@ Treasure.getRandomCoins = function(tableName, value) {
     msg = msg.replace(/; $/, ".");
 
     return [ 12, msg ];
-}
+};
 
-Treasure.getRandomTreasure = function(tableName, value) {
-    var items = [];
-    var cp = 0, sp = 0, gp = 0; pp = 0;
+PfTreasure.getRandomTreasure = function(tableName, value) {
+    let items = [];
+    let cp = 0, sp = 0, gp = 0; pp = 0;
 
-    if (tableName == null || value == null || value < 0) {
+    if (!tableName || !value  || parseInt(value) < 0) {
         return [];
     }
-    if (value == null || value < 1) {
+    if (!value || parseInt(value) < 1) {
         value = 0;
     }
     value = parseInt(value);
 
-    var coins = Treasure.getRandomCoins(tableName, value);
-    if (coins != null) {
+    let coins = PfTreasure.getRandomCoins(tableName, value);
+    if (coins) {
         items.push(coins);
     }
 
-    var tableA = tableName + " A";
-    var tableB = tableName + " B";
-    var tableC = tableName + " C";
-    var tableD = tableName + " D";
-    var tableE = tableName + " E";
+    let tableA = tableName + " A";
+    let tableB = tableName + " B";
+    let tableC = tableName + " C";
+    let tableD = tableName + " D";
+    let tableE = tableName + " E";
 
-    var roll = Treasure.getRoll(10, 1) + value * 3;
+    let roll = PfTreasure.getRoll(10, 1) + value * 3;
     if (roll <= 5) {
         // No items.
     } else if (roll <= 10) {
-        items = items.concat(Treasure.getItems(tableA, Treasure.getRoll(2, 1) ));
+        items = items.concat(PfTreasure.getItems(tableA, PfTreasure.getRoll(2, 1) ));
     } else if (roll <= 15) {
-        items = items.concat(Treasure.getItems(tableA, Treasure.getRoll(3, 1) + 1 ));
-        items = items.concat(Treasure.getItems(tableB, Treasure.getRoll(2, 1) - 1 ));
+        items = items.concat(PfTreasure.getItems(tableA, PfTreasure.getRoll(3, 1) + 1 ));
+        items = items.concat(PfTreasure.getItems(tableB, PfTreasure.getRoll(2, 1) - 1 ));
     } else if (roll <= 20) {
-        items = items.concat(Treasure.getItems(tableA, Treasure.getRoll(2, 1) - 1 ));
-        items = items.concat(Treasure.getItems(tableB, Treasure.getRoll(4, 1) ));
-        items = items.concat(Treasure.getItems(tableC, Treasure.getRoll(2, 1) - 1 ));
+        items = items.concat(PfTreasure.getItems(tableA, PfTreasure.getRoll(2, 1) - 1 ));
+        items = items.concat(PfTreasure.getItems(tableB, PfTreasure.getRoll(4, 1) ));
+        items = items.concat(PfTreasure.getItems(tableC, PfTreasure.getRoll(2, 1) - 1 ));
     } else if (roll <= 25) {
-        items = items.concat(Treasure.getItems(tableB, Treasure.getRoll(2, 1) - 1 ));
-        items = items.concat(Treasure.getItems(tableC, Treasure.getRoll(4, 1) ));
-        items = items.concat(Treasure.getItems(tableD, Treasure.getRoll(2, 1) - 1 ));
+        items = items.concat(PfTreasure.getItems(tableB, PfTreasure.getRoll(2, 1) - 1 ));
+        items = items.concat(PfTreasure.getItems(tableC, PfTreasure.getRoll(4, 1) ));
+        items = items.concat(PfTreasure.getItems(tableD, PfTreasure.getRoll(2, 1) - 1 ));
     } else if (roll <= 30) {
-        items = items.concat(Treasure.getItems(tableC, Treasure.getRoll(2, 1) - 1 ));
-        items = items.concat(Treasure.getItems(tableD, Treasure.getRoll(4, 1) ));
-        items = items.concat(Treasure.getItems(tableE, Treasure.getRoll(2, 1) - 1 ));
+        items = items.concat(PfTreasure.getItems(tableC, PfTreasure.getRoll(2, 1) - 1 ));
+        items = items.concat(PfTreasure.getItems(tableD, PfTreasure.getRoll(4, 1) ));
+        items = items.concat(PfTreasure.getItems(tableE, PfTreasure.getRoll(2, 1) - 1 ));
     } else if (roll <= 35) {
-        items = items.concat(Treasure.getItems(tableD, Treasure.getRoll(2, 1) - 1 ));
-        items = items.concat(Treasure.getItems(tableE, Treasure.getRoll(4, 1) ));
+        items = items.concat(PfTreasure.getItems(tableD, PfTreasure.getRoll(2, 1) - 1 ));
+        items = items.concat(PfTreasure.getItems(tableE, PfTreasure.getRoll(4, 1) ));
     } else {
-        items = items.concat(Treasure.getItems(tableE, Treasure.getRoll(4, 1) + 2 ));
+        items = items.concat(PfTreasure.getItems(tableE, PfTreasure.getRoll(4, 1) + 2 ));
     }
 
     return items;
-}
+};
 
-Treasure.message = function(character, title, message) {
-    if (message != null) {
-        var image = character.get("avatar");
-        var html = "<div style='" + Treasure.BOX_STYLE + "'>";
-        html += "<div style='" + Treasure.TITLE_STYLE + "'>" + title + "</div>";
+PfTreasure.message = function(character, title, message) {
+    if (message) {
+        let image = character.get("avatar");
+        let html = "<div style='" + PfTreasure.BOX_STYLE + "'>";
+        html += "<div style='" + PfTreasure.TITLE_STYLE + "'>" + title + "</div>";
         html += "<table><tr><td style='width:48px; vertical-align: top'>";
         html += "<img src='"+image+"' width='40px' style='float:left; padding-right: 5px;'/>";
         html += "</td><td style='width:auto; vertical-align: top'>";
@@ -379,18 +382,18 @@ Treasure.message = function(character, title, message) {
 
         sendChat(character.get("name"), "/w GM " + html);
     }
-}
+};
 
 // Following variables can be used as placeholders in text, and will be randomly
 // replaced with an item from the named list. e.g., $$Colours will insert a random
 // colour from the Colours list.
-Treasure.vars = {};
-Treasure.vars["Colours"] = [ "Red", "Blue", "Green", "Yellow", "Brown", "Black", "White" ];
-Treasure.vars["Humans"] = [ "Varisian", "Shoanti", "Chelexian", "Nidalese", "Mwangi", "Tian" ];
-Treasure.vars["Animals"] = [ "Bear", "Dog", "Cat", "Horse", "Fish", "Donkey", "Bird", "Wolf" ];
-Treasure.vars["GoodGods"] = [ "Abadar", "Calistria", "Cayden Cailean", "Desna", "Erastil", "Gozreh", "Iomedae", "Irori", "Nethys", "Pharasma", "Sarenrae", "Shelyn", "Torag", "Alseta", "Brigh", "Sivanah", "Naderi", "Milani", "Kurgess", "Hanspur" ];
-Treasure.vars["EvilGods"] = [ "Asmodeus", "Lamashtu", "Norgorber", "Rovagug", "Urgathoa", "Zon-Kuthon", "Achaekek", "Besmara", "Ghlaunder", "Groetus", "Gyronna", "Zyphus", "Razmir" ];
-Treasure.vars["Gods"] = [ "Abadar", "Asmodeus", "Calistria", "Cayden Cailean", "Desna", "Erastil", "Gozreh", "Iomedae", "Irori", "Lamashtu", "Nethys", "Norgorber", "Pharasma", "Rovagug", "Sarenrae", "Shelyn", "Torag", "Urgathoa", "Zon-Kuthon" ];
+PfTreasure.vars = {};
+PfTreasure.vars["Colours"] = [ "Red", "Blue", "Green", "Yellow", "Brown", "Black", "White" ];
+PfTreasure.vars["Humans"] = [ "Varisian", "Shoanti", "Chelexian", "Nidalese", "Mwangi", "Tian" ];
+PfTreasure.vars["Animals"] = [ "Bear", "Dog", "Cat", "Horse", "Fish", "Donkey", "Bird", "Wolf" ];
+PfTreasure.vars["GoodGods"] = [ "Abadar", "Calistria", "Cayden Cailean", "Desna", "Erastil", "Gozreh", "Iomedae", "Irori", "Nethys", "Pharasma", "Sarenrae", "Shelyn", "Torag", "Alseta", "Brigh", "Sivanah", "Naderi", "Milani", "Kurgess", "Hanspur" ];
+PfTreasure.vars["EvilGods"] = [ "Asmodeus", "Lamashtu", "Norgorber", "Rovagug", "Urgathoa", "Zon-Kuthon", "Achaekek", "Besmara", "Ghlaunder", "Groetus", "Gyronna", "Zyphus", "Razmir" ];
+PfTreasure.vars["Gods"] = [ "Abadar", "Asmodeus", "Calistria", "Cayden Cailean", "Desna", "Erastil", "Gozreh", "Iomedae", "Irori", "Lamashtu", "Nethys", "Norgorber", "Pharasma", "Rovagug", "Sarenrae", "Shelyn", "Torag", "Urgathoa", "Zon-Kuthon" ];
 
 /*
  * Each table may be divided into sub-tables with an A, B, C... suffix.
@@ -403,10 +406,10 @@ Treasure.vars["Gods"] = [ "Abadar", "Asmodeus", "Calistria", "Cayden Cailean", "
  * If the suffix table doesn't exist, it falls back to the next highest.
  */
 
-Treasure.special = {};
+PfTreasure.special = {};
 
-Treasure.special["Notes"] = {};
-Treasure.special["Notes"].table = [
+PfTreasure.special["Notes"] = {};
+PfTreasure.special["Notes"].table = [
     [ "Meet at a street in Underbridge [[1d4]] nights from now." ],
     [ "A list of [[2d4 + 5]] names on a scrap of parchment. All but the last [[1d3]] have had a line drawn through them. " ],
     [ "<<A crude|An erotic|A hastily drawn>> portrait of <<a young woman|an elf maiden|an orc|two coupling halflings>>, with '<<To Be Killed|Stupid Whore|My Love|Where are you?|Beloved>>' <<scrawled|written>> <<underneath|alongside|above>>." ],
@@ -421,8 +424,8 @@ Treasure.special["Notes"].table = [
     [ "By the third strike after noon, the <<dragon|dove|bird>> will <<fly|crawl|cry>> for freedom." ],
 ];
 
-Treasure.special["Maps"] = {};
-Treasure.special["Maps"].table = [
+PfTreasure.special["Maps"] = {};
+PfTreasure.special["Maps"].table = [
     [ "Map to a lake in the Mushfens." ],
     [ "Map of a dungeon." ],
     [ "Map of what look like sewers." ],
@@ -430,13 +433,13 @@ Treasure.special["Maps"].table = [
 ];
 
 
-Treasure.lists = {};
+PfTreasure.lists = {};
 
-Treasure.lists["Cursed"] = {};
-Treasure.lists["Cursed"].coins = function(value) {
+PfTreasure.lists["Cursed"] = {};
+PfTreasure.lists["Cursed"].coins = function(value) {
     return null;
-}
-Treasure.lists["Cursed"].table = [
+};
+PfTreasure.lists["Cursed"].table = [
     [ 6, "A <<brass|copper|wooden>> <<ring|pendent>> <<carved|inscribed|decorated|embossed>> with <<cats|dragons|fish|birds>>, -1 to all saves." ],
     [ 6, "A <<dog's|cat's|rat's>> <<stuffed|mummified>> head that makes a <<hiss|scream|sound>> when it is <<squeezed|kissed|petted|given water>>." ],
     [ 6, "A miniature skull with drops of water around its teeth, -10 to swim checks." ],
@@ -456,7 +459,7 @@ Treasure.lists["Cursed"].table = [
  *   D - Good quality. Gold.
  *   E - Fine quality. Many gold.
  */
-Treasure.lists["Clothing A"] = { "table": [
+PfTreasure.lists["Clothing A"] = { "table": [
     [ 6, "A <<quite|relatively>> clean cloak, with 'This belongs to <<Barsali|Silvui|Marino|Catalin|Angelo|Dukker>> of <<Abadar|Nethys|Desna|Erastil|Sarenrae>>' stitched into it." ],
     [ 6, "An old <<dirty|dusty|muddy|torn|>> cloak, with bloodstains and filled with arrow holes." ],
     [ 6, "An old <<dirty|dusty|muddy|torn|>> cloak, with a handful of <<black|green|blue|red|white>> dragon scales (DC 20) stitched on the shoulders." ],
@@ -479,7 +482,7 @@ Treasure.lists["Clothing A"] = { "table": [
     [ 18, "The buttons on the jacket are actually hiding silver shields, [[1d4+1]]sp." ]
 ]};
 
-Treasure.lists["Clothing B"] = { "table": [
+PfTreasure.lists["Clothing B"] = { "table": [
     [ 6, "An old <<dirty|stained|worn|torn|tattered>> reversible cloak, worth [[1d4+1]]sp." ],
     [ 6, "A cloth bandolier, which is empty. [[1d3]]sp." ],
     [ 6, "A floppy hat with a <<dark blue|dark red|green|red>> silk ribbon tied around it. The ribbon is worth [[1d4]]sp." ],
@@ -489,7 +492,7 @@ Treasure.lists["Clothing B"] = { "table": [
     [ 18, "A boot heel with [[1d4]]sp hidden inside it." ],
 ]};
 
-Treasure.lists["Clothing C"] = { "table": [
+PfTreasure.lists["Clothing C"] = { "table": [
     [ 6, "A cloak edged with <<white fur|red fur|black fur|golden fur>>, [[2d4]]gp" ],
     [ 6, "An old <<dirty|stained|worn|torn|tattered>> reversible cloak, worth [[1d4+1]] sp." ],
     [ 6, "An old <<dirty|stained|worn|torn|tattered>> patchwork cloak, worth [[1d4+1]] gp." ],
@@ -499,14 +502,14 @@ Treasure.lists["Clothing C"] = { "table": [
     [ 15, "A <<dirty|tattered>> handkerchief with the symbol of the <<Pathfinder Society|Aspis Consortium>>, [[1d6+2]] cp." ],
 ]};
 
-Treasure.lists["Clothing D"] = { "table": [
+PfTreasure.lists["Clothing D"] = { "table": [
     [ 6, "A <<good|fine>> quality <<blue|red|green|orange|scarlet>> cloak edged with <<white|black>> trimmings, [[2d4]]sp." ],
     [ 6, "A <<good|fine>> quality <<blue|red|green|orange|scarlet>> cloak with <<horses|birds|ships|axes|flowers>> stitched along the edge, [[2d6]]sp." ],
     [ 6, "A <<robust|thick|heavy>> cloak edged with fur, [[2d4]]gp." ],
     [ 6, "A silken cloak, [[2d6]]gp." ]
 ]};
 
-Treasure.lists["Clothing E"] = { "table": [
+PfTreasure.lists["Clothing E"] = { "table": [
     [ 6, "A silken cloak, [[4d12]]gp." ],
     [ 6, "A pair of high quality boots, [[4d6]]gp." ],
     [ 6, "A fine hat, [[4d6]]gp." ]
@@ -522,7 +525,7 @@ Treasure.lists["Clothing E"] = { "table": [
  *   D - Masterwork or artistic (non-functional) quality.
  *   E - Both masterwork and artistic.
  */
-Treasure.lists["Tools A"] = { "table": [
+PfTreasure.lists["Tools A"] = { "table": [
     [ 9, "A <<box|leather bag>> containing flint and steel." ],
     [ 9, "A small jar of <<dried|smelly|blackened>> glue." ],
     [ 12, "A <<small|long|rusty|large|ornate>> <<brass|iron|bronze>> key." ],
@@ -544,7 +547,7 @@ Treasure.lists["Tools A"] = { "table": [
     [ 21, "<<2|3|4|5>> <<short|long>>bow strings hidden in <<underwear|shoe|lining of jacket>>." ]
 ]};
 
-Treasure.lists["Tools B"] = { "table": [
+PfTreasure.lists["Tools B"] = { "table": [
     [ 9, "A <<box|leather bag>> containing flint and steel" ],
     [ 12, "A <<box|leather bag>> containing a blade sharpening kit." ],
     [ 12, "A silver razor, [[2d4]] sp." ],
@@ -559,7 +562,7 @@ Treasure.lists["Tools B"] = { "table": [
     [ 12, "Some sealing wax, [[2d4+2]]sp." ],
 ]};
 
-Treasure.lists["Tools C"] = { "table": [
+PfTreasure.lists["Tools C"] = { "table": [
     [ 9, "A <<box|leather bag>> containing flint and steel" ],
     [ 9, "A <<silk|velvet>> lined box with a number of empty slots sized for potion vials, [[2d6]]gp" ],
     [ 9, "A small hand drill, with a bit for drilling half-inch holes, [[1d4+1]]sp." ],
@@ -574,7 +577,7 @@ Treasure.lists["Tools C"] = { "table": [
     [ 18, "A set of [[2d6]] <<steel>> needles, [[2d4]]sp." ]
 ]};
 
-Treasure.lists["Tools D"] = { "table": [
+PfTreasure.lists["Tools D"] = { "table": [
     [ 9, "A gunsmith's kit, [[d4+10]]gp." ],
     [ 9, "A gear maintenance kit, [[d3+2]]gp." ],
     [ 12, "A magnifying glass, [[5d10+50]]gp." ],
@@ -592,7 +595,7 @@ Treasure.lists["Tools D"] = { "table": [
  * D: Up to about 30 gold pieces.
  * E: Up to a 100 gold pieces.
  */
-Treasure.lists["Trinkets A"] = { "table": [
+PfTreasure.lists["Trinkets A"] = { "table": [
     [ 9, "A <<broken|twisted|plain>> copper ring worth [[2d4]]cp." ],
     [ 9, "A wooden pendant with a <<bird|cat|dog|rat>> carving worth [[1d6]]cp." ],
     [ 9, "A wooden holy symbol of <<Desna|Calistria|Abadar|Erastil|Cayden Cailean>>, [[1d4+2]]cp." ],
@@ -625,7 +628,7 @@ Treasure.lists["Trinkets A"] = { "table": [
 ]};
 
 // Silver pieces.
-Treasure.lists["Trinkets B"] = { "table": [
+PfTreasure.lists["Trinkets B"] = { "table": [
     [ 9, "A small battered eyeglass, missing any glass. [[1d4]]sp." ],
     [ 9, "<<Four|Three>> vials of differently coloured <<sand|dirt|crushed rock|crushed leaves>>." ],
     [ 9, "A pair of wooden sticks, about 9inches long, slightly tapering at one end. They have Tian writing on them, 1d3sp." ],
@@ -646,7 +649,7 @@ Treasure.lists["Trinkets B"] = { "table": [
 ]};
 
 // Gold pieces.
-Treasure.lists["Trinkets C"] = { "table": [
+PfTreasure.lists["Trinkets C"] = { "table": [
     [ 12, "A full set of Harrow cards, [[2d4]]gp." ],
     [ 12, "A gold ring with a <<horse|serpent|dragon|abstract pattern>> engraved on it, [[2d4]]gp." ],
     [ 12, "A single small firecracker." ],
@@ -656,7 +659,7 @@ Treasure.lists["Trinkets C"] = { "table": [
 ]};
 
 // Up to 30gp.
-Treasure.lists["Trinkets D"] = { "table": [
+PfTreasure.lists["Trinkets D"] = { "table": [
     [ 12, "A pair of ivory dice studded with a small gemstone on the '1' [[5d6]]gp." ],
     [ 12, "A high quality set of Harrow Cards, worth [[8d6]]gp." ],
     [ 12, "A small <<worthless|cracked|dull>> gemstone that floats around your head like an ioun stone, but otherwise does nothing." ],
@@ -668,7 +671,7 @@ Treasure.lists["Trinkets D"] = { "table": [
 ]};
 
 // Up to 100gp.
-Treasure.lists["Trinkets E"] = { "table": [
+PfTreasure.lists["Trinkets E"] = { "table": [
     [ 9, "A <<tiny|miniature|pocket-sized>> <<ivory|wooden|brass> chess set, <<fully|mostly>> intact, worth [[6d10+40]]gp." ],
     [ 12, "A high quality set of Harrow Cards, worth [[10d6]]gp." ],
     [ 12, "A set of platinum jacks, decorated with <<elven|dwarven|draconic>> symbology, worth [[20d6]]gp." ],
@@ -678,7 +681,7 @@ Treasure.lists["Trinkets E"] = { "table": [
 /**
  * Food and drink. Also includes drugs and herbs.
  */
-Treasure.lists["Food A"] = { "table": [
+PfTreasure.lists["Food A"] = { "table": [
     [ 6, "A pigskin flask of <<oil|brandy|wine>>, [[1d2+3]] cp." ],
     [ 9, "A <<small|dirty|filthy|cracked>> bottle of <<rum|wine|spirits>> worth [[2d3]] cp." ],
     [ 9, "Part of a loaf of <<stale|mouldy>> bread." ],
@@ -692,7 +695,7 @@ Treasure.lists["Food A"] = { "table": [
     [ 12, "A tomato wrapped in cloth." ],
     [ 12, "A <<small pouch|bag|pouch|handkerchief>> containing some nuts and berries." ]
 ]};
-Treasure.lists["Food B"] = { "table": [
+PfTreasure.lists["Food B"] = { "table": [
     [ 12, "A <<vegetable|meat|mushroom>> pasty." ],
     [ 12, "A small metal salt shaker, containing salt." ],
     [ 12, "A slice of cheese between two slices of bread." ],
@@ -700,7 +703,7 @@ Treasure.lists["Food B"] = { "table": [
     [ 12, "<<An apple|A pear>>." ],
     [ 12, "A small flask of decent quality wine." ],
 ]};
-Treasure.lists["Food C"] = { "table": [
+PfTreasure.lists["Food C"] = { "table": [
     [ 12, "A small wheel of cheese." ],
     [ 12, "A pouch of herbs and spices, [[2d4]]gp." ],
     [ 12, "A corked vial containing a <<spicy|hot|sweet>> sauce, [[2d4]]gp." ],
@@ -713,7 +716,7 @@ Treasure.lists["Food C"] = { "table": [
     [ 12, "A small <<brass|copper>> box containing <<2|3|4>> doses of <i>snuff</i>." ],
     [ 12, "A small pouch containing <<3|4|5|6|7>> doses of powdered <i>Thileu bark</i>." ],
 ]};
-Treasure.lists["Food D"] = { "table": [
+PfTreasure.lists["Food D"] = { "table": [
     [ 9, "A small bottle of <<red|white|vintage>> wine, [[3d6]]gp." ],
     [ 12, "A small wheel of high quality cheese." ],
     [ 12, "A pouch of <<rare|expensive>> herbs and spices, [[3d12+5]]gp." ],
@@ -721,7 +724,7 @@ Treasure.lists["Food D"] = { "table": [
     [ 12, "A <<beef|pork>> pasty decorated with <<animals|plants|a ship|a mug of ale>>." ],
     [ 12, "A <<silver|gold>> cigar case containing <<3|4|5|6>> cigars." ],
 ]};
-Treasure.lists["Food E"] = { "table": [
+PfTreasure.lists["Food E"] = { "table": [
     [ 12, "A small wheel of cheese." ],
     [ 12, "A pouch of herbs and spices, [[2d4]]gp." ],
     [ 12, "A corked vial containing a <<spicy|hot|sweet>> sauce, [[2d4]]gp." ],
@@ -732,7 +735,7 @@ Treasure.lists["Food E"] = { "table": [
 /**
  * Tat is worthless rubbish, which add nothing but flavour.
  */
-Treasure.lists["Tat"] = { "table": [
+PfTreasure.lists["Tat"] = { "table": [
     [ 9, "A <<smelly|red dyed|blue dyed|blood stained>> rabbit's foot, on a string." ],
     [ 9, "A <<dirty|tattered|torn|short>> <<silk|cloth>> neck tie with the words '<<Lucky me|Love me|Great Fuck|This is mine>>' painted on." ],
     [ 9, "A leather belt with <<skulls|animal heads|a woman's face>> marked on it." ],
@@ -784,7 +787,7 @@ Treasure.lists["Tat"] = { "table": [
 /**
  * Eww is worthless and unpleasant rubbish which only a depraved person would carry.
  */
-Treasure.lists["Eww"] = { "table": [
+PfTreasure.lists["Eww"] = { "table": [
     [ 9, "A <<dried|mummified|skeletal>> <<human|monkey's|child's|delicate>> hand on a string." ],
     [ 9, "A mummified cat's head." ],
     [ 9, "A <<straw|sack|feather>> doll with needles stuck into it. <<It has a woman's face painted on it.|It is stained with blood.|It's head is almost detatched.>>" ],
@@ -814,25 +817,25 @@ Treasure.lists["Eww"] = { "table": [
 ]};
 
 
-Treasure.lists["Scum"] = {};
-Treasure.lists["Scum"].coins = function(value) {
-    var  cp = 0, sp = 0, gp = 0, pp = 0;
+PfTreasure.lists["Scum"] = {};
+PfTreasure.lists["Scum"].coins = function(value) {
+    let  cp = 0, sp = 0, gp = 0, pp = 0;
 
     if (value < 2) {
-        cp = Treasure.getRoll(4, value + 1);
+        cp = PfTreasure.getRoll(4, value + 1);
     } else if (value < 4) {
-        cp = Treasure.getRoll(6, 2);
-        sp = Treasure.getRoll(3, value);
-        gp = Treasure.getRoll(2, value - 1);
+        cp = PfTreasure.getRoll(6, 2);
+        sp = PfTreasure.getRoll(3, value);
+        gp = PfTreasure.getRoll(2, value - 1);
 
     } else {
-        cp = Treasure.getRoll(6, 2);
-        sp = Treasure.getRoll(6, 2);
-        gp = Treasure.getRoll(4, value - 2);
+        cp = PfTreasure.getRoll(6, 2);
+        sp = PfTreasure.getRoll(6, 2);
+        gp = PfTreasure.getRoll(4, value - 2);
     }
     return { "cp": cp, "sp": sp, "gp": gp, "pp": pp };
 };
-Treasure.lists["Scum A"] = { "table": [
+PfTreasure.lists["Scum A"] = { "table": [
     [ 0, "Cursed" ],
     [ 0, "Clothing A" ],
     [ 0, "Tools A" ],
@@ -841,7 +844,7 @@ Treasure.lists["Scum A"] = { "table": [
     [ 0, "Food A" ], [ 0, "Food A" ], [ 0, "Food B" ],
     [ 0, "Eww" ], [ 0, "Scum B" ]
 ]};
-Treasure.lists["Scum B"] = { "table": [
+PfTreasure.lists["Scum B"] = { "table": [
     [ 0, "Scum A" ], [ 0, "Cursed" ],
     [ 0, "Clothing B" ],
     [ 0, "Tools B" ],
@@ -850,7 +853,7 @@ Treasure.lists["Scum B"] = { "table": [
     [ 0, "Food A" ], [ 0, "Food B" ], [ 0, "Food B" ],
     [ 0, "Eww" ], [ 0, "Scum C" ]
 ]};
-Treasure.lists["Scum C"] = { "table": [
+PfTreasure.lists["Scum C"] = { "table": [
     [ 0, "Scum B" ], [ 0, "Clothing C" ],
     [ 0, "Tools C" ],
     [ 0, "Trinkets B" ], [ 0, "Trinkets C" ],
@@ -858,14 +861,14 @@ Treasure.lists["Scum C"] = { "table": [
     [ 0, "Food B" ], [ 0, "Food C" ], [ 0, "Food C" ],
     [ 0, "Scum D" ],
 ]};
-Treasure.lists["Scum D"] = { "table": [
+PfTreasure.lists["Scum D"] = { "table": [
     [ 0, "Scum C" ], [ 0, "Clothing C" ],
     [ 0, "Tools D" ],
     [ 0, "Trinkets C" ], [ 0, "Trinkets D" ],
-    [ 0, "Food C" ], [ 0, "Food C" ], [ 0, "Food D" ]
+    [ 0, "Food C" ], [ 0, "Food C" ], [ 0, "Food D" ],
     [ 0, "Scum E" ],
 ]};
-Treasure.lists["Scum E"] = { "table": [
+PfTreasure.lists["Scum E"] = { "table": [
     [ 0, "Scum D" ], [ 0, "Clothing D" ],
     [ 0, "Tools D" ], [ 0, "Tools E" ],
     [ 0, "Trinkets D" ], [ 0, "Trinkets E" ],
@@ -873,27 +876,27 @@ Treasure.lists["Scum E"] = { "table": [
 ]};
 
 
-Treasure.lists["Common"] = {};
-Treasure.lists["Common"].coins = function(value) {
-    var  cp = 0, sp = 0, gp = 0, pp = 0;
+PfTreasure.lists["Common"] = {};
+PfTreasure.lists["Common"].coins = function(value) {
+    let  cp = 0, sp = 0, gp = 0, pp = 0;
 
     if (value < 2) {
-        cp = Treasure.getRoll(4, value + 1);
+        cp = PfTreasure.getRoll(4, value + 1);
     } else if (value < 5) {
-        cp = Treasure.getRoll(6, 2);
-        sp = Treasure.getRoll(3, value);
+        cp = PfTreasure.getRoll(6, 2);
+        sp = PfTreasure.getRoll(3, value);
     } else if (value < 8) {
-        cp = Treasure.getRoll(6, 2);
-        sp = Treasure.getRoll(6, 2);
-        gp = Treasure.getRoll(3, value - 5);
+        cp = PfTreasure.getRoll(6, 2);
+        sp = PfTreasure.getRoll(6, 2);
+        gp = PfTreasure.getRoll(3, value - 5);
     } else {
-        cp = Treasure.getRoll(6, 2);
-        sp = Treasure.getRoll(6, 2);
-        gp = Treasure.getRoll(4, value - 5);
+        cp = PfTreasure.getRoll(6, 2);
+        sp = PfTreasure.getRoll(6, 2);
+        gp = PfTreasure.getRoll(4, value - 5);
     }
     return { "cp": cp, "sp": sp, "gp": gp, "pp": pp };
 };
-Treasure.lists["Common"].table = [
+PfTreasure.lists["Common"].table = [
     [ 12, "A <<plain|simply carved|scratched>> wooden box containing snuff, [[1d4]]sp." ],
     [ 12, "An IOU from a local <<merchant|shop keeper|noble|person>> claiming [[2d4]]gp." ],
     [ 12, "A small, <<mud-stained|blood-stained|water-stained>> book. The pages <<appear to be blank|are covered in some unreadable script|contain poor quality sketches>>, worth [[2d6]]cp."],
@@ -902,7 +905,7 @@ Treasure.lists["Common"].table = [
     [ 15, "A wand of acid spray, with one charge [[75]]sp." ],
     [ 21, "A small gemstone worth [[3d6]]gp." ]
 ];
-Treasure.lists["Common A"] = { "table": [
+PfTreasure.lists["Common A"] = { "table": [
     [ 0, "Clothing B" ],
     [ 0, "Tools A" ],
     [ 0, "Trinkets A" ], [ 0, "Trinkets A" ], [ 0, "Trinkets A" ],
@@ -912,52 +915,52 @@ Treasure.lists["Common A"] = { "table": [
 
 
 
-Treasure.lists["Expert"] = {};
-Treasure.lists["Expert"].coins = function(value) {
-    var  cp = 0, sp = 0, gp = 0, pp = 0;
+PfTreasure.lists["Expert"] = {};
+PfTreasure.lists["Expert"].coins = function(value) {
+    let  cp = 0, sp = 0, gp = 0, pp = 0;
 
     if (value < 2) {
-        cp = Treasure.getRoll(6, 3);
-        sp = Treasure.getRoll(4, 1);
+        cp = PfTreasure.getRoll(6, 3);
+        sp = PfTreasure.getRoll(4, 1);
     } else if (value < 5) {
-        cp = Treasure.getRoll(6, 2);
-        sp = Treasure.getRoll(4, value);
+        cp = PfTreasure.getRoll(6, 2);
+        sp = PfTreasure.getRoll(4, value);
     } else if (value < 8) {
-        cp = Treasure.getRoll(6, 1);
-        sp = Treasure.getRoll(6, 3);
-        gp = Treasure.getRoll(3, value - 5);
+        cp = PfTreasure.getRoll(6, 1);
+        sp = PfTreasure.getRoll(6, 3);
+        gp = PfTreasure.getRoll(3, value - 5);
     } else {
-        cp = Treasure.getRoll(6, 1);
-        sp = Treasure.getRoll(6, 3);
-        gp = Treasure.getRoll(6, value - 5);
+        cp = PfTreasure.getRoll(6, 1);
+        sp = PfTreasure.getRoll(6, 3);
+        gp = PfTreasure.getRoll(6, value - 5);
     }
     return { "cp": cp, "sp": sp, "gp": gp, "pp": pp };
 };
-Treasure.lists["Expert A"] = { "table": [
+PfTreasure.lists["Expert A"] = { "table": [
     [ 0, "Clothing B" ],
     [ 0, "Tools B" ], [ 0, "Tools B" ],
     [ 0, "Trinkets A" ], [ 0, "Trinkets A" ],
     [ 0, "Food B" ], [ 0, "Food B" ], [ 0, "Food C" ],
 ]};
-Treasure.lists["Expert B"] = { "table": [
+PfTreasure.lists["Expert B"] = { "table": [
     [ 0, "Clothing B" ],
     [ 0, "Tools B" ], [ 0, "Tools B" ],
     [ 0, "Trinkets A" ], [ 0, "Trinkets B" ],
     [ 0, "Food B" ], [ 0, "Food C" ], [ 0, "Food C" ],
 ]};
-Treasure.lists["Expert C"] = { "table": [
+PfTreasure.lists["Expert C"] = { "table": [
     [ 0, "Clothing C" ],
     [ 0, "Tools A" ], [ 0, "Tools C" ],
     [ 0, "Trinkets B" ], [ 0, "Trinkets B" ],
     [ 0, "Food C" ], [ 0, "Food C" ], [ 0, "Food C" ],
 ]};
-Treasure.lists["Expert D"] = { "table": [
+PfTreasure.lists["Expert D"] = { "table": [
     [ 0, "Clothing C" ],
     [ 0, "Tools C" ], [ 0, "Tools D" ],
     [ 0, "Trinkets B" ], [ 0, "Trinkets C" ],
     [ 0, "Food C" ], [ 0, "Food C" ], [ 0, "Food D" ],
 ]};
-Treasure.lists["Expert E"] = { "table": [
+PfTreasure.lists["Expert E"] = { "table": [
     [ 0, "Clothing C" ], [ 0, "Clothing D" ],
     [ 0, "Tools D" ], [ 0, "Tools E" ],
     [ 0, "Trinkets B" ], [ 0, "Trinkets C" ],
@@ -965,53 +968,53 @@ Treasure.lists["Expert E"] = { "table": [
 ]};
 
 
-Treasure.lists["Aristocrat"] = {};
-Treasure.lists["Aristocrat"].coins = function(value) {
-    var  cp = 0, sp = 0, gp = 0, pp = 0;
+PfTreasure.lists["Aristocrat"] = {};
+PfTreasure.lists["Aristocrat"].coins = function(value) {
+    let  cp = 0, sp = 0, gp = 0, pp = 0;
 
     if (value < 2) {
-        cp = Treasure.getRoll(6, 3);
-        sp = Treasure.getRoll(4, value);
+        cp = PfTreasure.getRoll(6, 3);
+        sp = PfTreasure.getRoll(4, value);
     } else if (value < 5) {
-        cp = Treasure.getRoll(6, 2);
-        sp = Treasure.getRoll(6, value) + value;
+        cp = PfTreasure.getRoll(6, 2);
+        sp = PfTreasure.getRoll(6, value) + value;
     } else if (value < 8) {
-        cp = Treasure.getRoll(6, 1);
-        sp = Treasure.getRoll(6, 3);
-        gp = Treasure.getRoll(6, value) + value;
+        cp = PfTreasure.getRoll(6, 1);
+        sp = PfTreasure.getRoll(6, 3);
+        gp = PfTreasure.getRoll(6, value) + value;
     } else {
-        cp = Treasure.getRoll(6, 2);
-        sp = Treasure.getRoll(6, 2);
-        gp = Treasure.getRoll(8, value - 5) + value;
-        pp = Treasure.getRoll(6, value - 7);
+        cp = PfTreasure.getRoll(6, 2);
+        sp = PfTreasure.getRoll(6, 2);
+        gp = PfTreasure.getRoll(8, value - 5) + value;
+        pp = PfTreasure.getRoll(6, value - 7);
     }
     return { "cp": cp, "sp": sp, "gp": gp, "pp": pp };
 };
-Treasure.lists["Aristocrat A"] = { "table": [
+PfTreasure.lists["Aristocrat A"] = { "table": [
     [ 0, "Clothing B" ], [ 0, "Clothing C" ],
     [ 0, "Trinkets B" ], [ 0, "Trinkets B" ],
     [ 0, "Food B" ], [ 0, "Food C" ],
     [ 0, "Jewellery B" ]
 ]};
-Treasure.lists["Aristocrat B"] = { "table": [
+PfTreasure.lists["Aristocrat B"] = { "table": [
     [ 0, "Clothing C" ], [ 0, "Clothing C" ],
     [ 0, "Trinkets B" ], [ 0, "Trinkets C" ],
     [ 0, "Food C" ], [ 0, "Food C" ],
     [ 0, "Jewellery C" ]
 ]};
-Treasure.lists["Aristocrat C"] = { "table": [
+PfTreasure.lists["Aristocrat C"] = { "table": [
     [ 0, "Clothing D" ], [ 0, "Clothing D" ],
     [ 0, "Trinkets C" ], [ 0, "Trinkets C" ],
     [ 0, "Food C" ], [ 0, "Food D" ],
     [ 0, "Jewellery C" ], [ 0, "Jewellery C" ]
 ]};
-Treasure.lists["Aristocrat D"] = { "table": [
+PfTreasure.lists["Aristocrat D"] = { "table": [
     [ 0, "Clothing E" ], [ 0, "Clothing E" ],
     [ 0, "Trinkets C" ], [ 0, "Trinkets D" ],
     [ 0, "Food D" ], [ 0, "Food D" ],
     [ 0, "Jewellery C" ], [ 0, "Jewellery D" ], [ 0, "Jewellery D" ]
 ]};
-Treasure.lists["Aristocrat E"] = { "table": [
+PfTreasure.lists["Aristocrat E"] = { "table": [
     [ 0, "Clothing E" ], [ 0, "Clothing E" ],
     [ 0, "Trinkets D" ], [ 0, "Trinkets E" ],
     [ 0, "Food D" ], [ 0, "Food E" ],
@@ -1019,22 +1022,22 @@ Treasure.lists["Aristocrat E"] = { "table": [
 ]};
 
 
-Treasure.lists["Goblin"] = {};
-Treasure.lists["Goblin"].coins = function(value) {
-    var  cp = 0, sp = 0, gp = 0, pp = 0;
+PfTreasure.lists["Goblin"] = {};
+PfTreasure.lists["Goblin"].coins = function(value) {
+    let  cp = 0, sp = 0, gp = 0, pp = 0;
 
     if (value < 2) {
-        cp = Treasure.getRoll(6, 1) - 3;
+        cp = PfTreasure.getRoll(6, 1) - 3;
     } else if (value < 5) {
-        cp = Treasure.getRoll(6, 1) - 2;
-        sp = Treasure.getRoll(4, 1) - 2;
+        cp = PfTreasure.getRoll(6, 1) - 2;
+        sp = PfTreasure.getRoll(4, 1) - 2;
     } else if (value < 8) {
-        cp = Treasure.getRoll(6, 2) - 5;
-        sp = Treasure.getRoll(4, 2) - 4;
+        cp = PfTreasure.getRoll(6, 2) - 5;
+        sp = PfTreasure.getRoll(4, 2) - 4;
     } else {
-        cp = Treasure.getRoll(6, 3) - 8;
-        sp = Treasure.getRoll(4, 3) - 5;
-        gp = Treasure.getRoll(value, 1) - 4;
+        cp = PfTreasure.getRoll(6, 3) - 8;
+        sp = PfTreasure.getRoll(4, 3) - 5;
+        gp = PfTreasure.getRoll(value, 1) - 4;
     }
     if (cp < 0) {
         cp = 0;
@@ -1047,15 +1050,15 @@ Treasure.lists["Goblin"].coins = function(value) {
     }
     return { "cp": cp, "sp": sp, "gp": gp, "pp": pp };
 };
-Treasure.lists["Goblin A"] = { "table": [
+PfTreasure.lists["Goblin A"] = { "table": [
     [ 0, "Tat" ], [ 0, "Eww" ], [ 0, "Eww" ],
     [ 0, "Food A" ]
 ]};
-Treasure.lists["Goblin B"] = { "table": [
+PfTreasure.lists["Goblin B"] = { "table": [
     [ 0, "Tat" ], [ 0, "Eww" ],
     [ 0, "Food A" ], [ "Tools A" ]
 ]};
-Treasure.lists["Goblin C"] = { "table": [
+PfTreasure.lists["Goblin C"] = { "table": [
     [ 0, "Tat" ], [ 0, "Eww" ],
     [ 0, "Food A" ], [ "Tools A" ], [ "Trinkets A" ]
 ]};
