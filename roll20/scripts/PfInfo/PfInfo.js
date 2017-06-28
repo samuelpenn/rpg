@@ -18,7 +18,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2016, Samuel Penn, sam@glendale.org.uk
+ * Copyright (c) 2017, Samuel Penn, sam@glendale.org.uk
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -475,6 +475,57 @@ PfInfo.infoCommand = function(playerId, token) {
     html += PfInfo.line("CMB", cmbNotes);
     html += PfInfo.line("Attacks", attackNotes);
     html += PfInfo.line("Defence", defenseNotes);
+
+    // Find and display custom notes (type A).
+    for (let i=1; i < 10; i++) {
+        let baseField = "customa" + i;
+        let nameField = baseField + "-name";
+        let modField = baseField + "-mod";
+
+        let name = getAttrByName(character.id, nameField);
+        if (name) {
+            let mod = getAttrByName(character.id, modField);
+            if (mod) {
+                html += PfInfo.line(name, mod);
+            }
+        }
+    }
+
+    // Find and display custom notes (type B).
+    for (let i=1; i < 7; i++) {
+        let baseField = "customc" + i;
+        let nameField = baseField + "-name";
+        let modField = baseField + "-mod";
+        let maxField = baseField + "-mod";
+
+        let name = getAttrByName(character.id, nameField);
+        if (name) {
+            let mod = getAttrByName(character.id, modField);
+            mod = PfInfo.parseCustomFields(characterName, mod);
+            let max = getAttrByName(character.id, maxField, "max");
+            if (max && mod) {
+                max = PfInfo.parseCustomFields(characterName, max);
+                html += PfInfo.line(name, "[[d0 + " + mod + "]] / [[d0 + " + max + "]]");
+            } else if (mod) {
+                html += PfInfo.line(name, "[[d0 + " + mod + "]]");
+            }
+        }
+    }
+
+    //html += PfInfo.line("Attacks", "[Attacks](!&#13;&#37;{" + characterName + "|attacks})");
+
+    let spellBooks = "";
+    for (let i=0; i < 5; i++) {
+        let spellbookField = "spellbook-" + i;
+        let spellclassField = "spellclass-" + i + "-name";
+        let spellclass = getAttrByName(character.id, spellclassField);
+        if (spellclass) {
+            spellBooks += `[${spellclass} Spells](!&#13;&#37;{${characterName}|${spellbookField}}) `;
+        }
+    }
+    if (spellBooks) {
+        html += PfInfo.text(spellBooks);
+    }
 
     // Token statuses
     html += PfInfo.getStatusText(token);
