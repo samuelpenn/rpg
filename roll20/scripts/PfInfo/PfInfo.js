@@ -450,6 +450,8 @@ PfInfo.infoCommand = function(playerId, token) {
 
     let attrList = PfInfo.getAllAttributes(character.id);
     let characterName = PfInfo.getAttributeValue(attrList, "character_name");
+    let gender = PfInfo.getAttributeValue(attrList, "gender");
+    let race = PfInfo.getAttributeValue(attrList, "race");
 
     let html = "";
     // Get token values.
@@ -465,6 +467,12 @@ PfInfo.infoCommand = function(playerId, token) {
     let ac = PfInfo.getAttributeValue(attrList, "AC");
     let acTouch = PfInfo.getAttributeValue(attrList, "Touch");
     let acFlat = PfInfo.getAttributeValue(attrList, "Flat-Footed");
+    let str = PfInfo.getAttributeValue(attrList, "STR");
+    let dex = PfInfo.getAttributeValue(attrList, "DEX");
+    let con = PfInfo.getAttributeValue(attrList, "CON");
+    let int = PfInfo.getAttributeValue(attrList, "INT");
+    let wis = PfInfo.getAttributeValue(attrList, "WIS");
+    let cha = PfInfo.getAttributeValue(attrList, "CHA");
 
     currentHitpoints = parseInt(currentHitpoints);
     totalHitpoints = parseInt(totalHitpoints);
@@ -499,6 +507,16 @@ PfInfo.infoCommand = function(playerId, token) {
     }
 
     html += PfInfo.text(`${size?size:""} ${type}`);
+    let raceGender = "";
+    if (gender) {
+        raceGender = gender + " ";
+    }
+    if (race) {
+        raceGender += race;
+    }
+    if (raceGender) {
+        html += PfInfo.text(raceGender);
+    }
     html += PfInfo.text(classLevels);
     html += PfInfo.text(alignment);
     html += "<br/>";
@@ -510,6 +528,10 @@ PfInfo.infoCommand = function(playerId, token) {
     } else {
         html += PfInfo.line("Hitpoints", currentHitpoints + " / " + totalHitpoints);
     }
+    html += PfInfo.P;
+    html += PfInfo.cell("S", str) + PfInfo.cell("D", dex) + PfInfo.cell("C", con);
+    html += PfInfo.cell("I", int) + PfInfo.cell("W", wis) + PfInfo.cell("C", cha);
+    html += "</p>";
     html += PfInfo.P;
     html += PfInfo.cell("AC", ac) + PfInfo.cell("Flat", acFlat) + PfInfo.cell("Touch", acTouch);
     html += "</p>";
