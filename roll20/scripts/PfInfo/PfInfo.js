@@ -211,7 +211,11 @@ on("chat:message", function(msg) {
         } else {
             let token = getObj("graphic", tokenId);
             if (token) {
-                PfInfo.infoCommand(playerId, token);
+                if (PfInfo.hasPermission(getObj("player", playerId), token)) {
+                    PfInfo.infoCommand(playerId, token);
+                } else {
+                    PfInfo.playerInfoCommand(playerId, token);
+                }
             } else {
                 PfInfo.error(playerId, "Specified token id is invalid.");
             }
@@ -326,11 +330,102 @@ PfInfo.showStatus = function( token, symbol, name, text, value) {
     return "";
 };
 
+PfInfo.defaults = PfInfo.defaults || {};
+
+/**
+ * Get all the attributes for this character, into one big array.
+ */
+PfInfo.getAllAttributes = function(characterId) {
+    let attrList = findObjs({
+        type: 'attribute',
+        characterid: characterId
+    });
+    return attrList;
+};
+
+PfInfo.getDefaultValue = function(attrList, key) {
+    if (PfInfo.defaults[key]) {
+        return PfInfo.defaults[key];
+    }
+
+    let characterId = attrList[0].get("_characterid");
+    let value = getAttrByName(characterId, key);
+
+    PfInfo.defaults[key] = value;
+
+    return value;
+};
+
+/**
+ * Get the current value of the named attribute from our array.
+ */
+PfInfo.getAttributeValue = function(attrList, key) {
+    for (let i=0; i < attrList.length; i++) {
+        if (attrList[i].get("name") === key) {
+            return attrList[i].get("current");
+        }
+    }
+    return PfInfo.getDefaultValue(attrList, key);
+};
+
 PfInfo.parseCustomFields = function(characterName, text) {
     if (!text) {
         return null;
     }
     return text.replace(/@{([^|}]*)}/g, "@{" + characterName + "|$1}");
+};
+
+PfInfo.playerInfoCommand = function(playerId, token) {
+    let title = token.get("name");
+    if (!title) {
+        PfInfo.error(playerId, "Token has no name.");
+        return;
+    }
+
+    let characterId = token.get("represents");
+    if (!characterId) {
+        PfInfo.error(playerId, "Token has no associated character.");
+        return;
+    }
+    let character = getObj("character", characterId);
+    if (!character) {
+        PfInfo.error(playerid, "Token has an invalid character associated with it.");
+        return;
+    }
+    let html = "";
+
+    // Get character values.
+    let size = getAttrByName(character.id, "size_display");
+
+    if (size) {
+        // Size attribute used to be capitalised, now we need to
+        // enforce this manually.
+        size  = size.substr(0, 1).toUpperCase() + size.substr(1);
+    } else {
+        size = "";
+    }
+
+    html += PfInfo.text(`${size?size:""}`);
+    html += "<br/>";
+
+    // Token statuses
+    html += PfInfo.getStatusText(token);
+
+    let player = getObj("player", playerId);
+    let displayName = ""+player.get("displayname");
+
+    // Call asynchronous function.
+    character.get("bio", function(notes) {
+        if (notes !== null && notes !== "" && notes !== "null") {
+            if (notes.indexOf("<br>--<br>") !== -1) {
+                notes = notes.substring(0, notes.indexOf("<br>--<br>"));
+            }
+            html += PfInfo.inset(notes);
+        }
+
+        html += "</div>";
+        PfInfo.infoBlock(null, displayName, token, html);
+    });
 };
 
 PfInfo.infoCommand = function(playerId, token) {
@@ -351,7 +446,10 @@ PfInfo.infoCommand = function(playerId, token) {
         return;
     }
 
-    let characterName = getAttrByName(character.id, "character_name");
+    let startTime = new Date().getTime();
+
+    let attrList = PfInfo.getAllAttributes(character.id);
+    let characterName = PfInfo.getAttributeValue(attrList, "character_name");
 
     let html = "";
     // Get token values.
@@ -360,13 +458,13 @@ PfInfo.infoCommand = function(playerId, token) {
     let nonlethalDamage = token.get("bar3_value");
 
     // Get character values.
-    let bab = getAttrByName(character.id, "bab");
-    let type = getAttrByName(character.id, "npc-type");
-    let size = getAttrByName(character.id, "size_display");
-    let alignment = getAttrByName(character.id, "alignment");
-    let ac = getAttrByName(character.id, "AC");
-    let acTouch = getAttrByName(character.id, "Touch");
-    let acFlat = getAttrByName(character.id, "Flat-Footed");
+    let bab = PfInfo.getAttributeValue(attrList, "bab");
+    let type = PfInfo.getAttributeValue(attrList, "npc-type");
+    let size = PfInfo.getAttributeValue(attrList, "size_display");
+    let alignment = PfInfo.getAttributeValue(attrList, "alignment");
+    let ac = PfInfo.getAttributeValue(attrList, "AC");
+    let acTouch = PfInfo.getAttributeValue(attrList, "Touch");
+    let acFlat = PfInfo.getAttributeValue(attrList, "Flat-Footed");
 
     currentHitpoints = parseInt(currentHitpoints);
     totalHitpoints = parseInt(totalHitpoints);
@@ -386,8 +484,8 @@ PfInfo.infoCommand = function(playerId, token) {
         let classNameAttr = "class-"+c+"-name";
         let classLevelAttr = "class-"+c+"-level";
 
-        let className = getAttrByName(character.id, classNameAttr);
-        let classLevel = getAttrByName(character.id, classLevelAttr);
+        let className = PfInfo.getAttributeValue(attrList, classNameAttr);
+        let classLevel = PfInfo.getAttributeValue(attrList, classLevelAttr);
 
         if (className) {
             if (classLevels) {
@@ -417,10 +515,10 @@ PfInfo.infoCommand = function(playerId, token) {
     html += "</p>";
 
     html += PfInfo.P;
-    let babMelee = getAttrByName(character.id, "attk-melee");
-    let babRanged = getAttrByName(character.id, "attk-melee");
-    let cmb = getAttrByName(character.id, "CMB");
-    let cmd = getAttrByName(character.id, "CMD");
+    let babMelee = PfInfo.getAttributeValue(attrList, "attk-melee");
+    let babRanged = PfInfo.getAttributeValue(attrList, "attk-melee");
+    let cmb = PfInfo.getAttributeValue(attrList, "CMB");
+    let cmd = PfInfo.getAttributeValue(attrList, "CMD");
 
     html += PfInfo.cell("BAB", babMelee);
     if (babRanged !== babMelee) {
@@ -430,11 +528,11 @@ PfInfo.infoCommand = function(playerId, token) {
     html += "</p><br/>";
 
     html += PfInfo.P;
-    let speedModified = getAttrByName(character.id, "speed-modified");
-    let speedFly = getAttrByName(character.id, "speed-fly");
-    let speedSwim = getAttrByName(character.id, "speed-swim");
-    let speedClimb = getAttrByName(character.id, "speed-climb");
-    let speedRun = getAttrByName(character.id, "speed-run");
+    let speedModified = PfInfo.getAttributeValue(attrList, "speed-modified");
+    let speedFly = PfInfo.getAttributeValue(attrList, "speed-fly");
+    let speedSwim = PfInfo.getAttributeValue(attrList, "speed-swim");
+    let speedClimb = PfInfo.getAttributeValue(attrList, "speed-climb");
+    let speedRun = PfInfo.getAttributeValue(attrList, "speed-run");
 
     html += PfInfo.P;
     html += PfInfo.cell("Move", speedModified) + PfInfo.cell("Run", speedRun);
@@ -448,26 +546,26 @@ PfInfo.infoCommand = function(playerId, token) {
         html += "</p>";
     }
 
-    let dr = getAttrByName(character.id, "DR");
-    let resistences = getAttrByName(character.id, "resistances");
-    let immunities = getAttrByName(character.id, "immunities");
-    let sr = getAttrByName(character.id, "SR");
-    let weaknesses = getAttrByName(character.id, "weaknesses");
+    let dr = PfInfo.getAttributeValue(attrList, "DR");
+    let resistances = PfInfo.getAttributeValue(attrList, "resistances");
+    let immunities = PfInfo.getAttributeValue(attrList, "immunities");
+    let sr = PfInfo.getAttributeValue(attrList, "SR");
+    let weaknesses = PfInfo.getAttributeValue(attrList, "weaknesses");
 
     html += PfInfo.P + PfInfo.cell("DR", dr) + PfInfo.cell("SR", sr) + "</p>";
-    html += PfInfo.line("Resistences", resistences);
+    html += PfInfo.line("Resistances", resistances);
     html += PfInfo.line("Immunities", immunities);
     html += PfInfo.line("Weaknesses", weaknesses);
 
-    let meleeAttackNotes = getAttrByName(character.id, "melee-attack-notes");
+    let meleeAttackNotes = PfInfo.getAttributeValue(attrList, "melee-attack-notes");
     meleeAttackNotes = PfInfo.parseCustomFields(characterName, meleeAttackNotes);
-    let rangedAttackNotes = getAttrByName(character.id, "ranged-attack-notes");
+    let rangedAttackNotes = PfInfo.getAttributeValue(attrList, "ranged-attack-notes");
     rangedAttackNotes = PfInfo.parseCustomFields(characterName, rangedAttackNotes);
-    let cmbNotes = getAttrByName(character.id, "CMB-notes");
+    let cmbNotes = PfInfo.getAttributeValue(attrList, "CMB-notes");
     cmbNotes = PfInfo.parseCustomFields(characterName, cmbNotes);
-    let attackNotes = getAttrByName(character.id, "attack-notes");
+    let attackNotes = PfInfo.getAttributeValue(attrList, "attack-notes");
     attackNotes = PfInfo.parseCustomFields(characterName, attackNotes);
-    let defenseNotes = getAttrByName(character.id, "defense-notes");
+    let defenseNotes = PfInfo.getAttributeValue(attrList, "defense-notes");
     defenseNotes = PfInfo.parseCustomFields(characterName, defenseNotes);
 
     html += PfInfo.line("Melee Attacks", meleeAttackNotes);
@@ -482,9 +580,9 @@ PfInfo.infoCommand = function(playerId, token) {
         let nameField = baseField + "-name";
         let modField = baseField + "-mod";
 
-        let name = getAttrByName(character.id, nameField);
+        let name = PfInfo.getAttributeValue(attrList, nameField);
         if (name) {
-            let mod = getAttrByName(character.id, modField);
+            let mod = PfInfo.getAttributeValue(attrList, modField);
             if (mod) {
                 html += PfInfo.line(name, mod);
             }
@@ -498,11 +596,11 @@ PfInfo.infoCommand = function(playerId, token) {
         let modField = baseField + "-mod";
         let maxField = baseField + "-mod";
 
-        let name = getAttrByName(character.id, nameField);
+        let name = PfInfo.getAttributeValue(attrList, nameField);
         if (name) {
-            let mod = getAttrByName(character.id, modField);
+            let mod = PfInfo.getAttributeValue(attrList, modField);
             mod = PfInfo.parseCustomFields(characterName, mod);
-            let max = getAttrByName(character.id, maxField, "max");
+            let max = PfInfo.getAttributeValue(attrList, maxField, "max");
             if (max && mod) {
                 max = PfInfo.parseCustomFields(characterName, max);
                 html += PfInfo.line(name, "[[d0 + " + mod + "]] / [[d0 + " + max + "]]");
@@ -518,7 +616,7 @@ PfInfo.infoCommand = function(playerId, token) {
     for (let i=0; i < 5; i++) {
         let spellbookField = "spellbook-" + i;
         let spellclassField = "spellclass-" + i + "-name";
-        let spellclass = getAttrByName(character.id, spellclassField);
+        let spellclass = PfInfo.getAttributeValue(attrList, spellclassField);
         if (spellclass) {
             spellBooks += `[${spellclass} Spells](!&#13;&#37;{${characterName}|${spellbookField}}) `;
         }
@@ -532,6 +630,9 @@ PfInfo.infoCommand = function(playerId, token) {
 
     let player = getObj("player", playerId);
     let displayName = ""+player.get("displayname");
+
+    let endTime = new Date().getTime();
+    log(endTime - startTime);
 
     // Call asynchronous function.
     character.get("gmnotes", function(notes) {
@@ -620,6 +721,9 @@ PfInfo.isNamedCharacter = function(token) {
 PfInfo.hasPermission = function(player, token) {
     if (!player || !token) {
         return false;
+    }
+    if (playerIsGM(player.get("_id"))) {
+        return true;
     }
     let characterId = token.get("represents");
     if (characterId) {
@@ -872,10 +976,14 @@ PfInfo.infoBlock = function(character, displayName, token, message, func) {
         html += message;
         html += "</div>";
 
+        let from = displayName;
+        if (character) {
+            from = "character|"+character.get("id");
+        }
         if (!func) {
-            sendChat("character|"+character.get("id"), "/w \"" + displayName + "\" " + html);
+            sendChat(from, "/w \"" + displayName + "\" " + html);
         } else {
-            sendChat("character|"+character.get("id"), "/w \"" + displayName + "\" " + html, func);
+            sendChat(from, "/w \"" + displayName + "\" " + html, func);
         }
     }
 };
@@ -934,7 +1042,7 @@ PfInfo.whisper = function(player, message, title, func) {
 };
 
 /**
- * Whispher message to another player.
+ * Whisper message to another player.
  *
  * @param from
  * @param to
