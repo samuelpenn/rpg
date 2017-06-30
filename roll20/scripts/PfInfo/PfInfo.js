@@ -348,12 +348,15 @@ PfInfo.getDefaultValue = function(attrList, key) {
         return PfInfo.defaults[key];
     }
 
-    let characterId = attrList[0].get("_characterid");
-    let value = getAttrByName(characterId, key);
+    if (attrList && attrList[0]) {
+        let characterId = attrList[0].get("_characterid");
+        let value = getAttrByName(characterId, key);
 
-    PfInfo.defaults[key] = value;
+        PfInfo.defaults[key] = value;
 
-    return value;
+        return value;
+    }
+    return "";
 };
 
 /**
@@ -395,16 +398,44 @@ PfInfo.playerInfoCommand = function(playerId, token) {
     let html = "";
 
     // Get character values.
-    let size = getAttrByName(character.id, "size_display");
+    let sizeMod = getAttrByName(character.id, "size");
+    let size = "Medium";
 
-    if (size) {
+    if (sizeMod) {
         // Size attribute used to be capitalised, now we need to
         // enforce this manually.
-        size  = size.substr(0, 1).toUpperCase() + size.substr(1);
+        sizeMod = parseInt(sizeMod);
+        switch (sizeMod) {
+            case 8:
+                size = "Fine";
+                break;
+            case 4:
+                size = "Diminutive";
+                break;
+            case 2:
+                size = "Tiny";
+                break;
+            case 1:
+                size = "Small";
+                break;
+            case -1:
+                size = "Large";
+                break;
+            case -2:
+                size = "Huge";
+                break;
+            case -4:
+                size = "Gargantuan";
+                break;
+            case -8:
+                size = "Colossal";
+                break;
+            default:
+                size = "Medium";
+        }
     } else {
-        size = "";
+        size = "Medium";
     }
-
     html += PfInfo.text(`${size?size:""}`);
     html += "<br/>";
 
@@ -462,7 +493,8 @@ PfInfo.infoCommand = function(playerId, token) {
     // Get character values.
     let bab = PfInfo.getAttributeValue(attrList, "bab");
     let type = PfInfo.getAttributeValue(attrList, "npc-type");
-    let size = PfInfo.getAttributeValue(attrList, "size_display");
+    let sizeMod = PfInfo.getAttributeValue(attrList, "size");
+    let size = "Medium";
     let alignment = PfInfo.getAttributeValue(attrList, "alignment");
     let ac = PfInfo.getAttributeValue(attrList, "AC");
     let acTouch = PfInfo.getAttributeValue(attrList, "Touch");
@@ -478,12 +510,40 @@ PfInfo.infoCommand = function(playerId, token) {
     totalHitpoints = parseInt(totalHitpoints);
     nonlethalDamage = parseInt(nonlethalDamage);
 
-    if (size) {
+    if (sizeMod) {
         // Size attribute used to be capitalised, now we need to
         // enforce this manually.
-        size  = size.substr(0, 1).toUpperCase() + size.substr(1);
+        sizeMod = parseInt(sizeMod);
+        switch (sizeMod) {
+            case 8:
+                size = "Fine";
+                break;
+            case 4:
+                size = "Diminutive";
+                break;
+            case 2:
+                size = "Tiny";
+                break;
+            case 1:
+                size = "Small";
+                break;
+            case -1:
+                size = "Large";
+                break;
+            case -2:
+                size = "Huge";
+                break;
+            case -4:
+                size = "Gargantuan";
+                break;
+            case -8:
+                size = "Colossal";
+                break;
+            default:
+                size = "Medium";
+        }
     } else {
-        size = "";
+        size = "Medium";
     }
 
     let c = 0;
@@ -632,7 +692,7 @@ PfInfo.infoCommand = function(playerId, token) {
         }
     }
 
-    //html += PfInfo.line("Attacks", "[Attacks](!&#13;&#37;{" + characterName + "|attacks})");
+    //html += PfInfo.line("Attacks", "[Attacks](!& #13;& #37;{" + characterName + "|attacks})");
 
     let spellBooks = "";
     for (let i=0; i < 5; i++) {
@@ -640,7 +700,9 @@ PfInfo.infoCommand = function(playerId, token) {
         let spellclassField = "spellclass-" + i + "-name";
         let spellclass = PfInfo.getAttributeValue(attrList, spellclassField);
         if (spellclass) {
-            spellBooks += `[${spellclass} Spells](!&#13;&#37;{${characterName}|${spellbookField}}) `;
+            // Somehow the escape sequences got expanded by the Roll20 script editor,
+            // breaking the script. Try and break them up so this doesn't happen.
+            spellBooks += `[${spellclass} Spells](!&` + `#13;&` + `#37;{${characterName}|${spellbookField}}) `;
         }
     }
     if (spellBooks) {
