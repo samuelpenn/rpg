@@ -314,7 +314,6 @@ PfCombat.setHitPoints = function(msg, args) {
                 for (;npcLevel > 0; npcLevel--) {
                     hitpoints += parseInt(PfCombat.getHitPoints(npcHd, option)) + parseInt(hpAbilityMod);
                 }
-                log("NPC Hitpoints = " + hitpoints);
             }
 
             // Get hitpoints from class Hit Dice.
@@ -332,25 +331,22 @@ PfCombat.setHitPoints = function(msg, args) {
 
                 log(hd + ", " + level);
 
-                if (classIndex === 0 && maxHpLevel1 === 1) {
+                if (classIndex === 0 && parseInt(maxHpLevel1) === 1) {
                     hitpoints = parseInt(hd) + parseInt(hpAbilityMod);
                     if (hitpoints < 1) {
                         hitpoints = 1;
                     }
                     level--;
-                    log("First level hitpoints is " + hitpoints);
                 }
                 for (;level > 0; level--) {
                     let hp = parseInt(PfCombat.getHitPoints(hd, option)) + parseInt(hpAbilityMod);
                     if (hp < 1) {
                         hp = 1;
                     }
-                    log("Rolled " + hp + " hitpoints.");
                     hitpoints += parseInt(hp);
                 }
             }
             hitpoints += parseInt(hpFormulaMod);
-            log("Total hitpoints = " + hitpoints);
             token.set("bar1_value", hitpoints);
             token.set("bar1_max", hitpoints);
 
@@ -446,7 +442,7 @@ PfCombat.healCommand = function(msg) {
  */
 PfCombat.initCommand = function(msg, args) {
     let initRoll = null;
-    
+
     if (args && args.length > 0) {
         initRoll = parseInt(args[0]);
     }
