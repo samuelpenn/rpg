@@ -133,72 +133,100 @@ PfSkills.singleSkillCommand = function(msg) {
 }
 
 PfSkills.performanceIncome = function(msg) {
-    var tokenList = PfCombat.getSelectedTokens(msg, true);
+    let tokenList = PfCombat.getSelectedTokens(msg, true);
     if (!tokenList || tokenList.length !== 1) {
         PfSkills.error("Must have exactly one token selected.");
         return;
     }
 
-    var d20roll = null;
-    var isRoll = true;
-    var notRolled = false;
-    var n = msg.content.split(" ");
-    var performanceSkill = n[1];
-    var days = parseInt(n[2]);
-
-
-
-    var token = getObj("graphic", tokenList[0]);
-    var characterId = token.get("represents");
-    var tokenName = token.get("name");
-    var characterName = getAttrByName(characterId, "character_name");
-
-    var character = getObj("character", characterId);
-    var attributes = PfSkills.getAllAttributes(characterId);
-
-    var html = "";
-
-    var baseSkill = "Perform";
-    var score = 0;
-    for (var i=1; i < 11; i++) {
-        skill = baseSkill + ( (i>1)?i:"" );
-        var skillName = PfSkills.getAttributeValue(attributes, skill + "-name");
-        if (skillName === performanceSkill) {
-            log("Found match for " + skillName);
-            score = parseInt(PfSkills.getAttributeValue(attributes, skill));
-            log("Has a score of " + score);
-            break;
-        }
+    let d20roll = null;
+    let isRoll = true;
+    let notRolled = false;
+    let args = msg.content.split(" ");
+    args.shift();
+    let days = parseInt(args.shift());
+    let performanceSkill = args.shift();
+    if (!days) {
+        days = 1;
     }
 
-    var cp = 0, sp = 0, gp = 0;
-    for (var day=0; day < days; day++) {
-        var roll = score + randomInteger(20);
-        var result = "";
+    let token = getObj("graphic", tokenList[0]);
+    let characterId = token.get("represents");
+    let tokenName = token.get("name");
+    let characterName = getAttrByName(characterId, "character_name");
+
+    let character = getObj("character", characterId);
+    let attributes = PfSkills.getAllAttributes(characterId);
+
+    let html = "";
+
+    log("Number of days: " + days);
+    log("Specified skill: " + performanceSkill);
+
+    let baseSkill = "Perform";
+    let score = null, bestSkill = null;
+    for (let i=1; i < 11; i++) {
+        skill = baseSkill + ( (i>1)?i:"" );
+        let skillName = PfSkills.getAttributeValue(attributes, skill + "-name");
+        if (skillName) {
+            log("Trying " + skillName);
+            if (!performanceSkill) {
+                if (score === null || parseInt(PfSkills.getAttributeValue(attributes, skill)) > score) {
+                    score = parseInt(PfSkills.getAttributeValue(attributes, skill));
+                    bestSkill = skillName;
+                    log("Best so far is " + skillName + " at " + score);
+                }
+            } else if (skillName.toLowerCase() === performanceSkill.toLowerCase()) {
+                log("Found match for " + skillName);
+                score = parseInt(PfSkills.getAttributeValue(attributes, skill));
+                performanceSkill = skillName;
+                log("Has a score of " + score);
+                break;
+            }
+        }
+    }
+    if (bestSkill) {
+        performanceSkill = bestSkill;
+    }
+    if (!performanceSkill) {
+        performanceSkill = "Untrained";
+    }
+    if (score === null) {
+        score = parseInt(PfSkills.getAttributeValue(attributes, "CHA-mod"));
+    }
+    let title = `${tokenName} performs for ${days} day${(days>1)?"s":""}`;
+    html = `<p><i>Perform (${performanceSkill}) ${score}</i></p>`;
+
+    let cp = 0, sp = 0, gp = 0;
+    for (let day=0; day < days; day++) {
+        let roll = score + randomInteger(20);
+        let result = "";
         if (roll >= 30) {
-            var gold = randomInteger(6) + randomInteger(6) + randomInteger(6);
+            let gold = randomInteger(6) + randomInteger(6) + randomInteger(6);
             gp += gold;
             result = "<b>Extraordinary (" + roll + "):</b> " + gold + "gp";
         } else if (roll >= 25) {
-            var gold = randomInteger(6);
+            let gold = randomInteger(6);
             gp += gold;
             result = "<b>Memorable (" + roll + "):</b> " + gold + "gp";
         } else if (roll >= 20) {
-            var silver = randomInteger(10) + randomInteger(10) + randomInteger(10);
+            let silver = randomInteger(10) + randomInteger(10) + randomInteger(10);
             sp += silver;
             result = "<b>Great (" + roll + "):</b> " + silver + "sp";
         } else if (roll >= 15) {
-            var silver = randomInteger(10);
+            let silver = randomInteger(10);
             sp += silver;
             result = "<b>Enjoyable (" + roll + "):</b> " + silver + "sp";
         } else if (roll > 10) {
-            var copper = randomInteger(10);
+            let copper = randomInteger(10);
             cp += copper;
             result = "<b>Routine (" + roll + "):</b> " + copper + "cp";
         } else {
             result = "<b>Poor (" + roll + "): </b>Nothing";
         }
-        html += "<p>" + result + "</p>";
+        if (result) {
+            html += "<p>" + result + "</p>";
+        }
     }
     while (cp >= 10) {
         cp -= 10;
@@ -209,20 +237,18 @@ PfSkills.performanceIncome = function(msg) {
         gp += 1;
     }
 
-    html += "<p>You earn ";
-    if (gp > 0) html += gp + "gp ";
-    if (sp > 0) html += sp + "sp ";
-    if (cp > 0) html += cp + "cp ";
-    html += "</p>";
-
-
-    var player_obj = getObj("player", msg.playerid)
-    if (playerIsGM(player_obj.get("id"))) {
-        sendChat(getAttrByName(character.id, "character_name"), "/w " + player_obj.get("displayname") + " " + html);
+    if (gp + sp + cp > 0) {
+        html += `<p>${tokenName} earns a total of <b>`;
+        if (gp > 0) html += gp + "gp ";
+        if (sp > 0) html += sp + "sp ";
+        if (cp > 0) html += cp + "cp ";
+        html += "</b>.</p>";
     } else {
-        sendChat(getAttrByName(character.id, "character_name"), html);
+        html += `<p>${tokenName} doesn't earn anything.</p>`;
     }
-}
+
+    PfInfo.message(tokenName, html, title);
+};
 
 
 PfSkills.cache = PfSkills.cache || {};
@@ -234,7 +260,7 @@ PfSkills.setupTemplate = function(name, character, title) {
     var template = "&{template:pf_generic}";
 
     var cacheObj = PfSkills.cache[name];
-    if (cacheObj == null) {
+    if (cacheObj === null) {
         var headerImage = getAttrByName(character.id, "header_image-pf_generic");
         var colour = getAttrByName(character.id, "rolltemplate_color");
 
