@@ -260,7 +260,7 @@ PfSkills.setupTemplate = function(name, character, title) {
     var template = "&{template:pf_generic}";
 
     var cacheObj = PfSkills.cache[name];
-    if (cacheObj === null) {
+    if (!cacheObj) {
         var headerImage = getAttrByName(character.id, "header_image-pf_generic");
         var colour = getAttrByName(character.id, "rolltemplate_color");
 
