@@ -113,6 +113,8 @@ on("chat:message", function(msg) {
         PfCombat.setHitPoints(msg, args);
     } else if (command === "!pfcustominit") {
         PfCombat.addCustomInitCommand(msg, args);
+    } else if (command === "!pfstartcombat") {
+        PfCombat.startCombatCommand(msg, args);
     }
 });
 
@@ -121,6 +123,10 @@ on("change:graphic", function(obj, prev) {
     if (obj.get("_pageid") === Campaign().get("playerpageid")) {
         PfCombat.update(obj, prev, "");
     }
+});
+
+on("change:campaign:turnorder", function(obj, prev) {
+    PfCombat.updateInitiative();
 });
 
 
@@ -190,9 +196,145 @@ PfCombat.getSelectedTokens = function (msg, forceExplicit) {
     return tokenList;
 };
 
+PfCombat.updateInitiative = function() {
+    log("updateInitiative:");
+
+    // Grab the initiative tracker.
+    let turnOrder = [];
+    if (Campaign().get("turnorder") !== "") {
+        turnOrder = JSON.parse(Campaign().get("turnorder"));
+    }
+
+
+    if (turnOrder.length < 1) {
+        return;
+    }
+    let item = turnOrder[0];
+
+    let tokenId = item.id;
+    let text = item.custom;
+
+    log("Getting " + tokenId + " and [" + text + "]");
+
+    if (text) {
+        PfInfo.message(null, `<b>Starting round ${item.pr}</b>`, null, null);
+    } else if (tokenId != -1) {
+        let token = getObj("graphic", tokenId);
+        if (token != null) {
+            let owners = PfInfo.getOwners(token);
+            if (owners && owners.length > 0) {
+                for (let i=0; i < owners.length; i++) {
+                    PfInfo.whisperTo("GM", owners[i], `It is time for <b>${token.get("name")}</b> to act.`, null, null);
+                    PfInfo.whisper(owners[i], `It is time for <b>${token.get("name")}</b> to act.`, null, null);
+                }
+            }
+            log(token.get("name") + ": " + owners.length);
+
+            if (token.get("status_dead")) {
+                // Remove token from the initiative list.
+                turnOrder.splice(0, 1);
+                Campaign().set("turnorder", JSON.stringify(turnOrder));
+                PfCombat.updateInitiative();
+            } else if (token.get("status_frozen-orb")) {
+                let flags = [];
+                flags[ 'status_frozen-orb' ] = false;
+                token.set(flags);
+                PfInfo.whisper(token.get("name"), `<b>${token.get("name")} was surprised and can't act.`);
+                turnOrder.splice(0, 1);
+                turnOrder.push(item);
+                Campaign().set("turnorder", JSON.stringify(turnOrder));
+                PfCombat.updateInitiative();
+            } else if (token.get("status_tread")) {
+                let flags = [];
+                flags[ 'status_tread' ] = false;
+                token.set("status_tread", false);
+                token.set("tint_color", "transparent");
+            }
+        }
+    }
+};
+
+PfCombat.startCombatCommand = function(msg) {
+    let tokenList = PfInfo.getSelectedTokens(msg);
+    if (!tokenList || tokenList.length === 0) {
+        return;
+    }
+
+    // Grab the initiative tracker.
+    let turnOrder = [];
+    if (Campaign().get("turnorder") !== "") {
+        turnOrder = JSON.parse(Campaign().get("turnorder"));
+    }
+
+    turnOrder = [];
+    turnOrder.push({
+        "id": "-1",
+        "pr": 1,
+        "custom": "==== Start of Round ====",
+        "formula": +1,
+    });
+
+    let inits = [];
+
+    let player = getObj("player", msg.playerid);
+    for (let i=0; i < tokenList.length; i++) {
+        let token = tokenList[i];
+
+        if (token.get("name") === "Light") {
+            // Light sources can be ignored.
+            continue;
+        }
+
+        if (!PfInfo.hasAbility(token, "Uncanny Dodge")) {
+            let flags = [];
+            flags['status_tread'] = true;
+            token.set(flags);
+        }
+
+        let character_id = token.get("represents");
+        if (!character_id) {
+            continue;
+        }
+        let character = getObj("character", character_id);
+        let init = getAttrByName(character_id, "init");
+        let dex = getAttrByName(character_id, "DEX-base");
+        // Avoid dividing by 100, since this sometimes gives arithmetic
+        // errors with too many dp.
+        if (parseInt(dex) < 10) {
+            dex = ("0" + dex);
+        }
+
+        let initiative = randomInteger(20) + init;
+        initiative = "" + initiative + "." + dex;
+        let message = "Starting combat for " + token.get("name") + " on [[d20 + " + init + " + 0." + dex + "]]";
+        log(message);
+/*
+        for (let ti=0; ti < turnOrder.length; ti++) {
+            if (turnOrder[ti].id == token.get("_id")) {
+                turnOrder.splice(ti, 1);
+            }
+        }
+        sendChat(`player|${msg.playerid}`, message,
+            initiativeMsgCallback(token.get("_id"), turnOrder, token, player));
+*/
+        inits.push({
+            "id": token.get("_id"),
+            "pr": initiative
+        });
+    }
+    inits.sort(function(a, b) {
+        return b.pr - a.pr;
+    });
+    for (let i=0; i < inits.length; i++) {
+        turnOrder.push(inits[i]);
+    };
+    Campaign().set("turnorder", JSON.stringify(turnOrder));
+    PfInfo.message(null, `<b>Starting round 1</b>`, null, null);
+};
+
 PfCombat.statusCommand = function(msg) {
     let tokenList = PfInfo.getSelectedTokens(msg);
-    if (!tokenList || tokenList.length == 0) {
+    if (!tokenList || tokenList.length === 0) {
         return;
     }
 
@@ -208,13 +350,13 @@ PfCombat.statusCommand = function(msg) {
         currentHp -= nonlethalDamage;
 
         let message = "<b>"+token.get("name") + "</b> ";
-        if (dead == true) {
+        if (dead === true) {
             message += "is dead.";
         } else if (currentHp >= maxHp) {
             message += "is at full hitpoints.";
         } else if (currentHp > 0) {
             message += "has " + currentHp + " out of " + maxHp + " hitpoints.";
-        } else if (currentHp == 0) {
+        } else if (currentHp === 0) {
             message += "is disabled on zero hitpoints.";
         } else if (stable) {
             message += "is stable on " + currentHp + " hitpoints.";
@@ -320,6 +462,9 @@ PfCombat.setHitPoints = function(msg, args) {
             for (let classIndex=0; classIndex < 10; classIndex++) {
                 let hd = getAttrByName(character_id, "class-" + classIndex + "-hd");
                 let level = getAttrByName(character_id, "class-" + classIndex + "-level");
+                
+                log("Class " + classIndex + " for level " + level + " at D" + hd);
+                
                 if (!hd || !level) {
                     break;
                 }
@@ -336,6 +481,7 @@ PfCombat.setHitPoints = function(msg, args) {
                     if (hitpoints < 1) {
                         hitpoints = 1;
                     }
+                    log("Setting maximum hitpoints to " + hitpoints);
                     level--;
                 }
                 for (;level > 0; level--) {
@@ -555,7 +701,7 @@ function initiativeMsgCallback(tokenId, turnOrder, token, player) {
             pr: result
         });
         Campaign().set("turnorder", JSON.stringify(turnOrder));
-        let text = `${token.get("name")} joins combat on initiative [[d0 + ${result} ]]`;
+        let text = `${token.get("name")} has initiative [[d0 + ${result} ]]`;
         if (playerIsGM(player.get("id"))) {
             PfInfo.whisper(token.get("name"), text, token.get("name"));
         } else {

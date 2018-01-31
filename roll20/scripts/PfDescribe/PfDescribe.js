@@ -452,7 +452,7 @@ PfDescribe.describe = function(msg, player, target_id) {
                 }
                 handout.get("notes", function (notes) {
                     let text = PfDescribe.getHTML(title, image, unescape(notes));
-                    if (playerIsGM(player.get("id"))) {
+                    if (playerIsGM(player.get("id")) && title) {
                         PfInfo.message(player, text, title);
                     } else {
                         PfInfo.whisper(player, text, title);

@@ -560,6 +560,7 @@ PfTreasure.lists["Tools B"] = { "table": [
     [ 12, "A <<small|rusty|chipped|wobbly>> iron hammer." ],
     [ 12, "A cheap tattoo kit." ],
     [ 12, "Some sealing wax, [[2d4+2]]sp." ],
+    [ 12, "A set of <<5|6|8>> <<small|long|sharp>> silver needles, in a <<silk|leather>> pouch which has a wolf head embossed on it, [[3d6]]sp." ],
 ]};
 
 PfTreasure.lists["Tools C"] = { "table": [
@@ -596,12 +597,18 @@ PfTreasure.lists["Tools D"] = { "table": [
  * E: Up to a 100 gold pieces.
  */
 PfTreasure.lists["Trinkets A"] = { "table": [
+    [ 0, "Trinkets B" ],
+    [ 6, "A small abacus with <<bronze|glass|copper>> beads, worth [[2d6]]cp." ],
+    [ 6, "A <<copper|bronze>> necklace with glass beads, [[2d4]]cp." ],
     [ 9, "A <<broken|twisted|plain>> copper ring worth [[2d4]]cp." ],
     [ 9, "A wooden pendant with a <<bird|cat|dog|rat>> carving worth [[1d6]]cp." ],
     [ 9, "A wooden holy symbol of <<Desna|Calistria|Abadar|Erastil|Cayden Cailean>>, [[1d4+2]]cp." ],
     [ 9, "A bronze holy symbol of <<Desna|Calistria|Abadar|Cayden Cailean>>, [[1d6+3]]cp." ],
     [ 9, "A <<copper|bronze|brass>> amulet engraved with the image of <<an elf|a dryad|an angel>>, [[2d6]]cp." ],
     [ 9, "A miniature <<copper|bronze|tin>> <<hammer and anvil|bow and arrow|skull|rose>> on a pendant, [[2d4]]cp." ],
+    [ 9, "A <<tangled|small>> ball of <<dirty|thick|fine|course>> <<red|yellow|green>> yarn, worth [[1d4]cp."],
+    [ 9, "A <<copper|bronze>> spoon, [[2d4]]cp." ],
+    [ 9, "A wooden recorder, [[1d4]]cp."],
     [ 12, "A knife with a blade on one end and a fork on the other, [[1d4+1]]cp." ],
     [ 12, "A small piece of flint." ],
     [ 12, "A clean bandage." ],
@@ -625,6 +632,7 @@ PfTreasure.lists["Trinkets A"] = { "table": [
     [ 15, "A <<black|red|red and yellow|yellow|brown>> cloth mask with two eye holes." ],
     [ 15, "A small <<sliver|fragment|shard>> of <<glass|crystal>> that reflects different colours of light." ],
     [ 15, "A glass marble, worth [[1d2+1]]cp." ],
+    [ 15, "A <<small|long|sharp|bent>> silver needle, worth [[1d3+1]]sp."],
 ]};
 
 // Silver pieces.

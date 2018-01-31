@@ -795,6 +795,25 @@ PfInfo.isNamedCharacter = function(token) {
     return false;
 };
 
+PfInfo.hasAbility = function(token, ability) {
+    let characterId = token.get("represents");
+    let attrList = PfInfo.getAllAttributes(characterId);
+
+    log("Looking for " + ability);
+    for (let i=0; i < attrList.length; i++) {
+        //log(attrList[i].get("name"));
+        let name = "" + attrList[i].get("name");
+        if (name.match(/repeating_ability_-[a-zA-Z0-9]*_name/)) {
+            let val = "" + attrList[i].get("current");
+            log("Token " + token.get("name") + " has " + val);
+            if (val.toLowerCase() == ability.toLowerCase()) {
+                return true;
+            }
+        }
+    }
+    return false;
+};
+
 /**
  * Returns true iff the player has permission to edit the character that this
  * token represents.
@@ -876,6 +895,8 @@ PfInfo.statusEffects = {
                 "Half-speed, -6 to Str and Dex. Rest 1 hour to become fatigued." },
     'Fatigued': { status: "half-haze", attribute: "condition-Fatigued", value: "3", description:
                 "Cannot run or charge; -2 to Str and Dex. Rest 8 hours to recover." },
+    'Flat Footed': { status: "tread", attribute: "condition-Flat-Footed", value: "1", description:
+                "Lose dex bonus to AC and CMD, and can't make attacks of opportunity (unless has Combat Reflexes)." },
     'Frightened': { status: "broken-heart", attribute: "condition-Fear", value: "2", description:
                 "-2 attacks, saves, skills and ability checks; must flee from source." },
     'Grappled': { status: "fist", attribute: "condition-Grappled", value: "2", description:
@@ -908,6 +929,8 @@ PfInfo.statusEffects = {
                 "Only a move or standard action (plus swift and immediate)." },
     'Stunned': { status: "interdiction", attribute: "condition-Stunned", value: "2", description:
                 "Cannot take actions, drops everything held, takes a -2 penalty to AC, loses Dex bonus to AC." },
+    'Surprised': { status: "frozen-orb", tint: "ffffff", description:
+                "Cannot take an action in the surprise round." },
     'Helpless': { status: "aura", attribute: "condition-Helpless", value: "1", description:
                 "Dexterity is 0 (-5)." },
     'Unconscious': { status: "skull", description:
@@ -954,6 +977,9 @@ PfInfo.setStatusCommand = function(playerId, status, tokens, value, set = true) 
                 flags['status_' + effect.status] = set;
             }
             tokens[i].set( flags );
+            if (effect.tint) {
+                tokens[i].set("tint_color", effect.tint);
+            }
             if (PfInfo.isNamedCharacter(tokens[i])) {
                 PfInfo.setCharacterStatus(tokens[i], effect, set);
                 if (set && playerIsGM(player.get("_id"))) {
