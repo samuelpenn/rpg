@@ -84,6 +84,8 @@
 var PfCombat = PfCombat || {};
 PfCombat.VERSION = "2.0";
 
+PfCombat.ROUND_MARKER = "==== Start of Round ====";
+
 on("ready", function() {
     log(`==== PfCombat Version ${PfCombat.VERSION} ====`);
 });
@@ -115,6 +117,12 @@ on("chat:message", function(msg) {
         PfCombat.addCustomInitCommand(msg, args);
     } else if (command === "!pfstartcombat") {
         PfCombat.startCombatCommand(msg, args);
+    } else if (command === "!pfaddtocombat") {
+        PfCombat.addToCombatCommand(msg, args);
+    } else if (command === "!pfinitflag") {
+        PfCombat.flagInitiativeCommand(msg, args);
+    } else if (command === "!pfundelay") {
+        PfCombat.undelayCommand(msg);
     }
 });
 
@@ -196,6 +204,88 @@ PfCombat.getSelectedTokens = function (msg, forceExplicit) {
     return tokenList;
 };
 
+/**
+ * A flag is a non-numerical suffix on the initiative number. It is a single character.
+ * Passing null for the flag will clear any existing flag.
+ *
+ * @param tokenId   Token to find and set flag on.
+ * @param flag      Flag to set.
+ */
+PfCombat.setInitiativeFlag = function(tokenId, flag) {
+    let turnOrder = [];
+    if (Campaign().get("turnorder") !== "") {
+        turnOrder = JSON.parse(Campaign().get("turnorder"));
+    }
+    let token = null;
+
+    for (let i=0; i < turnOrder.length; i++) {
+        if (!tokenId || turnOrder[i].id == tokenId) {
+            if (turnOrder[i].custom) {
+                log(`setInitiativeFlag: Skip custom item ${i}.`);
+                continue;
+            }
+            log(`setInitiativeFlag: Setting item ${i} to ${flag}.`);
+            let item = turnOrder[i];
+            let pr = "" + item.pr;
+            if (!flag) {
+                if (!pr.match(/.*[0-9]$/)) {
+                    // Flag not set, so clear any flags if they exist.
+                    item.pr = pr.substring(0, pr.length - 1);
+                    turnOrder[i] = item;
+                    Campaign().set("turnorder", JSON.stringify(turnOrder));
+                    token = getObj("graphic", item.id);
+                    break;
+                }
+            } else if (pr.match(/.*[0-9]$/)) {
+                item.pr = pr + flag;
+                turnOrder[i] = item;
+                Campaign().set("turnorder", JSON.stringify(turnOrder));
+                token = getObj("graphic", item.id);
+            } else {
+                item.pr = pr.substring(0, pr.length - 1) + flag;
+                turnOrder[i] = item;
+                Campaign().set("turnorder", JSON.stringify(turnOrder));
+                token = getObj("graphic", item.id);
+            }
+            if (!tokenId) {
+                break;
+            }
+        }
+    }
+
+    if (token) {
+        if (!flag) {
+            token.set("status_stopwatch", false);
+        } else if (flag === "D") {
+            let count = token.get("status_stopwatch");
+            log("Stopwatch is " + count);
+            count = parseInt(count) + 1;
+            token.set("status_stopwatch", count);
+        }
+    }
+};
+
+
+PfCombat.getInitiativeFlag = function(tokenId) {
+    let turnOrder = [];
+    if (Campaign().get("turnorder") !== "") {
+        turnOrder = JSON.parse(Campaign().get("turnorder"));
+    }
+
+    for (let i=0; i < turnOrder.length; i++) {
+        if (turnOrder[i].id == tokenId) {
+            let item = turnOrder[i];
+            let pr = "" + item.pr;
+            if (!pr.match(/.*[0-9]$/)) {
+                return pr.substring(pr.length - 1, 1);
+            } else {
+                return null;
+            }
+        }
+    }
+    return null;
+};
+
 PfCombat.updateInitiative = function() {
     log("updateInitiative:");
 
@@ -205,18 +295,36 @@ PfCombat.updateInitiative = function() {
         turnOrder = JSON.parse(Campaign().get("turnorder"));
     }
 
-
     if (turnOrder.length < 1) {
         return;
     }
     let item = turnOrder[0];
+    let pr = "" + item.pr;
+    if (pr.indexOf("R") > -1) {
+        item.pr = pr.substring(0, pr.length - 1);
+        turnOrder[0] = item;
+        Campaign().set("turnorder", JSON.stringify(turnOrder));
+        let token = getObj("graphic", item.id);
+        token.set('status_stopwatch', false);
+    } else if (pr.indexOf("D") > -1) {
+        let token = getObj("graphic", item.id);
+        let count = token.get("status_stopwatch");
+        if (isNaN(count)) {
+            count = 0;
+        }
+        count = parseInt(count) + 1;
+        if (count > 9) {
+            count = 9;
+        }
+        token.set("status_stopwatch", count);
+    }
 
     let tokenId = item.id;
     let text = item.custom;
 
     log("Getting " + tokenId + " and [" + text + "]");
 
-    if (text) {
+    if (text && text === PfCombat.ROUND_MARKER) {
         PfInfo.message(null, `<b>Starting round ${item.pr}</b>`, null, null);
     } else if (tokenId != -1) {
         let token = getObj("graphic", tokenId);
@@ -249,11 +357,128 @@ PfCombat.updateInitiative = function() {
                 flags[ 'status_tread' ] = false;
                 token.set("status_tread", false);
                 token.set("tint_color", "transparent");
+                if (token.get("layer") === "objects") {
+                    sendPing(token.get("left"), token.get("top"), Campaign().get("playerpageid"), null, null);
+                }
+            } else {
+                if (token.get("layer") === "objects") {
+                    sendPing(token.get("left"), token.get("top"), Campaign().get("playerpageid"), null, null);
+                }
             }
         }
     }
+
+    item = turnOrder[turnOrder.length - 1];
+    pr = "" + item.pr;
+    if (pr.indexOf("*") > -1) {
+        item.pr = pr.substring(0, pr.length - 1);
+        turnOrder[turnOrder.length - 1] = item;
+        Campaign().set("turnorder", JSON.stringify(turnOrder));
+    }
 };
 
+PfCombat.undelayCommand = function(msg) {
+    let tokenList = PfInfo.getSelectedTokens(msg);
+    if (!tokenList || tokenList.length === 0) {
+        return;
+    }
+
+    // Grab the initiative tracker.
+    let turnOrder = [];
+    if (Campaign().get("turnorder") !== "") {
+        turnOrder = JSON.parse(Campaign().get("turnorder"));
+    }
+
+    let currentInit = null;
+    // Need to pull all affected tokens out in initiative order.
+    let inits = [];
+    for (let i=0; i < tokenList.length; i++) {
+        let token = tokenList[i];
+        for (let j=0; j < turnOrder.length; j++) {
+            if (turnOrder[j].custom) {
+                continue;
+            }
+            if (currentInit === null) {
+                currentInit = ("" + turnOrder[j].pr).replace(/[^-0-9.]*/g, "");
+            }
+            if (token.get("_id") == turnOrder[j].id) {
+                token.set("status_stopwatch", false);
+                log(turnOrder[j].pr);
+                inits.push(turnOrder[j]);
+                turnOrder.splice(j, 1);
+                break;
+            }
+        }
+    }
+    inits.sort(function(a, b) {
+        let apr = ("" + a.pr).replace(/[^-0-9.]*/g, "");
+        let bpr = ("" + b.pr).replace(/[^-0-9.]*/g, "");
+        return parseInt(bpr) - parseInt(apr);
+    });
+
+    for (let i=0; i < inits.length; i++) {
+        if (("" + inits[i]).indexOf("R") > -1) {
+            log(`Adding ${i} as R`);
+            inits[i].pr = currentInit;
+            turnOrder.splice(0, 0, inits[i]);
+        } else {
+            log(`Adding ${i} as D`);
+            inits[i].pr = currentInit;
+            turnOrder.splice(1, 0, inits[i]);
+        }
+    }
+    Campaign().set("turnorder", JSON.stringify(turnOrder));
+
+
+};
+
+/**
+ * Set or unset flag on selected tokens. If first arg is "current", then the selected
+ * tokens are ignored, and the first item on the initiative tracker is used. The next
+ * argument is the flag to set, or no argument to unset any existing flag.
+ *
+ * @param msg
+ * @param args
+ */
+PfCombat.flagInitiativeCommand = function(msg, args) {
+    let tokenList = PfInfo.getSelectedTokens(msg);
+    if (tokenList && tokenList.length === 0) {
+        tokenList = null;
+    }
+    let flag = args.shift();
+    if (flag === "current") {
+        tokenList = null;
+        flag = args.shift();
+    } else if (flag) {
+        flag = flag.substring(0, 1);
+    }
+
+    // Grab the initiative tracker.
+    let turnOrder = [];
+    if (Campaign().get("turnorder") !== "") {
+        turnOrder = JSON.parse(Campaign().get("turnorder"));
+    }
+
+    if (tokenList) {
+        log("flagInitiativeCommand: Updating list of tokens.");
+        for (let i = 0; i < tokenList.length; i++) {
+            let token = tokenList[i];
+
+            PfCombat.setInitiativeFlag(token.get("_id"), flag);
+        }
+    } else {
+        log("flagInitiativeCommand: Updating current token.");
+        PfCombat.setInitiativeFlag(null, flag);
+    }
+};
+
+/**
+ * Start a new combat, at round one. Any existing initiative tracker is cleared. All selected tokens are
+ * added to the combat, their initiative determined and then sorted in order. Everyone who doesn't have
+ * an ability to prevent it will be added as Flat Footed.
+ *
+ * @param msg
+ */
 PfCombat.startCombatCommand = function(msg) {
     let tokenList = PfInfo.getSelectedTokens(msg);
     if (!tokenList || tokenList.length === 0) {
@@ -270,13 +495,22 @@ PfCombat.startCombatCommand = function(msg) {
     turnOrder.push({
         "id": "-1",
         "pr": 1,
-        "custom": "==== Start of Round ====",
+        "custom": PfCombat.ROUND_MARKER,
         "formula": +1,
     });
 
-    let inits = [];
+    let inits = PfCombat.getInitiatives(tokenList);
 
-    let player = getObj("player", msg.playerid);
+    for (let i=0; i < inits.length; i++) {
+        turnOrder.push(inits[i]);
+    };
+    Campaign().set("turnorder", JSON.stringify(turnOrder));
+    PfInfo.message(null, `<b>Starting round 1</b>`, null, null);
+};
+
+PfCombat.getInitiatives = function(tokenList, existingOrder) {
+    let inits = [];
+    log("getInitiatives:");
     for (let i=0; i < tokenList.length; i++) {
         let token = tokenList[i];
 
@@ -285,6 +519,17 @@ PfCombat.startCombatCommand = function(msg) {
             continue;
         }
 
+        // Don't add tokens already on the initiative.
+        let exists = false;
+        for (let j = 0; existingOrder && j < existingOrder.length; j++) {
+            if (existingOrder[j].id && existingOrder[j].id == token.get("_id")) {
+                exists = true;
+                break;
+            }
+        }
+        if (exists) {
+            continue;
+        }
         if (!PfInfo.hasAbility(token, "Uncanny Dodge")) {
             let flags = [];
             flags['status_tread'] = true;
@@ -304,19 +549,11 @@ PfCombat.startCombatCommand = function(msg) {
             dex = ("0" + dex);
         }
 
-        let initiative = randomInteger(20) + init;
+        let initiative = randomInteger(20) + parseInt(init);
         initiative = "" + initiative + "." + dex;
-        let message = "Starting combat for " + token.get("name") + " on [[d20 + " + init + " + 0." + dex + "]]";
-        log(message);
-/*
-        for (let ti=0; ti < turnOrder.length; ti++) {
-            if (turnOrder[ti].id == token.get("_id")) {
-                turnOrder.splice(ti, 1);
-            }
-        }
-        sendChat(`player|${msg.playerid}`, message,
-            initiativeMsgCallback(token.get("_id"), turnOrder, token, player));
-*/
+
+        log(`getInitiatives: Adding ${token.get("name")} to track on ${initiative}.`);
+
         inits.push({
             "id": token.get("_id"),
             "pr": initiative
@@ -325,11 +562,89 @@ PfCombat.startCombatCommand = function(msg) {
     inits.sort(function(a, b) {
         return b.pr - a.pr;
     });
+    return inits;
+};
+
+PfCombat.getNextInitiative = function(position, turnOrder) {
+    // Skip over custom entries.
+    while (position < turnOrder.length && turnOrder[position].custom) {
+        if (turnOrder[position].custom === PfCombat.ROUND_MARKER) {
+            return position;
+        }
+        position++;
+    }
+    if (position >= turnOrder.length) {
+        position = 0;
+        while (position < turnOrder.length && turnOrder[position].custom) {
+            position++;
+        }
+        // It's possible to fall out of here after the end of the array if we
+        // only have custom entries. This is okay.
+    }
+    return position;
+};
+
+/**
+ * Inserts new tokens into the initiative track, starting immediately after the current token.
+ * @param msg
+ */
+PfCombat.addToCombatCommand = function(msg) {
+    log("addToCombatCommand:");
+    let tokenList = PfInfo.getSelectedTokens(msg);
+    if (!tokenList || tokenList.length === 0) {
+        return;
+    }
+
+    // Grab the initiative tracker.
+    let turnOrder = [];
+    if (Campaign().get("turnorder") !== "") {
+        turnOrder = JSON.parse(Campaign().get("turnorder"));
+    }
+    if (turnOrder.length === 0) {
+        // No existing combat.
+        PfCombat.startCombatCommand(msg);
+        return;
+    }
+    let inits = PfCombat.getInitiatives(tokenList, turnOrder);
+    log(`addToCombatCommand: Inserting ${inits.length} tokens.`);
+
+    let position = 1;
+
     for (let i=0; i < inits.length; i++) {
-        turnOrder.push(inits[i]);
+        let added = false, wrapped = false;
+        while (!added) {
+            // Wrap around.
+            if (position >= turnOrder.length) {
+                if (wrapped) {
+                    // Avoid infinite loops.
+                    log(`    Append ${i} (${inits[i].pr}) at the end.`);
+                    turnOrder.splice(position++, 0, inits[i]);
+                    added = true;
+                } else {
+                    wrapped = true;
+                    position = 0;
+                }
+            } else if (turnOrder[position].custom === PfCombat.ROUND_MARKER) {
+                log(`    Insert ${i} (${inits[i].pr}) before round marker.`);
+                // Reached the end of round. Just insert everything here now.
+                inits[i].pr = "" + inits[i].pr + "*";
+                turnOrder.splice(position++, 0, inits[i]);
+                added = true;
+            } else if (turnOrder[position].custom) {
+                log(`    Skipping custom marker.`);
+                position++;
+            } else if (parseFloat(inits[i].pr) > parseFloat(turnOrder[position].pr)) {
+                log(`    Insert ${i} (${inits[i].pr}) before item at ${turnOrder[position].pr}.`);
+                inits[i].pr = "" + inits[i].pr + "*";
+                turnOrder.splice(position++, 0, inits[i]);
+                added = true;
+            } else {
+                log(`    Token ${i} (${inits[i].pr}) goes after ${turnOrder[position].pr}.`);
+                position++;
+            }
+        }
     };
     Campaign().set("turnorder", JSON.stringify(turnOrder));
-    PfInfo.message(null, `<b>Starting round 1</b>`, null, null);
 };
 
 PfCombat.statusCommand = function(msg) {
