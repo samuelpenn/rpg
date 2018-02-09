@@ -74,6 +74,8 @@ PfSkills.usage = function() {
     sendChat("", "Usage: !pfskills <title> @{selected|token_id} [[d20]] <list>");
 };
 
+
+
 PfSkills.singleSkillCommand = function(msg) {
     var tokenList = PfCombat.getSelectedTokens(msg, true);
     if (!tokenList || tokenList.length !== 1) {
@@ -410,6 +412,9 @@ PfSkills.Process = function(msg, player_obj) {
 
     var title = n[1].replace("-", " ");
     var skills = n[3].split(",");
+    if (n[3].indexOf(",") === -1 && n[3].indexOf(";") > -1) {
+        skills = n[3].split(";");
+    }
     if (target == null) {
         sendChat("", "No token found.");
         PfSkills.usage();

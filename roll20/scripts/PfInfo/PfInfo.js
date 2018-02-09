@@ -937,6 +937,10 @@ PfInfo.statusEffects = {
                 "Is unconscious and dying." },
     'Dead': { status: "dead", description:
                 "Creature is dead. Gone. Destroyed." },
+    'Delayed': { status: "stopwatch", tint: "0000ff", initiative: "D", conflicts: "sentry-gun",
+        description: "Delayed action. Can undelay after an unspecified event." },
+    'Ready': { status: "sentry-gun", tint: "00ff00", initiative: "R", conflicts: "stopwatch",
+        description: "Have a single action prepared waiting for a specified event. Acts before an event." },
     'Bleeding': { status: "pink", description: "Is bleeding HP every round. Heal DC 15 or cure effect to stop." },
     'Attack Bonus': { status: "all-for-one", description: "Gets a bonus to all attack rolls." },
     'Damage Bonus': { status: "grenade", description: "Gets a bonus to all damage rolls." },
@@ -964,6 +968,11 @@ PfInfo.setStatusCommand = function(playerId, status, tokens, value, set = true) 
 
     if (PfInfo.statusEffects[status]) {
         let effect = PfInfo.statusEffects[status];
+        if (effect.initiative) {
+            if (PfCombat && PfCombat.flagInitiative) {
+                PfCombat.flagInitiative(tokens, effect.initiative);
+            }
+        }
         for (let i=0; i < tokens.length; i++) {
             // Need to reset flags each time, since each call to token.set() updates it.
             if (!playerIsGM(player.get("_id")) && !PfInfo.hasPermission(player, tokens[i])) {
@@ -975,6 +984,14 @@ PfInfo.setStatusCommand = function(playerId, status, tokens, value, set = true) 
                 flags['status_' + effect.status] = value;
             } else {
                 flags['status_' + effect.status] = set;
+            }
+            log(`Effect.Conflicts = ${effect.conflicts}`);
+            if (set && effect.conflicts) {
+                let conflicts = effect.conflicts.split(",");
+                for (let c=0; c < conflicts.length; c++) {
+                    log(`Unsetting status [${conflicts[c]}]`);
+                    flags['status_' + conflicts[c]] = false;
+                }
             }
             tokens[i].set( flags );
             if (effect.tint) {

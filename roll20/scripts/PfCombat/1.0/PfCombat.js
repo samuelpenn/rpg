@@ -256,11 +256,22 @@ PfCombat.setInitiativeFlag = function(tokenId, flag) {
     if (token) {
         if (!flag) {
             token.set("status_stopwatch", false);
+            token.set("status_sentry-gun", false);
+            token.set("tint_color", "transparent");
         } else if (flag === "D") {
             let count = token.get("status_stopwatch");
             log("Stopwatch is " + count);
             count = parseInt(count) + 1;
             token.set("status_stopwatch", count);
+            token.set("status_sentry-gun", false);
+            token.set("tint_color", "0000ff");
+        } else if (flag === "R") {
+            let count = token.get("status_sentry-gun");
+            log("Stopwatch is " + count);
+            count = parseInt(count) + 1;
+            token.set("status_stopwatch", false);
+            token.set("status_sentry-gun", true);
+            token.set("tint_color", "00ff00");
         }
     }
 };
@@ -305,7 +316,8 @@ PfCombat.updateInitiative = function() {
         turnOrder[0] = item;
         Campaign().set("turnorder", JSON.stringify(turnOrder));
         let token = getObj("graphic", item.id);
-        token.set('status_stopwatch', false);
+        token.set('status_sentry-gun', false);
+        token.set('tint_color', 'transparent');
     } else if (pr.indexOf("D") > -1) {
         let token = getObj("graphic", item.id);
         let count = token.get("status_stopwatch");
@@ -403,6 +415,8 @@ PfCombat.undelayCommand = function(msg) {
             }
             if (token.get("_id") == turnOrder[j].id) {
                 token.set("status_stopwatch", false);
+                token.set("status_sentry-gun", false);
+                token.set("tint_color", "transparent");
                 log(turnOrder[j].pr);
                 inits.push(turnOrder[j]);
                 turnOrder.splice(j, 1);
@@ -453,6 +467,10 @@ PfCombat.flagInitiativeCommand = function(msg, args) {
         flag = flag.substring(0, 1);
     }
 
+    PfCombat.flagInitiative(tokenList, flag);
+};
+
+PfCombat.flagInitiative = function(tokenList, flag) {
     // Grab the initiative tracker.
     let turnOrder = [];
     if (Campaign().get("turnorder") !== "") {
@@ -535,6 +553,9 @@ PfCombat.getInitiatives = function(tokenList, existingOrder) {
             flags['status_tread'] = true;
             token.set(flags);
         }
+        token.set('status_stopwatch', false);
+        token.set('status_sentry-gun', false);
+        token.set('tint_color', 'transparent');
 
         let character_id = token.get("represents");
         if (!character_id) {
@@ -777,9 +798,9 @@ PfCombat.setHitPoints = function(msg, args) {
             for (let classIndex=0; classIndex < 10; classIndex++) {
                 let hd = getAttrByName(character_id, "class-" + classIndex + "-hd");
                 let level = getAttrByName(character_id, "class-" + classIndex + "-level");
-                
+
                 log("Class " + classIndex + " for level " + level + " at D" + hd);
-                
+
                 if (!hd || !level) {
                     break;
                 }
