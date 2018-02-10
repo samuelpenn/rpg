@@ -82,7 +82,7 @@
 
 
 var PfCombat = PfCombat || {};
-PfCombat.VERSION = "2.0";
+PfCombat.VERSION = "2.1";
 
 PfCombat.ROUND_MARKER = "==== Start of Round ====";
 
@@ -98,6 +98,8 @@ on("chat:message", function(msg) {
     if (msg.type !== "api") return;
     let args = msg.content.split(" ");
     let command = args.shift();
+    let playerId = msg.playerid;
+
 
     if (command === "!pfheal") {
         PfCombat.healCommand(msg);
@@ -116,9 +118,31 @@ on("chat:message", function(msg) {
     } else if (command === "!pfcustominit") {
         PfCombat.addCustomInitCommand(msg, args);
     } else if (command === "!pfstartcombat") {
-        PfCombat.startCombatCommand(msg, args);
+        let tokens = PfInfo.getSelectedTokens(msg);
+        if (!tokens || tokens.length === 0) {
+            return;
+        }
+        let surprise = null;
+        if (args.length > 0) {
+            surprise = parseInt(args.shift());
+        }
+        PfCombat.startCombatCommand(playerId, tokens, surprise);
     } else if (command === "!pfaddtocombat") {
-        PfCombat.addToCombatCommand(msg, args);
+        let tokens = PfInfo.getSelectedTokens(msg);
+        if (!tokens || tokens.length === 0) {
+            return;
+        }
+        let surprise = null;
+        if (args.length > 0) {
+            surprise = parseInt(args.shift());
+        }
+        PfCombat.addToCombatCommand(playerId, tokens, surprise);
+    } else if (command === "!pfleavecombat") {
+        let tokens = PfInfo.getSelectedTokens(msg);
+        if (!tokens || tokens.length === 0) {
+            return;
+        }
+        PfCombat.leaveCombatCommand(tokens);
     } else if (command === "!pfinitflag") {
         PfCombat.flagInitiativeCommand(msg, args);
     } else if (command === "!pfundelay") {
@@ -257,6 +281,8 @@ PfCombat.setInitiativeFlag = function(tokenId, flag) {
         if (!flag) {
             token.set("status_stopwatch", false);
             token.set("status_sentry-gun", false);
+            token.set("status_frozen-orb", false);
+            token.set("status_rolling-bomb", false);
             token.set("tint_color", "transparent");
         } else if (flag === "D") {
             let count = token.get("status_stopwatch");
@@ -264,6 +290,8 @@ PfCombat.setInitiativeFlag = function(tokenId, flag) {
             count = parseInt(count) + 1;
             token.set("status_stopwatch", count);
             token.set("status_sentry-gun", false);
+            token.set("status_frozen-orb", false);
+            token.set("status_rolling-bomb", false);
             token.set("tint_color", "0000ff");
         } else if (flag === "R") {
             let count = token.get("status_sentry-gun");
@@ -271,6 +299,8 @@ PfCombat.setInitiativeFlag = function(tokenId, flag) {
             count = parseInt(count) + 1;
             token.set("status_stopwatch", false);
             token.set("status_sentry-gun", true);
+            token.set("status_frozen-orb", false);
+            token.set("status_rolling-bomb", false);
             token.set("tint_color", "00ff00");
         }
     }
@@ -334,45 +364,85 @@ PfCombat.updateInitiative = function() {
     let tokenId = item.id;
     let text = item.custom;
 
-    log("Getting " + tokenId + " and [" + text + "]");
-
     if (text && text === PfCombat.ROUND_MARKER) {
+        log(`    Starting round ${item.pr}`);
         PfInfo.message(null, `<b>Starting round ${item.pr}</b>`, null, null);
+        if (""+item.pr == "1") {
+            // This is the start of the combat. No processing should be done at the
+            // end of the list.
+            return;
+        }
     } else if (tokenId != -1) {
         let token = getObj("graphic", tokenId);
+        log(`    Processing [${token.get("name")}].`);
         if (token != null) {
             let owners = PfInfo.getOwners(token);
             if (owners && owners.length > 0) {
                 for (let i=0; i < owners.length; i++) {
-                    PfInfo.whisperTo("GM", owners[i], `It is time for <b>${token.get("name")}</b> to act.`, null, null);
-                    PfInfo.whisper(owners[i], `It is time for <b>${token.get("name")}</b> to act.`, null, null);
+                    let message = `It is time for <b>${token.get("name")}</b> to act.`;
+                    if (token.get("status_rolling-bomb")) {
+                        message += " They can take a single move or standard action in the surprise round.";
+                    } else if (token.get("status_frozen-orb")) {
+                        message += " They are surprised and cannot act this round.";
+                    }
+                    PfInfo.whisperTo("GM", owners[i], message, null, null);
+                    PfInfo.whisper(owners[i], message, null, null);
                 }
             }
-            log(token.get("name") + ": " + owners.length);
+
+            if (!token.get("status_dead") && !token.get("status_broken-shield")) {
+                let fastHealing = PfInfo.getAbility(token, "Fast Healing");
+                let regeneration = PfInfo.getAbility(token, "Regeneration");
+
+                if (regeneration > 0) {
+                    PfCombat.heal(token, regeneration);
+                } else if (fastHealing > 0) {
+                    PfCombat.heal(token, fastHealing);
+                }
+            } else if (token.get("status_broken-shield")) {
+                token.set("status_broken-shield", false);
+            }
+
+            let hpCurrent = token.get("bar1_value");
+            if (hpCurrent < 0 && !token.get("status_dead") && !token.get("status_green")) {
+                PfCombat.stabilise(token);
+            }
 
             if (token.get("status_dead")) {
                 // Remove token from the initiative list.
+                log(`    Token [${token.get("name")}] is dead, removing from initiative track.`);
                 turnOrder.splice(0, 1);
                 Campaign().set("turnorder", JSON.stringify(turnOrder));
                 PfCombat.updateInitiative();
+                return;
             } else if (token.get("status_frozen-orb")) {
+                log(`    Token [${token.get("name")}] is surprised and cannot act.`);
+                PfInfo.whisper(token.get("name"), `<b>${token.get("name")} is surprised and can't act.`);
+                toFront(token);
+                /*
                 let flags = [];
                 flags[ 'status_frozen-orb' ] = false;
+                flags['tint_color'] = 'transparent';
                 token.set(flags);
-                PfInfo.whisper(token.get("name"), `<b>${token.get("name")} was surprised and can't act.`);
+                if (!(""+item.pr).match(/.*[0-9]$/)) {
+                    item.pr = item.pr.substring(item.pr.length - 1, 1);
+                }
                 turnOrder.splice(0, 1);
                 turnOrder.push(item);
                 Campaign().set("turnorder", JSON.stringify(turnOrder));
                 PfCombat.updateInitiative();
+                return;
+                */
             } else if (token.get("status_tread")) {
-                let flags = [];
-                flags[ 'status_tread' ] = false;
+                log(`    Token [${token.get("name")}] is no longer flat footed.`);
+                toFront(token);
                 token.set("status_tread", false);
-                token.set("tint_color", "transparent");
                 if (token.get("layer") === "objects") {
                     sendPing(token.get("left"), token.get("top"), Campaign().get("playerpageid"), null, null);
                 }
             } else {
+                log(`    Token [${token.get("name")}] is ready to act normally.`);
+                toFront(token);
                 if (token.get("layer") === "objects") {
                     sendPing(token.get("left"), token.get("top"), Campaign().get("playerpageid"), null, null);
                 }
@@ -381,11 +451,22 @@ PfCombat.updateInitiative = function() {
     }
 
     item = turnOrder[turnOrder.length - 1];
-    pr = "" + item.pr;
-    if (pr.indexOf("*") > -1) {
-        item.pr = pr.substring(0, pr.length - 1);
-        turnOrder[turnOrder.length - 1] = item;
-        Campaign().set("turnorder", JSON.stringify(turnOrder));
+    if (!item.custom) {
+        pr = "" + item.pr;
+        let token = item.id?getObj("graphic", item.id):null;
+        if (token) {
+            if (token.get("status_rolling-bomb") || token.get("status_frozen-orb")) {
+                token.set("status_rolling-bomb", false);
+                token.set("status_frozen-orb", false);
+                token.set("tint_color", "transparent");
+                log(`    Removing surprise status for [${token.get("name")}] at end of list.`);
+            }
+        }
+        if (pr.indexOf("*") > -1 || pr.indexOf("!") > -1 || pr.indexOf("½") > -1) {
+            item.pr = pr.substring(0, pr.length - 1);
+            turnOrder[turnOrder.length - 1] = item;
+            Campaign().set("turnorder", JSON.stringify(turnOrder));
+        }
     }
 };
 
@@ -431,7 +512,7 @@ PfCombat.undelayCommand = function(msg) {
     });
 
     for (let i=0; i < inits.length; i++) {
-        if (("" + inits[i]).indexOf("R") > -1) {
+        if (("" + inits[i].pr).indexOf("R") > -1) {
             log(`Adding ${i} as R`);
             inits[i].pr = currentInit;
             turnOrder.splice(0, 0, inits[i]);
@@ -497,19 +578,9 @@ PfCombat.flagInitiative = function(tokenList, flag) {
  *
  * @param msg
  */
-PfCombat.startCombatCommand = function(msg) {
-    let tokenList = PfInfo.getSelectedTokens(msg);
-    if (!tokenList || tokenList.length === 0) {
-        return;
-    }
-
-    // Grab the initiative tracker.
+PfCombat.startCombatCommand = function(playerId, tokenList, surprise) {
+    // Create a new initiative tracker.
     let turnOrder = [];
-    if (Campaign().get("turnorder") !== "") {
-        turnOrder = JSON.parse(Campaign().get("turnorder"));
-    }
-
-    turnOrder = [];
     turnOrder.push({
         "id": "-1",
         "pr": 1,
@@ -517,16 +588,56 @@ PfCombat.startCombatCommand = function(msg) {
         "formula": +1,
     });
 
-    let inits = PfCombat.getInitiatives(tokenList);
+    let take20 = (tokenList.length == 1);
+
+    let inits = PfCombat.getInitiatives(tokenList, null, take20);
 
     for (let i=0; i < inits.length; i++) {
+        if (surprise != null) {
+            let token = getObj("graphic", inits[i].id);
+            let surprised = PfCombat.workOutSurprise(playerId, token, surprise);
+            if (surprised) {
+                inits[i].pr = "" + inits[i].pr + "!";
+            } else {
+                inits[i].pr = "" + inits[i].pr + "½";
+            }
+        }
         turnOrder.push(inits[i]);
     };
     Campaign().set("turnorder", JSON.stringify(turnOrder));
+
     PfInfo.message(null, `<b>Starting round 1</b>`, null, null);
 };
 
-PfCombat.getInitiatives = function(tokenList, existingOrder) {
+PfCombat.leaveCombatCommand = function(tokenList) {
+    let turnOrder = [];
+    if (Campaign().get("turnorder") !== "") {
+        turnOrder = JSON.parse(Campaign().get("turnorder"));
+    }
+
+    for (let i=0; i < tokenList.length; i++) {
+        let token = tokenList[i];
+
+        let flags = [];
+        flags['status_rolling-bomb'] = false;
+        flags['status_frozen-orb'] = false;
+        flags['status_tread'] = false;
+        flags['status_stopwatch'] = false;
+        flags['status_sentry-gun'] = false;
+        flags['tint_color'] = 'transparent';
+        token.set(flags);
+
+        for (let j=0; j < turnOrder.length; j++) {
+            if (turnOrder[j].id === token.get("_id")) {
+                turnOrder.splice(j, 1);
+                break;
+            }
+        }
+    }
+    Campaign().set("turnorder", JSON.stringify(turnOrder));
+};
+
+PfCombat.getInitiatives = function(tokenList, existingOrder = null, take20 = false) {
     let inits = [];
     log("getInitiatives:");
     for (let i=0; i < tokenList.length; i++) {
@@ -548,20 +659,21 @@ PfCombat.getInitiatives = function(tokenList, existingOrder) {
         if (exists) {
             continue;
         }
+        let flags = [];
         if (!PfInfo.hasAbility(token, "Uncanny Dodge")) {
-            let flags = [];
             flags['status_tread'] = true;
-            token.set(flags);
         }
-        token.set('status_stopwatch', false);
-        token.set('status_sentry-gun', false);
-        token.set('tint_color', 'transparent');
+        flags['status_stopwatch'] = false;
+        flags['status_sentry-gun'] = false;
+        flags['status_rolling-bomb'] = take20;
+        flags['status_frozen-orb'] = false;
+        token.set(flags);
+        token.set('tint_color', take20?'ff0000':'transparent');
 
         let character_id = token.get("represents");
         if (!character_id) {
             continue;
         }
-        let character = getObj("character", character_id);
         let init = getAttrByName(character_id, "init");
         let dex = getAttrByName(character_id, "DEX-base");
         // Avoid dividing by 100, since this sometimes gives arithmetic
@@ -570,15 +682,15 @@ PfCombat.getInitiatives = function(tokenList, existingOrder) {
             dex = ("0" + dex);
         }
 
-        let initiative = randomInteger(20) + parseInt(init);
-        initiative = "" + initiative + "." + dex;
+        let initiative = (take20?20:randomInteger(20)) + parseInt(init);
+        initiative = "" + initiative + "." + dex + (take20?"½":"");
 
         log(`getInitiatives: Adding ${token.get("name")} to track on ${initiative}.`);
 
         inits.push({
             "id": token.get("_id"),
             "pr": initiative
-        });
+        })
     }
     inits.sort(function(a, b) {
         return b.pr - a.pr;
@@ -605,16 +717,41 @@ PfCombat.getNextInitiative = function(position, turnOrder) {
     return position;
 };
 
+PfCombat.workOutSurprise = function(playerId, token, surprise) {
+    let surprised = false;
+    let hasSurprise = false;
+    if (surprise <= -100) {
+        hasSurprise = true;
+    } else if (surprise >= 100) {
+        surprised = true;
+    } else {
+        let perception = 0;
+        let characterId = token.get("represents");
+        if (characterId) {
+            perception = parseInt(getAttrByName(characterId, "Perception"));
+        }
+        if (perception + randomInteger(20) >= surprise) {
+            hasSurprise = true;
+        } else {
+            surprised = true;
+        }
+    }
+
+    if (surprised) {
+        PfInfo.setStatusCommand(playerId, "Surprised", [ token ]);
+    } else if (hasSurprise) {
+        PfInfo.setStatusCommand(playerId, "Surprise", [ token ]);
+    }
+
+    return surprised;
+};
+
 /**
  * Inserts new tokens into the initiative track, starting immediately after the current token.
  * @param msg
  */
-PfCombat.addToCombatCommand = function(msg) {
-    log("addToCombatCommand:");
-    let tokenList = PfInfo.getSelectedTokens(msg);
-    if (!tokenList || tokenList.length === 0) {
-        return;
-    }
+PfCombat.addToCombatCommand = function(playerId, tokenList, surprise) {
+    log(`addToCombatCommand: ${tokenList.length} tokens with ${surprise?surprise:'no surprise'}`);
 
     // Grab the initiative tracker.
     let turnOrder = [];
@@ -629,10 +766,27 @@ PfCombat.addToCombatCommand = function(msg) {
     let inits = PfCombat.getInitiatives(tokenList, turnOrder);
     log(`addToCombatCommand: Inserting ${inits.length} tokens.`);
 
+    let doNotWrap = false;
+    if (turnOrder[0].custom === PfCombat.ROUND_MARKER) {
+        doNotWrap = true;
+    }
     let position = 1;
 
     for (let i=0; i < inits.length; i++) {
-        let added = false, wrapped = false;
+        let added = false, wrapped = false, surpriseSuffix = null;
+
+        if (surprise != null) {
+            let token = getObj("graphic", inits[i].id);
+            let surprised = PfCombat.workOutSurprise(playerId, token, surprise);
+            if (surprised) {
+                surpriseSuffix = "!";
+            } else {
+                surpriseSuffix = "½";
+            }
+            inits[i].pr = "" + inits[i].pr + surpriseSuffix;
+        }
+
+        let suffix = surpriseSuffix?"":"*";
         while (!added) {
             // Wrap around.
             if (position >= turnOrder.length) {
@@ -648,7 +802,7 @@ PfCombat.addToCombatCommand = function(msg) {
             } else if (turnOrder[position].custom === PfCombat.ROUND_MARKER) {
                 log(`    Insert ${i} (${inits[i].pr}) before round marker.`);
                 // Reached the end of round. Just insert everything here now.
-                inits[i].pr = "" + inits[i].pr + "*";
+                inits[i].pr = "" + inits[i].pr + suffix;
                 turnOrder.splice(position++, 0, inits[i]);
                 added = true;
             } else if (turnOrder[position].custom) {
@@ -656,11 +810,17 @@ PfCombat.addToCombatCommand = function(msg) {
                 position++;
             } else if (parseFloat(inits[i].pr) > parseFloat(turnOrder[position].pr)) {
                 log(`    Insert ${i} (${inits[i].pr}) before item at ${turnOrder[position].pr}.`);
-                inits[i].pr = "" + inits[i].pr + "*";
+                if (!doNotWrap) {
+                    inits[i].pr = "" + inits[i].pr + suffix;
+                }
                 turnOrder.splice(position++, 0, inits[i]);
                 added = true;
             } else {
                 log(`    Token ${i} (${inits[i].pr}) goes after ${turnOrder[position].pr}.`);
+                if (doNotWrap && position === turnOrder.length - 1) {
+                    turnOrder.push(inits[i]);
+                    added = true;
+                }
                 position++;
             }
         }
@@ -835,6 +995,30 @@ PfCombat.setHitPoints = function(msg, args) {
             PfInfo.whisper(token.get("name"), `Hitpoints set to ${hitpoints}`);
         }
     }
+};
+
+PfCombat.heal = function(token, healing) {
+    let prev = {};
+    prev["bar1_value"] = token.get("bar1_value");
+    prev["bar3_value"] = token.get("bar3_value");
+
+    let nonLethal = parseInt(token.get("bar3_value"));
+    if (nonLethal > 0) {
+        nonLethal -= healing;
+        if (nonLethal < 0) {
+            nonLethal = 0;
+        }
+    }
+    let hp = parseInt(token.get("bar1_value"));
+    let hpMax = parseInt(token.get("bar1_max"));
+    hp += healing;
+    if (hp > hpMax) {
+        hp = hpMax;
+    }
+    token.set("bar1_value", hp);
+    token.set("bar3_value", nonLethal);
+
+    PfCombat.update(token, prev, "");
 };
 
 /**
@@ -1267,50 +1451,58 @@ PfCombat.stabiliseCommand = function(msg) {
                 continue;
             }
 
-            let tokenName = token.get("name");
-            let character_id = token.get("represents");
-            if (!character_id) {
-                sendChat("", "/w GM " + tokenName + " has no associated character");
-                return;
-            }
-            let character = getObj("character", character_id);
+            PfCombat.stabilise(token);
+        }
+    }
+};
 
-            let hpMax = token.get("bar1_max");
-            let hpCurrent = token.get("bar1_value");
-            let nonlethalDamage = token.get("bar3_value");
-            let stable = token.get("status_green");
-            let dead = token.get("status_dead");
+PfCombat.stabilise = function(token) {
+    let tokenName = token.get("name");
+    let character_id = token.get("represents");
+    if (!character_id) {
+        sendChat("", "/w GM " + tokenName + " has no associated character");
+        return;
+    }
+    let character = getObj("character", character_id);
 
-            let constitution = getAttrByName(character_id, 'CON-mod');
-            if (!constitution) {
-                constitution = 0;
-            }
+    let hpMax = token.get("bar1_max");
+    let hpCurrent = token.get("bar1_value");
+    let nonlethalDamage = token.get("bar3_value");
+    let stable = token.get("status_green");
+    let dead = token.get("status_dead");
 
-            if (dead === true) {
-                sendChat("", "/w GM " + tokenName + " is already dead.");
-            } else if (hpCurrent >= 0) {
-                // Target is healthy, nothing to do.
-                sendChat("", "/w GM " + tokenName + " is healthy.");
-            } else if (stable === true) {
-                sendChat("", "/w GM " + tokenName + " is stable.");
-            } else {
-                let dc = 10 - hpCurrent;
-                let check = randomInteger(20) + parseInt(constitution);
-                log(tokenName + " rolls " + check + " to stabilise.");
-                if (check >= dc || check === constitution + 20) {
-                    token.set({
-                        status_green: true
-                    });
-                    PfCombat.update(token, null, PfCombat.getSymbolHtml("green") + PfCombat.line("<b>" + tokenName + "</b> stops bleeding.</p>"));
-                } else {
-                    hpCurrent -= 1;
-                    token.set({
-                        bar1_value: hpCurrent,
-                        status_green: false
-                    });
-                    PfCombat.update(token, null, PfCombat.line("<b>" + tokenName + "</b> bleeds a bit more."));
-                }
-            }
+    let constitution = getAttrByName(character_id, 'CON-mod');
+    if (!constitution) {
+        constitution = 0;
+    }
+
+    if (dead === true) {
+        sendChat("", "/w GM " + tokenName + " is already dead.");
+    } else if (hpCurrent >= 0) {
+        // Target is healthy, nothing to do.
+        sendChat("", "/w GM " + tokenName + " is healthy.");
+    } else if (stable === true) {
+        sendChat("", "/w GM " + tokenName + " is stable.");
+    } else {
+        let dc = 10 - hpCurrent;
+        let check = randomInteger(20) + parseInt(constitution);
+        if (!token.get("light_hassight")) {
+            // This is considered a mook, so more likely to die.
+            check = randomInteger(10) + parseInt(constitution);
+        }
+        log(tokenName + " rolls " + check + " to stabilise.");
+        if (check >= dc || check === constitution + 20) {
+            token.set({
+                status_green: true
+            });
+            PfCombat.update(token, null, PfCombat.getSymbolHtml("green") + PfCombat.line(`<b>${tokenName}</b> stops bleeding (${check} v DC ${dc}).</p>`));
+        } else {
+            hpCurrent -= 1;
+            token.set({
+                bar1_value: hpCurrent,
+                status_green: false
+            });
+            PfCombat.update(token, null, PfCombat.line(`<b>${tokenName}</b> bleeds a bit more (${check} v DC ${dc}).`));
         }
     }
 };
@@ -1482,7 +1674,24 @@ PfCombat.update = function(obj, prev, message) {
         obj.set("bar3_value", nonlethalDamage);
     }
 
-    if (!living && hpCurrent < 1) {
+    // Kill low level mooks more quickly, so they don't hang around forever.
+    // Their negative hp limit is equal to half their hitpoints. We define a
+    // Mook as not having vision.
+    let mook = false;
+    if (!obj.get("light_hassight")) {
+        log(`${obj.get("name")} is a mook.`);
+        mook = true;
+        if (constitution > hpMax / 2) {
+            constitution = hpMax / 2;
+        }
+    }
+
+    let cannotDie = false;
+    if (PfInfo.hasAbility(obj, "Regeneration") && !obj.get("status_broken-shield")) {
+        cannotDie = true;
+    }
+
+    if (!living && hpCurrent < 1 && !cannotDie) {
         obj.set({
             status_pummeled: false,
             status_dead: true,
@@ -1496,7 +1705,7 @@ PfCombat.update = function(obj, prev, message) {
         } else {
             message += PfCombat.line("<b>" + name + "</b> is <i>destroyed</i>.");
         }
-    } else if (hpCurrent <= 0 - constitution) {
+    } else if (hpCurrent <= 0 - constitution && !cannotDie) {
         obj.set({
             status_pummeled: false,
             status_dead: true,
@@ -1514,7 +1723,9 @@ PfCombat.update = function(obj, prev, message) {
             status_red: false,
             status_brown: false
         });
-        if (hpCurrent < 0 && !stable) {
+        if (cannotDie) {
+            message += PfCombat.line(`<b>${name}</b> is down but regenerating.`);
+        } else if (hpCurrent < 0 && !stable) {
             message += PfCombat.getSymbolHtml("skull");
             message += PfCombat.line("<b>" + name + "</b> is <i>dying</i>. Each turn " +
                                    "they must make a DC&nbsp;" + (10 - hpCurrent) +

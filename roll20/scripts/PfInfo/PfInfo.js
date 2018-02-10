@@ -762,13 +762,13 @@ PfInfo.INSET_STYLE = "font-style: italic; border: 1px dotted black; margin: 3px;
 PfInfo.getStatusText = function(target) {
     let html = "";
 
-    html += PfInfo.showStatus(target, "green", "Stablized", "Is unconscious but not dying.");
+    html += PfInfo.showStatus(target, "green", "Stabilized", "Is unconscious but stabilized and no longer dying.");
     if (!target.get("status_red")) {
         // We show both red and brown status symbols for accessibility reasons,
         // but the actual descriptive text only needs to display the worst.
-        html += PfInfo.showStatus(target, "brown", "Moderately wounded", "Has less than two third hitpoints.");
+        html += PfInfo.showStatus(target, "brown", "Moderately wounded", "Has less than two third hitpoints remaining.");
     }
-    html += PfInfo.showStatus(target, "red", "Heavily Wounded", "Has less than one third hitpoints.");
+    html += PfInfo.showStatus(target, "red", "Heavily Wounded", "Has less than one third hitpoints remaining.");
 
     for (let status in PfInfo.statusEffects) {
         let effect = PfInfo.statusEffects[status];
@@ -797,6 +797,9 @@ PfInfo.isNamedCharacter = function(token) {
 
 PfInfo.hasAbility = function(token, ability) {
     let characterId = token.get("represents");
+    if (!characterId) {
+        return false;
+    }
     let attrList = PfInfo.getAllAttributes(characterId);
 
     log("Looking for " + ability);
@@ -806,12 +809,35 @@ PfInfo.hasAbility = function(token, ability) {
         if (name.match(/repeating_ability_-[a-zA-Z0-9]*_name/)) {
             let val = "" + attrList[i].get("current");
             log("Token " + token.get("name") + " has " + val);
-            if (val.toLowerCase() == ability.toLowerCase()) {
+            if (val.toLowerCase().indexOf(ability.toLowerCase()) === 0) {
                 return true;
             }
         }
     }
     return false;
+};
+
+PfInfo.getAbility = function(token, ability) {
+    let characterId = token.get("represents");
+    if (!characterId) {
+        return false;
+    }
+    let attrList = PfInfo.getAllAttributes(characterId);
+
+    log("Getting " + ability);
+    for (let i=0; i < attrList.length; i++) {
+        //log(attrList[i].get("name"));
+        let name = "" + attrList[i].get("name");
+        if (name.match(/repeating_ability_-[a-zA-Z0-9]*_name/)) {
+            let val = "" + attrList[i].get("current");
+            log("Token " + token.get("name") + " has " + val);
+            if (val.toLowerCase().indexOf(ability.toLowerCase()) === 0) {
+                let words = val.split(" ");
+                return words?parseInt(words[words.length-1]):0;
+            }
+        }
+    }
+    return 0;
 };
 
 /**
@@ -923,30 +949,68 @@ PfInfo.statusEffects = {
                 "-2 penalty on all attacks, damage, saves, skills and ability checks." },
     'Slowed': { status: "snail", description:
                 "Half normal speed (round down), only a single move or standard action. -1 to attack, AC and reflex." },
-    'Stabilized': { status: "green", description:
-                "Is unconscious but not dying." },
+    //'Stabilized': { status: "green", description:
+    //            "Is unconscious but not dying." },
     'Staggered': { status: "pummeled", description:
                 "Only a move or standard action (plus swift and immediate)." },
     'Stunned': { status: "interdiction", attribute: "condition-Stunned", value: "2", description:
                 "Cannot take actions, drops everything held, takes a -2 penalty to AC, loses Dex bonus to AC." },
-    'Surprised': { status: "frozen-orb", tint: "ffffff", description:
-                "Cannot take an action in the surprise round." },
+    'Surprised': { status: "frozen-orb", tint: "ffffff", initiative: "!", conflicts: "rolling-bomb",
+        description: "Cannot take an action in the surprise round." },
     'Helpless': { status: "aura", attribute: "condition-Helpless", value: "1", description:
                 "Dexterity is 0 (-5)." },
-    'Unconscious': { status: "skull", description:
-                "Is unconscious and dying." },
-    'Dead': { status: "dead", description:
-                "Creature is dead. Gone. Destroyed." },
-    'Delayed': { status: "stopwatch", tint: "0000ff", initiative: "D", conflicts: "sentry-gun",
+    'Weakened': { status: "broken-shield", description: "Regeneration or fast healing has been halted." },
+    'Unconscious': { status: "skull", description: "Is unconscious and dying." },
+    'Dead': { status: "dead", description: "Creature is dead. Gone. Destroyed." },
+    'Delayed': { status: "stopwatch", tint: "0000ff", initiative: "D", conflicts: "sentry-gun,rolling-bomb,frozen-orb",
         description: "Delayed action. Can undelay after an unspecified event." },
-    'Ready': { status: "sentry-gun", tint: "00ff00", initiative: "R", conflicts: "stopwatch",
+    'Ready': { status: "sentry-gun", tint: "00ff00", initiative: "R", conflicts: "stopwatch,rolling-bomb,frozen-orb",
         description: "Have a single action prepared waiting for a specified event. Acts before an event." },
+    'Surprise': { status: "rolling-bomb", tint: "ff0000", initiative: "½", conflicts: "frozen-orb",
+        description: "Can act in the surprise round, taking a single standard or move action." },
     'Bleeding': { status: "pink", description: "Is bleeding HP every round. Heal DC 15 or cure effect to stop." },
     'Attack Bonus': { status: "all-for-one", description: "Gets a bonus to all attack rolls." },
     'Damage Bonus': { status: "grenade", description: "Gets a bonus to all damage rolls." },
     'AC Bonus': { status: "bolt-shield", description: "Gets a bonus to AC." }
 };
 
+
+PfInfo.setStatus = function(token, effect, value = null, set = true) {
+    let flags = [];
+    if (value && set) {
+        flags['status_' + effect.status] = value;
+    } else {
+        flags['status_' + effect.status] = set;
+    }
+    if (set && effect.conflicts) {
+        let conflicts = effect.conflicts.split(",");
+        for (let c=0; c < conflicts.length; c++) {
+            flags['status_' + conflicts[c]] = false;
+        }
+    }
+    token.set( flags );
+    if (effect.tint) {
+        token.set("tint_color", effect.tint);
+    }
+    if (PfInfo.isNamedCharacter(token)) {
+        PfInfo.setCharacterStatus(token, effect, set);
+        if (set) {
+            let character = getObj("character", token.get("represents"));
+            let controlledBy = character.get("controlledby");
+            if (controlledBy) {
+                let controllers = controlledBy.split(",");
+                for (let p = 0; p < controllers.length; p++) {
+                    let id = controllers[p].trim();
+                    let otherPlayer = getObj("player", id);
+                    if (otherPlayer) {
+                        PfInfo.whisperTo(token.get("name"), otherPlayer, PfInfo.showStatus(null, effect.status, status, effect.description, value));
+                    }
+                }
+            }
+        }
+    }
+
+};
 
 PfInfo.setStatusCommand = function(playerId, status, tokens, value, set = true) {
     let player = getObj("player", playerId);
@@ -976,48 +1040,9 @@ PfInfo.setStatusCommand = function(playerId, status, tokens, value, set = true) 
         for (let i=0; i < tokens.length; i++) {
             // Need to reset flags each time, since each call to token.set() updates it.
             if (!playerIsGM(player.get("_id")) && !PfInfo.hasPermission(player, tokens[i])) {
-                log("No permission on " + tokens[i].get("name"));
                 continue;
             }
-            let flags = [];
-            if (value && set) {
-                flags['status_' + effect.status] = value;
-            } else {
-                flags['status_' + effect.status] = set;
-            }
-            log(`Effect.Conflicts = ${effect.conflicts}`);
-            if (set && effect.conflicts) {
-                let conflicts = effect.conflicts.split(",");
-                for (let c=0; c < conflicts.length; c++) {
-                    log(`Unsetting status [${conflicts[c]}]`);
-                    flags['status_' + conflicts[c]] = false;
-                }
-            }
-            tokens[i].set( flags );
-            if (effect.tint) {
-                tokens[i].set("tint_color", effect.tint);
-            }
-            if (PfInfo.isNamedCharacter(tokens[i])) {
-                PfInfo.setCharacterStatus(tokens[i], effect, set);
-                if (set && playerIsGM(player.get("_id"))) {
-                    log("Player is GM");
-                    let character = getObj("character", tokens[i].get("represents"));
-                    let controlledBy = character.get("controlledby");
-                    log("Controlled By = " + controlledBy);
-                    if (controlledBy) {
-                        let controllers = controlledBy.split(",");
-                        for (let p = 0; p < controllers.length; p++) {
-                            let id = controllers[p].trim();
-                            log(id);
-                            let otherPlayer = getObj("player", id);
-                            if (otherPlayer) {
-                                log("Whispering to " + otherPlayer.get("displayname"));
-                                PfInfo.whisperTo(tokens[i].get("name"), otherPlayer, PfInfo.showStatus(null, effect.status, status, effect.description, value));
-                            }
-                        }
-                    }
-                }
-            }
+            PfInfo.setStatus(tokens[i], effect, value, set);
         }
         if (set) {
             PfInfo.whisper(player, PfInfo.showStatus(null, effect.status, status, effect.description, value));
