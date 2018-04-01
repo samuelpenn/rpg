@@ -975,7 +975,7 @@ PfInfo.statusEffects = {
 };
 
 
-PfInfo.setStatus = function(token, effect, value = null, set = true) {
+PfInfo.setStatus = function(token, effect, status, value = null, set = true) {
     let flags = [];
     if (value && set) {
         flags['status_' + effect.status] = value;
@@ -1040,9 +1040,10 @@ PfInfo.setStatusCommand = function(playerId, status, tokens, value, set = true) 
         for (let i=0; i < tokens.length; i++) {
             // Need to reset flags each time, since each call to token.set() updates it.
             if (!playerIsGM(player.get("_id")) && !PfInfo.hasPermission(player, tokens[i])) {
+                log(`Player [${player.get("name")}] does not have permission to set status on [${tokens[i].get("name")}].`)
                 continue;
             }
-            PfInfo.setStatus(tokens[i], effect, value, set);
+            PfInfo.setStatus(tokens[i], effect, status, value, set);
         }
         if (set) {
             PfInfo.whisper(player, PfInfo.showStatus(null, effect.status, status, effect.description, value));

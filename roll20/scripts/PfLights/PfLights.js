@@ -349,10 +349,13 @@ PfLight.dropCommand = function(player, token) {
     }
 };
 
-on("change:graphic", function(obj) {
-    log("PfLight: Graphic change event for " + obj.get("name"));
-    if (obj.get("_pageid") === Campaign().get("playerpageid")) {
-        PfLight.move(obj);
+on("change:graphic", function(token) {
+    if (token.get("_pageid") === Campaign().get("playerpageid")) {
+        let startTime = new Date().getTime();
+        PfLight.move(token);
+        let endTime = new Date().getTime();
+
+        log(`PfLight: Processed change event for [${token.get("name")}] in ${endTime - startTime}ms`);
     }
 });
 

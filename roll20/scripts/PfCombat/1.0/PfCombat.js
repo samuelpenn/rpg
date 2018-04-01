@@ -136,7 +136,11 @@ on("chat:message", function(msg) {
         if (args.length > 0) {
             surprise = parseInt(args.shift());
         }
-        PfCombat.addToCombatCommand(playerId, tokens, surprise);
+        let skillCheck = "Perception";
+        if (args.length > 0) {
+            skillCheck = args.shift();
+        }
+        PfCombat.addToCombatCommand(playerId, tokens, surprise, skillCheck);
     } else if (command === "!pfleavecombat") {
         let tokens = PfInfo.getSelectedTokens(msg);
         if (!tokens || tokens.length === 0) {
@@ -150,10 +154,13 @@ on("chat:message", function(msg) {
     }
 });
 
-on("change:graphic", function(obj, prev) {
-    log("PfCombat: Graphic change event for " + obj.get("name"));
-    if (obj.get("_pageid") === Campaign().get("playerpageid")) {
-        PfCombat.update(obj, prev, "");
+on("change:graphic", function(token, prev) {
+    if (token.get("_pageid") === Campaign().get("playerpageid")) {
+        let startTime = new Date().getTime();
+        PfCombat.update(token, prev, "");
+        let endTime = new Date().getTime();
+
+        log(`PfCombat: Processed change event for [${token.get("name")}] in ${endTime - startTime}ms`);
     }
 });
 
@@ -717,23 +724,31 @@ PfCombat.getNextInitiative = function(position, turnOrder) {
     return position;
 };
 
-PfCombat.workOutSurprise = function(playerId, token, surprise) {
+PfCombat.workOutSurprise = function(playerId, token, surprise, skillCheck="Perception") {
     let surprised = false;
     let hasSurprise = false;
+    log("Work Out Surprise for " + token.get("name") + " with skill " + skillCheck);
+
+    let skillName = skillCheck.replace("-", " ");
+
     if (surprise <= -100) {
         hasSurprise = true;
     } else if (surprise >= 100) {
         surprised = true;
     } else {
-        let perception = 0;
+        let skill = 0;
         let characterId = token.get("represents");
         if (characterId) {
-            perception = parseInt(getAttrByName(characterId, "Perception"));
+            skill = parseInt(getAttrByName(characterId, skillCheck));
         }
-        if (perception + randomInteger(20) >= surprise) {
+        let roll = skill + randomInteger(20);
+        log("Roll was " + roll + " (" + skill + ")");
+        if (roll >= surprise) {
             hasSurprise = true;
+            PfInfo.message(token.get("name"), `<b>${token.get("name")}</b> acts quickly with a <i>${skillName}</i> check of <b>${roll}</b>.`, null, null);
         } else {
             surprised = true;
+            PfInfo.message(token.get("name"), `<b>${token.get("name")}</b> is surprised with a <i>${skillName}</i> check of <b>${roll}</b>.`, null, null);
         }
     }
 
@@ -750,7 +765,7 @@ PfCombat.workOutSurprise = function(playerId, token, surprise) {
  * Inserts new tokens into the initiative track, starting immediately after the current token.
  * @param msg
  */
-PfCombat.addToCombatCommand = function(playerId, tokenList, surprise) {
+PfCombat.addToCombatCommand = function(playerId, tokenList, surprise, surpriseSkill="Perception") {
     log(`addToCombatCommand: ${tokenList.length} tokens with ${surprise?surprise:'no surprise'}`);
 
     // Grab the initiative tracker.
@@ -777,7 +792,7 @@ PfCombat.addToCombatCommand = function(playerId, tokenList, surprise) {
 
         if (surprise != null) {
             let token = getObj("graphic", inits[i].id);
-            let surprised = PfCombat.workOutSurprise(playerId, token, surprise);
+            let surprised = PfCombat.workOutSurprise(playerId, token, surprise, surpriseSkill);
             if (surprised) {
                 surpriseSuffix = "!";
             } else {
@@ -1086,8 +1101,12 @@ PfCombat.healCommand = function(msg) {
                         'status_interdiction': false,
                         'status_overdrive': false,
                         'status_fist': false,
-                        'status_snail': false
+                        'status_snail': false,
+                        'status_rolling-bomb': false,
+                        'status_tread': false,
+                        'status_frozen-orb': false
                     });
+                    token.set("tint_color", "transparent");
                 }
                 PfCombat.update(token, prev, "");
             }
@@ -1586,7 +1605,6 @@ PfCombat.update = function(obj, prev, message) {
     if (message == null) {
         message = "";
     }
-    //log("PfCombat.update: " + obj.get("name") + ((prev==null)?"":", <prev>") + ", [" + message + "]");
 
     let takenDamage = false;
     let name = obj.get("name");
@@ -1633,11 +1651,7 @@ PfCombat.update = function(obj, prev, message) {
     if (!character_id) {
         return;
     }
-    let character = getObj("character", character_id);
-    if (!character) {
-        return;
-    }
-    let constitution = getAttrByName(character.id, 'CON');
+    let constitution = getAttrByName(character_id, 'CON');
     if (!constitution) {
         constitution = 10;
     }

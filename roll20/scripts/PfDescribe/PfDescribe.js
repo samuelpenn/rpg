@@ -399,12 +399,19 @@ PfDescribe.convertLinks = function(text) {
             let replacedText = text;
             for (var i=0; i < matches.length; i++) {
                 let match = matches[i].replace(/&..;/g, "");
-                let avatarUrl = PfDescribe.getHandoutImage(match);
-                if (avatarUrl) {
+                if (match.startsWith("http")) {
                     let left = replacedText.substring(0, replacedText.indexOf("&lt;&lt;"));
                     let right = replacedText.substring(replacedText.indexOf("&gt;&gt;") + 8);
 
-                    replacedText = left + "<img src='" + avatarUrl + "' width='100%'/>" + right;
+                    replacedText = `${left}<img src='${match}' wdith='100%'/>${right}`;
+                } else {
+                    let avatarUrl = PfDescribe.getHandoutImage(match);
+                    if (avatarUrl) {
+                        let left = replacedText.substring(0, replacedText.indexOf("&lt;&lt;"));
+                        let right = replacedText.substring(replacedText.indexOf("&gt;&gt;") + 8);
+
+                        replacedText = left + "<img src='" + avatarUrl + "' width='100%'/>" + right;
+                    }
                 }
             }
             return replacedText;
@@ -507,7 +514,7 @@ PfDescribe.describe = function(msg, player, target_id) {
                     if (playerIsGM(player.get("id"))) {
                         PfInfo.message(player, description, title);
                     } else {
-                        PfInfo.whisper(player, description, title);
+                        PfInfo.whisperTo(player, player, description, title);
                     }
                 }
             });
