@@ -5,10 +5,10 @@
 # Does not work with dates before 1 AR.
 #
 # Usage:
-# Print out a calendar (in HTML) for the entire year:
+# Print out a calendar (in DokuWiki) for the entire year:
 #   inner_sea_calendar.py <year>
 #
-# Print out a calendar (as an HTML fragment) for a given month:
+# Print out a calendar (as a DokuWiki fragment) for a given month:
 #   inner_sea_calendar.py <year> <month>
 #
 # Simply report the week day and moon phase for a specific day:
@@ -171,31 +171,32 @@ def calendar(month, year):
     epocStartDay = getEpocDay(1, month, year)
     epocEndDay = getEpocDay(cal[month-1], month, year)
 
-    html = "<h2>" + MONTH[month - 1] + "</h2>\n"
-    html += "<table>\n"
+    html = "===== " + MONTH[month - 1] + " =====\n"
 
-    html += "<tr>\n"
+    html += "\n"
     for name in WEEK:
-        html += "<th>" + name + "</th>\n"
-    html += "</tr>\n"
+        html += "^  " + name + "  "
+    html += "^\n"
 
     today = epocStartDay + 1 - getEpocDayOfWeek(epocStartDay)
     while today <= epocEndDay:
-        if getEpocDayOfWeek(today) == 1:
-            html += "<tr>\n"
 
         if today < epocStartDay:
-            html += "<td></td>\n"
+            html += "| "
         else:
-            phase = "<img src='phases/" + str(getMoonPhaseIndex(getDayInMonth(today), month, year)) + ".png' width='24px' height ='24px' align='right'/>"
-            html += "<td>" + str(getDayInMonth(today)) + phase + "</td>\n"
+            phase = "{{ " + str(getMoonPhaseIndex(getDayInMonth(today), month, year)) + ".png?24&nolink}}"
+            html += "|" + str(getDayInMonth(today)) + phase + "\\\\ \\\\ "
 
         if getEpocDayOfWeek(today) == 7:
-            html += "</tr>\n"
+            html += "|\n"
 
         today += 1
 
-    html += "</table>"
+    html += "\n|"
+
+    for d in range(0, 7):
+        html += " +++++++++++ |"
+    html += "\n"
 
     return html
 
@@ -214,11 +215,9 @@ elif (len(sys.argv) == 3):
 elif (len(sys.argv) == 2):
     argYear = int(sys.argv[1])
 
-    print "<html>\n<head>\n<title>" + str(argYear) + " AR</title>\n</head>\n<body>\n"
-    print "<style>td { width: 100px; height: 100px; border: 1px solid black; text-align: left; vertical-align: top; }</style>\n"
+    print "====== " + str(argYear) + " AR ======\n"
 
-    print "<h1>" + str(argYear) + " AR</h1>\n"
 
     for month in range(1, 13):
         print calendar(month, argYear)
-    print "</body>\n</html>\n"
+    print "\n"
