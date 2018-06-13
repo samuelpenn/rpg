@@ -966,7 +966,7 @@ PfInfo.statusEffects = {
         description: "Delayed action. Can undelay after an unspecified event." },
     'Ready': { status: "sentry-gun", tint: "00ff00", initiative: "R", conflicts: "stopwatch,rolling-bomb,frozen-orb",
         description: "Have a single action prepared waiting for a specified event. Acts before an event." },
-    'Surprise': { status: "rolling-bomb", tint: "ff0000", initiative: "½", conflicts: "frozen-orb",
+    'Aware': { status: "rolling-bomb", tint: "ff0000", initiative: "½", conflicts: "frozen-orb",
         description: "Can act in the surprise round, taking a single standard or move action." },
     'Bleeding': { status: "pink", description: "Is bleeding HP every round. Heal DC 15 or cure effect to stop." },
     'Attack Bonus': { status: "all-for-one", description: "Gets a bonus to all attack rolls." },
@@ -1212,11 +1212,13 @@ PfInfo.whisperTo = function(from, to, message, title, func) {
         html += message;
         html += "</div>";
 
-        if (from && typeof(from) === "object") {
+        if (!to || !to.get) {
+            sendChat("", `/desc ${html}`, func);
+        } else if (from && typeof(from) === "object") {
             sendChat(`player|${from.get("_id")}`, `/w "${to.get("displayname")}" ${html}`, func);
         } else if (from && typeof(from) === "string") {
             sendChat(from, `/w "${to.get("displayname")}" ${html}`, func);
-        } else {
+        } else if (to) {
             sendChat("", `/w "${to.get("displayname")}" ${html}`, func);
         }
     }
