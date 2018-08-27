@@ -474,6 +474,7 @@ PfDescribe.describe = function(msg, player, target_id) {
                     return;
                 } else {
                     bio = bio.replace(/<br>--<br>.*/, "");
+                    bio = bio.replace(/<p>--<\/p>.*/, "");
                     if (bio) {
                         let size = getAttrByName(character.id, "size_display");
                         if (size) {
