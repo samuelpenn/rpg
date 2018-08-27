@@ -443,6 +443,7 @@ PfDescribe.describe = function(msg, player, target_id) {
                 let image = target.get("imgsrc");
                 let text = unescape(target.get("gmnotes"));
                 text = text.replace(/<br>--<br>.*/, "");
+                text = text.replace(/<p>--<\/p>.*/, "");
                 text = PfDescribe.convertLinks(text);
 
                 let description = PfDescribe.getHTML(title, null, text);
