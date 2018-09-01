@@ -41,7 +41,7 @@
 
 var PfInfo = PfInfo || {};
 
-PfInfo.VERSION = "2.0";
+PfInfo.VERSION = "2.1";
 
 PfInfo.gmHelp = PfInfo.gmHelp || {};
 PfInfo.playerHelp = PfInfo.playerHelp || {};
@@ -609,6 +609,24 @@ PfInfo.infoCommand = function(playerId, token) {
     html += PfInfo.cell("CMB", cmb) + PfInfo.cell("CMD", cmd);
     html += "</p><br/>";
 
+    let sanCheck = PfInfo.getAttributeValue(attrList, "npc-cr");
+	if (sanCheck) {
+		html += PfInfo.P;
+		
+		let san = parseInt(sanCheck);
+		let pass = san / 2;
+		let fail = san;
+		if (type.toLowerCase().indexOf ("great old one") > -1){
+			san += 15;
+			pass *= 2;
+			fail *= 2;
+		} else {
+			san += 10;
+		}
+		html += PfInfo.cell("San Check", san) + PfInfo.cell("Pass", pass) + PfInfo.cell("Fail", fail);
+		html += "</p><br/>";
+	}
+  
     html += PfInfo.P;
     let speedModified = PfInfo.getAttributeValue(attrList, "speed-modified");
     let speedFly = PfInfo.getAttributeValue(attrList, "speed-fly");
