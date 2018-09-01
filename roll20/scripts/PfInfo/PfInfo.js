@@ -459,6 +459,18 @@ PfInfo.playerInfoCommand = function(playerId, token) {
     });
 };
 
+PfInfo.isHorrible = function(alignment, type) {
+    let a = alignment.toLowerCase();
+    let t = type.toLowerCase();
+
+    if (a === "ce" || a === "ne" || a === "le" || a.indexOf("evil") > -1) {
+        if (t.indexOf("aberration") > -1 || t.indexOf("outer") > -1 || t.indexOf("extra") > -1) {
+            return true;
+        }
+    }
+    return t.indexOf("great old one") > -1;
+};
+
 PfInfo.infoCommand = function(playerId, token) {
     let title = token.get("name");
     if (!title) {
@@ -505,6 +517,7 @@ PfInfo.infoCommand = function(playerId, token) {
     let int = PfInfo.getAttributeValue(attrList, "INT");
     let wis = PfInfo.getAttributeValue(attrList, "WIS");
     let cha = PfInfo.getAttributeValue(attrList, "CHA");
+    let cr = PfInfo.getAttributeValue(attrList, "npc-cr");
 
     currentHitpoints = parseInt(currentHitpoints);
     totalHitpoints = parseInt(totalHitpoints);
@@ -578,7 +591,7 @@ PfInfo.infoCommand = function(playerId, token) {
         html += PfInfo.text(raceGender);
     }
     html += PfInfo.text(classLevels);
-    html += PfInfo.text(alignment);
+    html += PfInfo.text(`${alignment} ${cr?(" (CR " + cr + ")"):""}`);
     html += "<br/>";
 
     if (nonlethalDamage > 0) {
@@ -609,24 +622,6 @@ PfInfo.infoCommand = function(playerId, token) {
     html += PfInfo.cell("CMB", cmb) + PfInfo.cell("CMD", cmd);
     html += "</p><br/>";
 
-    let sanCheck = PfInfo.getAttributeValue(attrList, "npc-cr");
-	if (sanCheck) {
-		html += PfInfo.P;
-		
-		let san = parseInt(sanCheck);
-		let pass = san / 2;
-		let fail = san;
-		if (type.toLowerCase().indexOf ("great old one") > -1){
-			san += 15;
-			pass *= 2;
-			fail *= 2;
-		} else {
-			san += 10;
-		}
-		html += PfInfo.cell("San Check", san) + PfInfo.cell("Pass", pass) + PfInfo.cell("Fail", fail);
-		html += "</p><br/>";
-	}
-  
     html += PfInfo.P;
     let speedModified = PfInfo.getAttributeValue(attrList, "speed-modified");
     let speedFly = PfInfo.getAttributeValue(attrList, "speed-fly");
@@ -653,6 +648,25 @@ PfInfo.infoCommand = function(playerId, token) {
     let weaknesses = PfInfo.getAttributeValue(attrList, "weaknesses");
 
     html += PfInfo.P + PfInfo.cell("DR", dr) + PfInfo.cell("SR", sr) + "</p>";
+
+    let isHorrible = PfInfo.isHorrible(alignment, type);
+
+    if (isHorrible) {
+        html += PfInfo.P;
+
+        cr = parseInt(cr);
+        let san = parseInt(cr) + 10;
+        let pass = parseInt(cr / 2);
+        let fail = cr;
+        if (type.toLowerCase().indexOf ("great old one") > -1){
+            san = parseInt(cr) + 15;
+            pass = parseInt(cr);
+            fail = parseInt(cr) * 2;
+        }
+        html += PfInfo.cell("San DC", san) + PfInfo.cell("Pass", pass) + PfInfo.cell("Fail", fail);
+        html += "</p>";
+    }
+
     html += PfInfo.line("Resistances", resistances);
     html += PfInfo.line("Immunities", immunities);
     html += PfInfo.line("Weaknesses", weaknesses);
@@ -712,6 +726,7 @@ PfInfo.infoCommand = function(playerId, token) {
 
     //html += PfInfo.line("Attacks", "[Attacks](!& #13;& #37;{" + characterName + "|attacks})");
 
+    /*
     let spellBooks = "";
     for (let i=0; i < 5; i++) {
         let spellbookField = "spellbook-" + i;
@@ -726,6 +741,7 @@ PfInfo.infoCommand = function(playerId, token) {
     if (spellBooks) {
         html += PfInfo.text(spellBooks);
     }
+    */
 
     // Token statuses
     html += PfInfo.getStatusText(token);

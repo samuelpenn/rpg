@@ -388,7 +388,7 @@ PfCombat.updateInitiative = function() {
                 for (let i=0; i < owners.length; i++) {
                     let message = `It is time for <b>${token.get("name")}</b> to act.`;
                     if (token.get("status_rolling-bomb")) {
-                        message += " They can take a single move or standard action in the surprise round.";
+                        message += " They are aware and can take a single move or standard action in the surprise round.";
                     } else if (token.get("status_frozen-orb")) {
                         message += " They are surprised and cannot act this round.";
                     }
@@ -726,13 +726,13 @@ PfCombat.getNextInitiative = function(position, turnOrder) {
 
 PfCombat.workOutSurprise = function(playerId, token, surprise, skillCheck="Perception") {
     let surprised = false;
-    let hasSurprise = false;
+    let aware = false;
     log("Work Out Surprise for " + token.get("name") + " with skill " + skillCheck);
 
     let skillName = skillCheck.replace("-", " ");
 
     if (surprise <= -100) {
-        hasSurprise = true;
+        aware = true;
     } else if (surprise >= 100) {
         surprised = true;
     } else {
@@ -744,8 +744,8 @@ PfCombat.workOutSurprise = function(playerId, token, surprise, skillCheck="Perce
         let roll = skill + randomInteger(20);
         log("Roll was " + roll + " (" + skill + ")");
         if (roll >= surprise) {
-            hasSurprise = true;
-            PfInfo.message(token.get("name"), `<b>${token.get("name")}</b> acts quickly with a <i>${skillName}</i> check of <b>${roll}</b>.`, null, null);
+            aware = true;
+            PfInfo.message(token.get("name"), `<b>${token.get("name")}</b> is aware and acts quickly with a <i>${skillName}</i> check of <b>${roll}</b>.`, null, null);
         } else {
             surprised = true;
             PfInfo.message(token.get("name"), `<b>${token.get("name")}</b> is surprised with a <i>${skillName}</i> check of <b>${roll}</b>.`, null, null);
@@ -754,8 +754,8 @@ PfCombat.workOutSurprise = function(playerId, token, surprise, skillCheck="Perce
 
     if (surprised) {
         PfInfo.setStatusCommand(playerId, "Surprised", [ token ]);
-    } else if (hasSurprise) {
-        PfInfo.setStatusCommand(playerId, "Surprise", [ token ]);
+    } else if (aware) {
+        PfInfo.setStatusCommand(playerId, "Aware", [ token ]);
     }
 
     return surprised;
@@ -957,6 +957,8 @@ PfCombat.setHitPoints = function(msg, args) {
             let hpFormulaMod = getAttrByName(character_id, "HP-formula-mod");
             let hitpoints = 0;
 
+            log(`Generating hitpoints for '${token.get("name")}'`);
+
             // Get hitpoints from racial Hit Dice.
             let npcHd = getAttrByName(character_id, "npc-hd");
             let npcLevel = getAttrByName(character_id, "npc-hd-num");
@@ -964,6 +966,7 @@ PfCombat.setHitPoints = function(msg, args) {
                 npcHd = parseInt(npcHd);
                 npcLevel = parseInt(npcLevel);
 
+                log(`  NPC Levels ${npcLevel}D${npcHD}`);
                 for (;npcLevel > 0; npcLevel--) {
                     hitpoints += parseInt(PfCombat.getHitPoints(npcHd, option)) + parseInt(hpAbilityMod);
                 }
@@ -974,7 +977,7 @@ PfCombat.setHitPoints = function(msg, args) {
                 let hd = getAttrByName(character_id, "class-" + classIndex + "-hd");
                 let level = getAttrByName(character_id, "class-" + classIndex + "-level");
 
-                log("Class " + classIndex + " for level " + level + " at D" + hd);
+                log(`  Class ${classIndex} Levels ${level}D${hd}`);
 
                 if (!hd || !level) {
                     break;
@@ -1004,6 +1007,7 @@ PfCombat.setHitPoints = function(msg, args) {
                 }
             }
             hitpoints += parseInt(hpFormulaMod);
+            log(`  Total hitpoints set to ${hitpoints}`);
             token.set("bar1_value", hitpoints);
             token.set("bar1_max", hitpoints);
 
@@ -1659,10 +1663,12 @@ PfCombat.update = function(obj, prev, message) {
     if (!type) {
         type = "";
     }
+    type = type.toLowerCase();
     let living = true;
 
     // Non-living have special rules.
-    if (type.indexOf("Undead") > -1 || type.indexOf("Construct") > -1 || type.indexOf("Inevitable") > -1 || type.indexOf("Swarm") > -1 ) {
+    if (type.indexOf("undead") > -1 || type.indexOf("construct") > -1 || type.indexOf("inevitable") > -1 ||
+        type.indexOf("swarm") > -1 || type.indexOf("elemental") > -1) {
         if (nonlethalDamage > 0) {
             obj.set({
                 bar3_value: 0
