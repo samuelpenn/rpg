@@ -385,14 +385,22 @@ PfLight.setVisionCommand = function(lightLevel, selected) {
 
     let VISION = [];
     VISION['day'] = { 'light': 960, 'dim': null, 'msg': "Full daylight" };
-    VISION['overcast'] = { 'light': 480, 'dim': 360, 'msg': "Overcast daylight" };
+    VISION['overcast'] = { 'light': 480, 'dim': 240, 'msg': "Overcast daylight" };
     VISION['twilight'] = { 'light': 240, 'dim': 120, 'msg': "Twilight" };
-    VISION['dusk'] = { 'light': 120, 'dim': 30, 'msg': "Dusk" };
-    VISION['fullmoon'] = { 'light': 60, 'dim': -5, 'msg': "Full Moon" };
-    VISION['quarter'] = { 'light': 30, 'dim': -5, 'msg': "Quarter Moon" };
-    VISION['crescent'] = { 'light': 15, 'dim': -5, 'msg': "Crescent Moon" };
-    VISION['starlight'] = { 'light': 10, 'dim': -5, 'msg': "Starlight" };
+    VISION['dusk'] = { 'light': 120, 'dim': 60, 'msg': "Dusk" };
+    VISION['fullmoon'] = { 'light': 180, 'dim': -5, 'msg': "Full Moon" };
+    VISION['quarter'] = { 'light': 60, 'dim': -5, 'msg': "Quarter Moon" };
+    VISION['crescent'] = { 'light': 30, 'dim': -5, 'msg': "Crescent Moon" };
+    VISION['starlight'] = { 'light': 15, 'dim': -5, 'msg': "Starlight" };
     VISION['dark'] = { 'light': null, 'dim': null, 'msg': "Complete darkness" };
+
+    let TERRAIN = [];
+    TERRAIN['clear'] = 960;
+    TERRAIN['light'] = 240;
+    TERRAIN['moderate'] = 120;
+    TERRAIN['heavy'] = 60;
+    TERRAIN['thick'] = 30;
+    TERRAIN['obscured'] = 1E0;
 
     if (lightLevel) {
         if (VISION[lightLevel]) {

@@ -66,18 +66,23 @@
                     <td></td>
                 </tr>
                 <tr>
+                    <th>Deflection</th>
+                    <td><input type="number" name="attr_Deflection" value="0"/></td>
+                    <td></td>
+                </tr>
+                <tr>
                     <th>AC</th>
-                    <td><input type="number" name="attr_ArmourCheck" value="10 + @{Armour} + @{Dex}" disabled="true"/></td>
+                    <td><input type="number" name="attr_ArmourCheck" value="10 + @{Armour} + @{Deflection} + @{Dex}" disabled="true"/></td>
                     <td></td>
                 </tr>
                 <tr>
                     <th>&nbsp;&nbsp;(Touch)</th>
-                    <td><input type="number" name="attr_AC_Touch" value="10 + @{Dex}" disabled="true"/></td>
+                    <td><input type="number" name="attr_AC_Touch" value="10 + @{Deflection} + @{Dex}" disabled="true"/></td>
                     <td></td>
                 </tr>
                 <tr>
                     <th>&nbsp;&nbsp;(Flat Footed)</th>
-                    <td><input type="number" name="attr_AC_Flat" value="10 + @{Armour}" disabled="true"/></td>
+                    <td><input type="number" name="attr_AC_Flat" value="10 + @{Armour} + @{Deflection}" disabled="true"/></td>
                     <td></td>
                 </tr>
                 <tr>
@@ -340,18 +345,46 @@
                 <th style="width:5em">Damage</th>
                 <th style="width:5em">Roll</th>
             </tr>
+            <tr>
+                <td><input type="text" name="attr_attackname1" value=""/></td>
+                <td><input type="number" name="attr_attackbonus1" value="0"/></td>
+                <td><input type="number" name="attr_attackwpn1" value="0"/></td>
+                <td><input type="number" name="attr_attacktotal1" value="@{bab} + @{attackbonus1} + @{attackwpn1}" disabled="true"/></td>
+                <td><input type="text" name="attr_attackdamage1" value="d4"/></td>
+                <td><button name="Attack1" class="tokenaction" type="roll" value="@{attackname1} rolling [[1d20 + @{attacktotal1}]] doing [[@{attackdamage1}]]"/></td>
+            </tr>
+            <tr>
+                <td><input type="text" name="attr_attackname2" value=""/></td>
+                <td><input type="number" name="attr_attackbonus2" value="0"/></td>
+                <td><input type="number" name="attr_attackwpn2" value="0"/></td>
+                <td><input type="number" name="attr_attacktotal2" value="@{bab} + @{attackbonus2} + @{attackwpn2}" disabled="true"/></td>
+                <td><input type="text" name="attr_attackdamage2" value="d4"/></td>
+                <td><button name="Attack2" class="tokenaction" type="roll" value="@{attackname2} rolling [[1d20 + @{attacktotal2}]] doing [[@{attackdamage2}]]"/></td>
+            </tr>
+            <tr>
+                <td><input type="text" name="attr_attackname3" value=""/></td>
+                <td><input type="number" name="attr_attackbonus3" value="0"/></td>
+                <td><input type="number" name="attr_attackwpn3" value="0"/></td>
+                <td><input type="number" name="attr_attacktotal3" value="@{bab} + @{attackbonus3} + @{attackwpn3}" disabled="true"/></td>
+                <td><input type="text" name="attr_attackdamage3" value="d4"/></td>
+                <td><button name="Attack3" class="tokenaction" type="roll" value="@{attackname3} rolling [[1d20 + @{attacktotal3}]] doing [[@{attackdamage3}]]"/></td>
+            </tr>
+            <tr>
+                <td><input type="text" name="attr_attackname4" value=""/></td>
+                <td><input type="number" name="attr_attackbonus4" value="0"/></td>
+                <td><input type="number" name="attr_attackwpn4" value="0"/></td>
+                <td><input type="number" name="attr_attacktotal4" value="@{bab} + @{attackbonus4} + @{attackwpn4}" disabled="true"/></td>
+                <td><input type="text" name="attr_attackdamage4" value="d4"/></td>
+                <td><button name="Attack4" class="tokenaction" type="roll" value="@{attackname4} rolling [[1d20 + @{attacktotal4}]] doing [[@{attackdamage4}]]"/></td>
+            </tr>
+            <tr>
+                <td><input type="text" name="attr_attackname5" value=""/></td>
+                <td><input type="number" name="attr_attackbonus5" value="0"/></td>
+                <td><input type="number" name="attr_attackwpn5" value="0"/></td>
+                <td><input type="number" name="attr_attacktotal5" value="@{bab} + @{attackbonus5} + @{attackwpn5}" disabled="true"/></td>
+                <td><input type="text" name="attr_attackdamage5" value="d4"/></td>
+                <td><button name="Attack5" class="tokenaction" type="roll" value="@{attackname5} rolling [[1d20 + @{attacktotal5}]] doing [[@{attackdamage5}]]"/></td>
+            </tr>
         </table>
-        <fieldset class="repeating_attack">
-            <table class="combat">
-                <tr>
-                    <td style="width:15em"><input type="text" name="attr_attackname" value="<attack type>"/></td>
-                    <td style="width:5em"><input type="number" name="attr_attackbonus" value="0"/></td>
-                    <td style="width:5em"><input type="number" name="attr_attackwpn" value="0"/></td>
-                    <td style="width:5em"><input type="number" name="attr_attacktotal" value="@{bab} + @{attackbonus} + @{attackwpn}" disabled="true"/></td>
-                    <td style="width:5em"><input type="text" name="attr_attackdamage" value="0"/></td>
-                    <td style="width:5em"><button name="Attack" class="tokenaction" type="roll" value="@{attackname} rolling [[1d20 + @{attacktotal}]] doing [[@{attackdamage}]]"/></td>
-                </tr>
-            </table>
-        </fieldset>
     </div>
 </html>
