@@ -726,9 +726,8 @@ PfInfo.infoCommand = function(playerId, token) {
 
     //html += PfInfo.line("Attacks", "[Attacks](!& #13;& #37;{" + characterName + "|attacks})");
 
-    /*
     let spellBooks = "";
-    for (let i=0; i < 5; i++) {
+    for (let i=0; i < 3; i++) {
         let spellbookField = "spellbook-" + i;
         let spellclassField = "spellclass-" + i + "-name";
         let spellclass = PfInfo.getAttributeValue(attrList, spellclassField);
@@ -741,7 +740,6 @@ PfInfo.infoCommand = function(playerId, token) {
     if (spellBooks) {
         html += PfInfo.text(spellBooks);
     }
-    */
 
     // Token statuses
     html += PfInfo.getStatusText(token);
