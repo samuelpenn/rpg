@@ -41,7 +41,7 @@
 
 var PfInfo = PfInfo || {};
 
-PfInfo.VERSION = "2.1";
+PfInfo.VERSION = "2.2";
 
 PfInfo.gmHelp = PfInfo.gmHelp || {};
 PfInfo.playerHelp = PfInfo.playerHelp || {};
@@ -735,7 +735,7 @@ PfInfo.infoCommand = function(playerId, token) {
         if (spellclass) {
             // Somehow the escape sequences got expanded by the Roll20 script editor,
             // breaking the script. Try and break them up so this doesn't happen.
-            spellBooks += `[${spellclass} Spells](!&` + `#13;&` + `#37;{${characterName}|${spellbookField}}) `;
+            spellBooks += `[${spellclass} Spells](!&` + `#13;&` + `#37;{${characterId}|${spellbookField}}) `;
         }
     }
     if (spellBooks) {
