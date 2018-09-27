@@ -1693,6 +1693,10 @@ PfCombat.update = function(obj, prev, message) {
         obj.set("bar1_value", hpCurrent);
         obj.set("bar3_value", nonlethalDamage);
     }
+    let damageTaken = takenDamage?(previousHitpoints - hpActual):0;
+    if (damageTaken > 0) {
+        message += PfCombat.line(`<b>${name}</b> has taken ${damageTaken} damage.`);
+    }
 
     // Kill low level mooks more quickly, so they don't hang around forever.
     // Their negative hp limit is equal to half their hitpoints. We define a
