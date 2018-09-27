@@ -82,7 +82,7 @@
 
 
 var PfCombat = PfCombat || {};
-PfCombat.VERSION = "2.1";
+PfCombat.VERSION = "2.2";
 
 PfCombat.ROUND_MARKER = "==== Start of Round ====";
 
