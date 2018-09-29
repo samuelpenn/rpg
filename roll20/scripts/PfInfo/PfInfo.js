@@ -256,7 +256,7 @@ PfInfo.line = function(property, value) {
     if (!value) {
         return "";
     }
-    value = value.replace(/\n/g, "<br>");
+    value = ("" + value).replace(/\n/g, "<br>");
     return "<p style='"+PfInfo.PARA_STYLE+"'><b>" + property + "</b>: " + value + " </p>";
 };
 
