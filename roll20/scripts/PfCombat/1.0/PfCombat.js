@@ -966,7 +966,7 @@ PfCombat.setHitPoints = function(msg, args) {
                 npcHd = parseInt(npcHd);
                 npcLevel = parseInt(npcLevel);
 
-                log(`  NPC Levels ${npcLevel}D${npcHD}`);
+                log(`  NPC Levels ${npcLevel}D${npcHd}`);
                 for (;npcLevel > 0; npcLevel--) {
                     hitpoints += parseInt(PfCombat.getHitPoints(npcHd, option)) + parseInt(hpAbilityMod);
                 }
@@ -1892,4 +1892,3 @@ PfCombat.error = function(message) {
         sendChat("", "/desc " + html);
     }
 };
-
