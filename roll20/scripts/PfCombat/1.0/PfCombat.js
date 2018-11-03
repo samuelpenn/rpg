@@ -1715,6 +1715,66 @@ PfCombat.update = function(obj, prev, message) {
         cannotDie = true;
     }
 
+    log("DamageTaken: " + damageTaken + "; hpMax: " + hpMax + "; nonLethal: " + nonlethalDamage);
+    if (!cannotDie && (damageTaken - nonlethalDamage) > 50 && (damageTaken - nonlethalDamage) > hpMax / 2) {
+        let owners = PfInfo.getOwners(obj);
+        if (owners.length > 0) {
+            // This character has owners set, so is possible a PC. Let them make the roll
+            // instead of doing it automatically. Also use the battle scar table rather
+            // than simple instant death.
+            let battleScar = "";
+            switch (randomInteger(20)) {
+                case 1: case 2: case 3: case 4: case 5:
+                    battleScar = "a <b>Minor scar</b> - <i>interesting but otherwise cosmetic</i>";
+                    break;
+                case 6: case 7: case 8:
+                    battleScar = "a <b>Moderate scar</b> - <i>cut on face (+1 bonus on Charisma-based skill checks for first scar only)</i>";
+                    break;
+                case 9: case 10:
+                    battleScar = "a <b>Major scar</b> - <i>severe cut on face (-1 penalty on Charisma-based skill checks)</i>";
+                    break;
+                case 11: case 12: case 13: case 14:
+                    battleScar = "the <b>Loss of a finger</b> <i>(for every 3 fingers lost, -1 Dexterity)</i>";
+                    break;
+                case 15: case 16:
+                    battleScar = "an <b>Impressive wound</b> <i>(-1 Constitution)</i>";
+                    break;
+                case 17:
+                    battleScar = "the <b>Loss of an eye</b> <i>(-4 penalty on all sight-based Perception checks)</i>";
+                    break;
+                case 18:
+                    battleScar = "the <b>Loss of a leg</b> <i>(speed reduced to half, cannot charge)</i>";
+                    break;
+                case 19:
+                    battleScar = "the <b>Loss of a hand</b> <i>(cannot use two-handed items)</i>";
+                    break;
+                case 20:
+                    battleScar = "the <b>Loss of an arm</b> <i>(-1 Strength, cannot use two-handed items</i>";
+                    break;
+            }
+            message += PfCombat.line(`They have taken <b>massive damage</b>, and need to make a Fort DC 15 check or drop to -1 hitpoints and suffer ${battleScar}.`);
+
+        } else {
+            let fortBonus = parseInt(getAttrByName(character_id, 'Fort'));
+            if (fortBonus + randomInteger(20) > 15) {
+                message += PfCombat.line(`They are not killed by massive damage.`);
+            } else {
+                message += PfCombat.line(`There are killed outright from <b>massive damage</b>, dropping from ${hpCurrent} to zero hitpoints.`);
+                obj.set({
+                    status_pummeled: false,
+                    status_dead: true,
+                    status_skull: false,
+                    status_red: false,
+                    status_brown: false,
+                    status_green: false,
+                    bar1_value: 0
+                });
+                PfCombat.message(obj, message);
+                return;
+            }
+        }
+    }
+
     if (!living && hpCurrent < 1 && !cannotDie) {
         obj.set({
             status_pummeled: false,
