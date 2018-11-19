@@ -321,7 +321,7 @@ PfSkills.getSkill = function(characterName, list, skill, d20roll, name, buff) {
 };
 
 PfSkills.getAttribute = function(list, attribute, d20roll, name, buff) {
-    let base = parseInt(PfSkills.getAttributeValue(list, attribute+"-base"));
+    let base = parseInt(PfSkills.getAttributeValue(list, attribute));
     let cond = parseInt(PfSkills.getAttributeValue(list, "checks-cond"));
 
     // Calculate score ourselves, because we can do it quicker than reading
