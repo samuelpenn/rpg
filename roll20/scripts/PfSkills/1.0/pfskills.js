@@ -128,7 +128,7 @@ PfSkills.singleSkillCommand = function(msg) {
 
     var player_obj = getObj("player", msg.playerid)
     if (playerIsGM(player_obj.get("id"))) {
-        sendChat(getAttrByName(character.id, "character_name"), "/w " + player_obj.get("displayname") + " " + template);
+        sendChat(getAttrByName(character.id, "character_name"), "/w \"" + player_obj.get("displayname") + "\" " + template);
     } else {
         sendChat(getAttrByName(character.id, "character_name"), template);
     }
@@ -478,9 +478,10 @@ PfSkills.Process = function(msg, player_obj) {
         template += PfSkills.getSkillResult(characterName, attributes, skill, d20roll, skillsBuff, abilityBuff);
     }
     //PfSkills.timer("Done");
+    log(template);
 
     if (playerIsGM(player_obj.get("id"))) {
-        sendChat(characterName, "/w " + player_obj.get("displayname") + " " + template);
+        sendChat(characterName, "/w \"" + player_obj.get("displayname") + "\" " + template);
     } else {
         sendChat(characterName, template);
     }
@@ -489,17 +490,17 @@ PfSkills.Process = function(msg, player_obj) {
 };
 
 PfSkills.getSkillResult = function(characterName, attributes, skill, d20roll, skillsBuff, abilityBuff) {
-    var html = "";
+    let html = "";
     if (skill.indexOf("%") == 0) {
         // This is an attribute.
         html += PfSkills.getAttribute(attributes, skill.substring(1,4).toUpperCase(),
                                         d20roll, skill.replace("%", ""), abilityBuff);
     } else if (skill.indexOf("*") > -1) {
         // List of skills.
-        var baseSkill = skill.replace("*", "");
-        for (var i=1; i < 11; i++) {
+        let baseSkill = skill.replace("*", "");
+        for (let i=1; i < 11; i++) {
             skill = baseSkill + ( (i>1)?i:"" );
-            var skillName = PfSkills.getAttributeValue(attributes, skill + "-name");
+            let skillName = PfSkills.getAttributeValue(attributes, skill + "-name");
             if (skillName != null && skillName != "") {
                 html += PfSkills.getSkill(characterName, attributes, skill, d20roll, "*" + baseSkill + ": " + skillName + "*", skillsBuff);
             } else {

@@ -876,7 +876,7 @@ PfCombat.statusCommand = function(msg) {
         }
         html += PfCombat.line(message);
     }
-    sendChat(msg.who, "/w " + msg.who + " " + html);
+    sendChat(msg.who, "/w \"" + msg.who + "\" " + html);
 };
 
 // Constants for hitpoint options.
