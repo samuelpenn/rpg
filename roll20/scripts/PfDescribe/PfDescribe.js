@@ -86,7 +86,7 @@ on("chat:message", function(msg) {
     let args = PfInfo.getArgs(msg);
 
     if (!args || args.length === 0) {
-        sendChat("", "/w " + player.get("_displayname") + " No command found");
+        sendChat("", "/w \"" + player.get("_displayname") + "\" No command found");
         return;
     }
 
@@ -425,9 +425,17 @@ PfDescribe.describe = function(msg, player, target_id) {
     let target = getObj("graphic", target_id);
     if (target) {
         let title = target.get("name");
+        let gmOnly = false;
+        log("Title: " + title);
         if (title) {
+            if (title.startsWith("~")) {
+                gmOnly = true;
+            }
             if (title.split(":").length > 1) {
                 title = title.split(":")[1];
+            }
+            if (gmOnly) {
+                title += " (Secret)";
             }
         }
         let character_id = target.get("represents");
@@ -440,19 +448,34 @@ PfDescribe.describe = function(msg, player, target_id) {
                 name: title
             });
             if (!list || list.length === 0) {
+                log("This is not a handout");
                 let image = target.get("imgsrc");
                 let text = unescape(target.get("gmnotes"));
+                let gmText = null;
+
+                log(text);
+                if (text.match("<br>--<br>")) {
+                    gmText = text.replace(/.*<br>--<br>/, "");
+                } else if (text.match("<p[^>]*>--</p>")) {
+                    gmText = text.replace(/.*<p[^>]*>--<\/p>/, "");
+                }
+
                 text = text.replace(/<br>--<br>.*/, "");
-                text = text.replace(/<p>--<\/p>.*/, "");
+                text = text.replace(/<p[^>]*>--<\/p>.*/, "");
                 text = PfDescribe.convertLinks(text);
 
                 let description = PfDescribe.getHTML(title, null, text);
-                if (playerIsGM(player.get("id"))) {
+                if (!gmOnly && playerIsGM(player.get("id"))) {
                     PfInfo.message(player, description, title);
                 } else {
                     PfInfo.whisper(player, description, title);
                 }
+                if (!gmOnly && gmText && playerIsGM(player.get("id"))) {
+                    description = PfDescribe.getHTML("GM Notes", null, gmText);
+                    PfInfo.whisper(player, description, "GM Notes");
+                }
             } else {
+                log("This is a handout");
                 let handout = list[0];
                 let image = handout.get("avatar");
                 if (!image) {
@@ -460,7 +483,7 @@ PfDescribe.describe = function(msg, player, target_id) {
                 }
                 handout.get("notes", function (notes) {
                     let text = PfDescribe.getHTML(title, image, unescape(notes));
-                    if (playerIsGM(player.get("id")) && title) {
+                    if (!gmOnly && playerIsGM(player.get("id")) && title) {
                         PfInfo.message(player, text, title);
                     } else {
                         PfInfo.whisper(player, text, title);
