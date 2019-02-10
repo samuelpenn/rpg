@@ -1677,6 +1677,36 @@ PfCombat.update = function(obj, prev, message) {
             nonlethalDamage = 0;
 
         }
+        if (hpCurrent < 1) {
+            let maxSoulWard = PfInfo.getAbility(obj, "Soul Ward");
+            if (maxSoulWard > 0) {
+                let soulWard = parseInt(obj.get("bar2_value"));
+                log("Soul Ward: " + soulWard);
+                if (soulWard > maxSoulWard) {
+                    soulWard = maxSoulWard;
+                }
+
+                soulWard --;
+                if (hpCurrent == 0) {
+                    hpCurrent ++;
+                } else {
+                    soulWard += hpCurrent;
+                }
+                if (soulWard < 0) {
+                    hpCurrent = 0;
+                    soulWard = 0;
+                } else {
+                    hpCurrent = 1;
+                    message += PfCombat.line(`<b>${name}</b> taps into its Soul Ward.`);
+                }
+                obj.set({
+                    bar2_value: soulWard
+                });
+                obj.set("bar1_value", hpCurrent);
+                hpActual = hpCurrent;
+            }
+        }
+
         if (hpCurrent < 0) {
             hpCurrent = 0;
             // No point having negative hit points for these types of creatures.
