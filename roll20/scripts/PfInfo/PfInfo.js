@@ -231,6 +231,8 @@ on("chat:message", function(msg) {
             tokens = PfInfo.getSelectedTokens(msg, false);
         }
         PfInfo.setStatusCommand(playerId, status, tokens, value, (command === "!pfsetstatus"));
+    } else if (command === "!pfhere") {
+        PfInfo.comeHereCommand(playerId);
     } else if (command === "!pfhelp") {
         PfInfo.help(playerId);
     }
@@ -1145,6 +1147,21 @@ PfInfo.setCharacterStatus = function(token, status, set) {
         }
     }
 };
+
+PfInfo.comeHereCommand = function(playerId) {
+    if (playerIsGM(playerId)) {
+        let player = getObj("player", playerId);
+        let lastPage = player.get("_lastpage");
+
+        if (lastPage) {
+           Campaign().set("playerpageid", lastPage);
+           let page = getObj("page", lastPage);
+
+           PfInfo.message(null, `Moving to <b>${page.get("name")}</b>`, null, null);
+        }
+    }
+};
+
 
 PfInfo.BOX_STYLE="background-color: #EEEEDD; color: #000000; margin-top: 0px; " +
                  "padding:5px; border:1px dashed black; border-radius: 10px; " +
