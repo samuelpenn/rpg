@@ -88,6 +88,15 @@ PfCombat.ROUND_MARKER = "==== Start of Round ====";
 
 on("ready", function() {
     log(`==== PfCombat Version ${PfCombat.VERSION} ====`);
+
+    PfInfo.addPlayerHelp("!pfcustominit", "Args: <b>status</b>, <b>[value]</b><br/>Set the status on the selected token.");
+    PfInfo.addPlayerHelp("!pfdmg", "Args: <b>status</b>, <b>[value]</b><br/>Unset the status on the selected token.");
+    PfInfo.addPlayerHelp("!pfstatus", "Displays the current hitpoint status for selected tokens.");
+    PfInfo.addGmHelp("!pfstartcombat", "Args: <b>[Perception DC]</b><br/>Clears a new initiative tracker, and rolls "+
+        "initiative for all selected tokens. If an argument is included, makes a Perception check for each token " +
+        "against that DC to see if they are surprised or not. " +
+        "If only one token is selected, then they gain surprise and take 20 on their initiative roll.");
+    PfInfo.addGmHelp("!pfhere", "Moves all the players to the current page.");
 });
 
 
@@ -105,7 +114,7 @@ on("chat:message", function(msg) {
         PfCombat.healCommand(msg);
     } else if (command === "!pfinit") {
         PfCombat.initCommand(msg, args);
-    } else if (command === "!pfsaves") {
+    } else if (command === "!pfsaves" || command == "!pfsave") {
         PfCombat.savesCommand(msg);
     } else if (command === "!pfdmg") {
         PfCombat.damageCommand(msg);
@@ -689,10 +698,16 @@ PfCombat.getInitiatives = function(tokenList, existingOrder = null, take20 = fal
             dex = ("0" + dex);
         }
 
-        let initiative = (take20?20:randomInteger(20)) + parseInt(init);
+        let roll = (take20?20:randomInteger(20));
+        let initiative =  roll + parseInt(init);
         initiative = "" + initiative + "." + dex + (take20?"½":"");
 
         log(`getInitiatives: Adding ${token.get("name")} to track on ${initiative}.`);
+        let character = getObj("character", character_id);
+        let perms = character.get("inplayerjournals");
+        if (perms === "all" || perms.indexOf("all,") > -1 || perms.indexOf(",all") > -1) {
+            PfInfo.message("Initiative for " + character.get("name"), `<b>${character.get("name")}</b> rolled [[${roll}]], for a total of <b>${initiative}</b>`, null, null);
+        }
 
         inits.push({
             "id": token.get("_id"),
@@ -843,6 +858,11 @@ PfCombat.addToCombatCommand = function(playerId, tokenList, surprise, surpriseSk
     Campaign().set("turnorder", JSON.stringify(turnOrder));
 };
 
+/**
+ * Displays the current status of a character token.
+ *
+ * @param msg   Message data.
+ */
 PfCombat.statusCommand = function(msg) {
     let tokenList = PfInfo.getSelectedTokens(msg);
     if (!tokenList || tokenList.length === 0) {
@@ -876,7 +896,12 @@ PfCombat.statusCommand = function(msg) {
         }
         html += PfCombat.line(message);
     }
-    sendChat(msg.who, "/w \"" + msg.who + "\" " + html);
+    if (playerIsGM(msg.playerid)) {
+        sendChat(msg.who, "/w GM " + html);
+    } else {
+        sendChat(msg.who, html);
+    }
+
 };
 
 // Constants for hitpoint options.
@@ -955,6 +980,7 @@ PfCombat.setHitPoints = function(msg, args) {
             let maxHpLevel1 = getAttrByName(character_id, "maxhp_lvl1");
             let hpAbilityMod = getAttrByName(character_id, "HP-ability-mod");
             let hpFormulaMod = getAttrByName(character_id, "HP-formula-mod");
+            let tempHitpoints = parseInt(getAttrByName(character_id, "HP-temp"));
             let hitpoints = 0;
 
             log(`Generating hitpoints for '${token.get("name")}'`);
@@ -1010,6 +1036,10 @@ PfCombat.setHitPoints = function(msg, args) {
             log(`  Total hitpoints set to ${hitpoints}`);
             token.set("bar1_value", hitpoints);
             token.set("bar1_max", hitpoints);
+            if (tempHitpoints > 0) {
+                hitpoints += tempHitpoints;
+                token.set("bar1_value", hitpoints);
+            }
 
             PfInfo.whisper(token.get("name"), `Hitpoints set to ${hitpoints}`);
         }
