@@ -233,6 +233,15 @@ on("chat:message", function(msg) {
         PfInfo.setStatusCommand(playerId, status, tokens, value, (command === "!pfsetstatus"));
     } else if (command === "!pfhere") {
         PfInfo.comeHereCommand(playerId);
+    } else if (command === "!pfpages") {
+        PfInfo.pagesCommand(playerId);
+    } else if (command === "!pfgoto") {
+        let name = "";
+        while (args.length) {
+            name += args.shift() + " ";
+        }
+        name = name.replace(/ +$/, "");
+        PfInfo.gotoCommand(playerId, name);
     } else if (command === "!pfhelp") {
         PfInfo.help(playerId);
     }
@@ -1155,9 +1164,59 @@ PfInfo.comeHereCommand = function(playerId) {
 
         if (lastPage) {
            Campaign().set("playerpageid", lastPage);
-           let page = getObj("page", lastPage);
+           Campaign().set("playerspecificpages", false);
 
+           let page = getObj("page", lastPage);
            PfInfo.message(null, `Moving to <b>${page.get("name")}</b>`, null, null);
+        }
+    }
+};
+
+PfInfo.pagesCommand = function(playerId) {
+    if (playerIsGM(playerId)) {
+        log("pagesCommand: is GM");
+        let pages = findObjs({
+            _type: "page",
+            archived: false
+        });
+        log("pagesCommand: " + pages.length);
+        if (pages && pages.length > 0) {
+            let html = "";
+            for (let p=0; p < pages.length; p++) {
+                let page = pages[p];
+
+                html += `[${page.get("name")}](!pfgoto ${page.get("name")}) `;
+
+            }
+            PfInfo.whisper("GM", html, "Available Pages");
+        }
+    } else {
+        sendChat("GM", "Only the GM can run this command.");
+    }
+};
+
+PfInfo.gotoCommand = function(playerId, pageName) {
+    log("gotoCommand: [" + pageName + "]");
+
+    if (playerIsGM(playerId)) {
+        let pages = findObjs({
+            _type: "page",
+            archived: false,
+            name: pageName
+        });
+
+        if (pages && pages.length == 1) {
+            let page = pages[0];
+
+            log(`Going to page [${page.get("name")}]`);
+            log("Player Id: " + playerId + "  Page Id: " + page.get("_id"));
+
+            let pageList = {};
+            pageList[playerId] = page.get("_id");
+            Campaign().set("playerspecificpages", pageList);
+
+        } else if (pages) {
+            PfInfo.error(playerId, `Multiple pages matched ${pageName}, can't decide where to go.`);
         }
     }
 };
