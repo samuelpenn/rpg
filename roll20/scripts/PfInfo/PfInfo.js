@@ -54,6 +54,11 @@ on("ready", function() {
     PfInfo.addPlayerHelp("!pfsetstatus", "Args: <b>status</b>, <b>[value]</b><br/>Set the status on the selected token.");
     PfInfo.addPlayerHelp("!pfunsetstatus", "Args: <b>status</b>, <b>[value]</b><br/>Unset the status on the selected token.");
     PfInfo.addGmHelp("!pfinfo", "Args: <b>tokenId</b><br/>Output status and information on a token and character.");
+    PfInfo.addGmHelp("!pfhere", "Moves all the players to the current page the GM is looking at.");
+    PfInfo.addGmHelp("!pfpages", "Args: <b>filter</b><br/>List all the non-archived pages in the chat window, with " +
+           "an optional filter. A page can be clicked on to move the players there.");
+    PfInfo.addGmHelp("!pfgoto", "Args: <b>page</b><br/>Move players to the named page. Would like this to move the GM, "+
+           "but that isn't supported in the API.");
 });
 
 PfInfo.addGmHelp = function(command, text) {
@@ -234,7 +239,12 @@ on("chat:message", function(msg) {
     } else if (command === "!pfhere") {
         PfInfo.comeHereCommand(playerId);
     } else if (command === "!pfpages") {
-        PfInfo.pagesCommand(playerId);
+        let name = "";
+        while (args.length) {
+            name += args.shift() + " ";
+        }
+        name = name.replace(/ +$/, "");
+        PfInfo.pagesCommand(playerId, name);
     } else if (command === "!pfgoto") {
         let name = "";
         while (args.length) {
@@ -1172,7 +1182,7 @@ PfInfo.comeHereCommand = function(playerId) {
     }
 };
 
-PfInfo.pagesCommand = function(playerId) {
+PfInfo.pagesCommand = function(playerId, filter) {
     if (playerIsGM(playerId)) {
         log("pagesCommand: is GM");
         let pages = findObjs({
@@ -1184,9 +1194,9 @@ PfInfo.pagesCommand = function(playerId) {
             let html = "";
             for (let p=0; p < pages.length; p++) {
                 let page = pages[p];
-
-                html += `[${page.get("name")}](!pfgoto ${page.get("name")}) `;
-
+                if (!filter || page.get("name").toLowerCase().indexOf(filter.toLowerCase()) > -1) {
+                    html += `[${page.get("name")}](!pfgoto ${page.get("name")}) `;
+                }
             }
             PfInfo.whisper("GM", html, "Available Pages");
         }
@@ -1209,11 +1219,15 @@ PfInfo.gotoCommand = function(playerId, pageName) {
             let page = pages[0];
 
             log(`Going to page [${page.get("name")}]`);
-            log("Player Id: " + playerId + "  Page Id: " + page.get("_id"));
+            //log("Player Id: " + playerId + "  Page Id: " + page.get("_id"));
 
-            let pageList = {};
-            pageList[playerId] = page.get("_id");
-            Campaign().set("playerspecificpages", pageList);
+            // This moves the players. It isn't yet possible to move the GM.
+            Campaign().set("playerpageid", page.get("_id"));
+            Campaign().set("playerspecificpages", false);
+
+            //let pageList = {};
+            //pageList[playerId] = page.get("_id");
+            //Campaign().set("playerspecificpages", pageList);
 
         } else if (pages) {
             PfInfo.error(playerId, `Multiple pages matched ${pageName}, can't decide where to go.`);
