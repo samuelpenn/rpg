@@ -378,14 +378,24 @@ PfCombat.updateInitiative = function() {
     }
 
     let tokenId = item.id;
-    let text = item.custom;
+    let text = "" + item.custom;
 
     if (text && text === PfCombat.ROUND_MARKER) {
         log(`    Starting round ${item.pr}`);
         PfInfo.message(null, `<b>Starting round ${item.pr}</b>`, null, null);
-        if (""+item.pr == "1") {
+        if ("" + item.pr == "1") {
             // This is the start of the combat. No processing should be done at the
             // end of the list.
+            return;
+        }
+    } else if (text && text.indexOf(":") > -1) {
+        if ("" + item.pr == "0") {
+            let effect = text.replace(/.*: /, "");
+            let person = text.replace(/:.*/, "");
+            PfInfo.message(null, `<i><b>${effect}</b></i> by <b>${person}</b> comes to an end.</b>`);
+            turnOrder.splice(0, 1);
+            Campaign().set("turnorder", JSON.stringify(turnOrder));
+            PfCombat.updateInitiative();
             return;
         }
     } else if (tokenId != -1) {
