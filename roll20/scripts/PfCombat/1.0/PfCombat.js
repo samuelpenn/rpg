@@ -421,8 +421,10 @@ PfCombat.updateInitiative = function() {
                 let regeneration = PfInfo.getAbility(token, "Regeneration");
 
                 if (regeneration > 0) {
+                    PfInfo.message(token.get("name"), `They regenerate ${regeneration} hp this round.`);
                     PfCombat.heal(token, regeneration);
                 } else if (fastHealing > 0) {
+                    PfInfo.message(token.get("name"), `They fast heal ${fastHealing} hp this round.`);
                     PfCombat.heal(token, fastHealing);
                 }
             } else if (token.get("status_broken-shield")) {
@@ -432,6 +434,12 @@ PfCombat.updateInitiative = function() {
             let hpCurrent = token.get("bar1_value");
             if (hpCurrent < 0 && !token.get("status_dead") && !token.get("status_green")) {
                 PfCombat.stabilise(token);
+            }
+
+            if (!token.get("status_dead") && token.get("status_pink")) {
+                let bleeding = 0 - parseInt(token.get("status_pink"));
+                PfInfo.message(token.get("name"), `They bleed ${bleeding} hp this round.`);
+                PfCombat.heal(token, bleeding);
             }
 
             if (token.get("status_dead")) {
@@ -1553,19 +1561,24 @@ PfCombat.stabilise = function(token) {
             // This is considered a mook, so more likely to die.
             check = randomInteger(10) + parseInt(constitution);
         }
-        log(tokenName + " rolls " + check + " to stabilise.");
+        if (token.get("status_pink")) {
+            check = 0;
+            log(`{tokenName} is bleeding, so automatically fails to stabilise.`);
+        } else {
+            log(tokenName + " rolls " + check + " to stabilise.");
+        }
         if (check >= dc || check === constitution + 20) {
             token.set({
                 status_green: true
             });
-            PfCombat.update(token, null, PfCombat.getSymbolHtml("green") + PfCombat.line(`<b>${tokenName}</b> stops bleeding (${check} v DC ${dc}).</p>`));
+            PfCombat.update(token, null, PfCombat.getSymbolHtml("green") + PfCombat.line(`<b>${tokenName}</b> stabilises (${check} v DC ${dc}).</p>`));
         } else {
             hpCurrent -= 1;
             token.set({
                 bar1_value: hpCurrent,
                 status_green: false
             });
-            PfCombat.update(token, null, PfCombat.line(`<b>${tokenName}</b> bleeds a bit more (${check} v DC ${dc}).`));
+            PfCombat.update(token, null, PfCombat.line(`<b>${tokenName}</b> is closer to death (${check} v DC ${dc}).`));
         }
     }
 };
