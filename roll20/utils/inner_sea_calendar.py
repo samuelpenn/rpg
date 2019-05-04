@@ -14,6 +14,9 @@
 # Simply report the week day and moon phase for a specific day:
 #   inner_sea_calendar.py <year> <month> <day>
 #
+# If first parameter is --html, then outputs in HTML format rather than Dokuwiki syntax.
+# If so, then uses unicode characters for the Moon phases.
+#
 # Copyright (c) 2017, Samuel Penn
 # All rights reserved.
 #
