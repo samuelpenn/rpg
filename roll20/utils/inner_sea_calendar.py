@@ -17,6 +17,9 @@
 # If first parameter is --html, then outputs in HTML format rather than Dokuwiki syntax.
 # If so, then uses unicode characters for the Moon phases.
 #
+# If there is an --images parameter, then reads the directory for images files to user
+# to produce a picture for each month, one month per page.
+#
 # Copyright (c) 2017, Samuel Penn
 # All rights reserved.
 #
@@ -47,6 +50,8 @@
 
 import math
 import sys
+import argparse
+import os
 
 # Calendar Constants
 MONTH_DAYS = [ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ]
@@ -198,7 +203,7 @@ def getMoonsOfYear(year):
     moonName = 0
     
     
-    for day in range(firstDay, lastDay):
+    for day in range(firstDay, lastDay + 1):
         idx = getMoonPhaseIndex(getDayInMonth(day), getMonthInYear(day), year)
         if (idx == 0):
             if (isWaxingFull):
@@ -232,8 +237,10 @@ def calendar(month, year):
     listOfMoons = getMoonsOfYear(year)
 
     if (HTML):
-        html = "<div class='month'><h2>" + MONTH[month - 1] + " (" + str(month) + ")</h2>\n"
+        html = "<div class='month'><h2>" + MONTH[month - 1] + " (" + str(month) + ") " + str(year) + " AR</h2>\n"
         html += "<p>" + MONTH_TEXT[month - 1] + "</p>"
+        if (args.images):
+            html += "<img src='" + args.images + "/" + str(month) + ".jpg'/>";
     else:
         html = "===== " + MONTH[month - 1] + " =====\n"
 
@@ -304,6 +311,9 @@ def outputCSS(title):
     print("div.month {\n")
     print("    page-break-inside: avoid;\n")
     print("}\n")
+    print("img {\n")
+    print("  width: 100%;\n")
+    print("}\n")
     print("h2 {\n")
     print("  margin-bottom: 0px\n");
     print("}\n");
@@ -312,7 +322,7 @@ def outputCSS(title):
     print("}\n");
     print("td {\n")
     print("  width: 8em;\n")
-    print("  height: 4em;\n")
+    print("  height: 4.5em;\n")
     print("  vertical-align: top;\n")
     print("}\n")
     print("td span.phase {\n")
@@ -332,20 +342,45 @@ def outputCSS(title):
 def outputEnd():
     print("</body>\n</html>\n")
 
-if (len(sys.argv) > 1):
-    if (sys.argv[1] == "--html"):
-        sys.argv.pop(0)
-        HTML=True
 
-if (len(sys.argv) == 4):
-    argDay = int(sys.argv[3])
-    argMonth = int(sys.argv[2])
-    argYear = int(sys.argv[1])
+parser = argparse.ArgumentParser(
+    description="Output Inner Sea calendar with days and moon phases. " +
+                "Uses DokuWiki format unless HTML is specified.",
+    epilog="If only a year is specified, outputs the whole year. " +
+           "If a year and month is given, outputs the whole month. " +
+           "If a year, month and day is given, only outputs a single day.")
+parser.add_argument("-H", "--html", dest="html", action="store_true", default=False, help="Output as HTML.")
+parser.add_argument("-i", "--images", dest="images", help="Path to image folder.")
+parser.add_argument("dates", metavar="Date to display", type=int, nargs='+', help="<year> [<month> [<day>]]")
+
+args = parser.parse_args()
+
+HTML=args.html
+
+# If an image directory is specified, validate that it exists and contains
+# images.
+if (args.images):
+    if (not os.path.exists(args.images)):
+        print("Path [" + args.images + "] does not exist.\n");
+        exit(2)
+    if (not os.path.isdir(args.images)):
+        print("Path [" + args.images + "] is not a directory.\n");
+        exit(2)
+    
+    for m in range(1, 13):
+        if (not os.path.exists(args.images + "/" + str(m) + ".jpg")):
+            print("Directory [" + args.images + "] must contain 12 images 1.jpg .. 12.jpg")
+            exit(2)
+
+if (len(args.dates) == 3):
+    argDay = int(args.dates[2])
+    argMonth = int(args.dates[1])
+    argYear = int(args.dates[0])
 
     print getNamedDayOfWeek(argDay, argMonth, argYear) + " - " + getMoonPhase(argDay, argMonth, argYear)
-elif (len(sys.argv) == 3):
-    argMonth = int(sys.argv[2])
-    argYear = int(sys.argv[1])
+elif (len(args.dates) == 2):
+    argMonth = int(args.dates[1])
+    argYear = int(args.dates[0])
 
     if (HTML):
         outputCSS(MONTH[argMonth - 1] + " " + str(argYear) + " AR")
@@ -354,12 +389,11 @@ elif (len(sys.argv) == 3):
 
     if (HTML):
         outputEnd()
-elif (len(sys.argv) == 2):
-    argYear = int(sys.argv[1])
+elif (len(args.dates) == 1):
+    argYear = int(args.dates[0])
 
     if (HTML):
         outputCSS(str(argYear) + " AR")
-        print "<h1>" + str(argYear) + " AR</h1>\n"
     else:
         print "====== " + str(argYear) + " AR ======\n"
 
