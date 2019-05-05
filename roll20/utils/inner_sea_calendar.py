@@ -55,6 +55,8 @@ YEAR_LENGTH = sum(MONTH_DAYS)
 LEAP_YEAR = 8
 MOON_PERIOD = 29.5
 
+MOON_NAME = [ "Long", "Fated", "Rebirth", "Flood", "Blossom", "Sweet", "Lover's", "Swarm", "Harvest", "Hunter's", "Black", "Cold", "Thirteenth" ]
+
 HTML=False
 
 WEEK = [ "Moonday", "Toilday", "Wealday", "Oathday", "Fireday", "Starday", "Sunday" ]
@@ -168,6 +170,42 @@ def getMoonPhaseIndex(day, month, year):
 
     return phase
 
+# Get a dictionary containing all the named Full moons of the year. Indexed by
+# the epoc day, with the moon name as the value. Since a 'full moon' spans
+# multiple days, we take the second day of full Moon as the actual day.
+def getMoonsOfYear(year):
+    firstDay = getEpocDay(21, 12, year - 1)
+    lastDay = getEpocDay(31, 12, year)
+    
+    moons = {}
+    isWaxingFull = False
+    isFull = False
+    isWaningFull = False
+    moonName = 0
+    
+    
+    for day in range(firstDay, lastDay):
+        idx = getMoonPhaseIndex(getDayInMonth(day), getMonthInYear(day), year)
+        if (idx == 0):
+            if (isWaxingFull):
+                isFull = True
+                isWaxingFull = False
+            elif (isFull):
+                isFull = False
+                isWaningFull = True
+            else:
+                isWaxingFull = True
+
+            if (getYear(day) == year and isFull):
+                moons[day] = MOON_NAME[moonName]
+                moonName += 1
+        else:
+            isWaxingFull = False
+            isWaningFull = False
+            isFull = False
+    
+    return moons
+
 def calendar(month, year):
     cal = MONTH_DAYS
     isLeapYear = (year % 8) == 0
@@ -176,6 +214,8 @@ def calendar(month, year):
 
     epocStartDay = getEpocDay(1, month, year)
     epocEndDay = getEpocDay(cal[month-1], month, year)
+    
+    listOfMoons = getMoonsOfYear(year)
 
     if (HTML):
         html = "<h2>" + MONTH[month - 1] + " (" + str(month) + ")</h2>\n"
@@ -203,8 +243,11 @@ def calendar(month, year):
             if today < epocStartDay:
                 html += "<td></td>\n"
             else:
-                phase="<span>" + MOON_UNICODE[getMoonPhaseIndex(getDayInMonth(today), month, year)] + "</span>"
-                html += "<td>" + str(getDayInMonth(today)) + phase + "</td>\n"
+                phase="<span class='phase'>" + MOON_UNICODE[getMoonPhaseIndex(getDayInMonth(today), month, year)] + "</span>"
+                moonDay = ""
+                if (today in listOfMoons):
+                    moonDay = "<span class='name'>" + listOfMoons[today] + " Moon</span>"
+                html += "<td>" + str(getDayInMonth(today)) + phase + moonDay + "</td>\n"
 
             if getEpocDayOfWeek(today) == 7:
                 html += "</tr>\n"
@@ -248,9 +291,15 @@ def outputCSS(title):
     print("  height: 5em;\n")
     print("  vertical-align: top;\n")
     print("}\n")
-    print("td span {\n")
+    print("td span.phase {\n")
     print("  align: right;\n")
     print("  float: right;\n")
+    print("}\n")
+    print("td span.name {\n")
+    print("  vertical-align: top;\n")
+    print("  margin-left: 0.5em;\n")
+    print("  font-size: small;\n")
+    print("  font-style: italic;\n")
     print("}\n")
     print("</style>\n</head>\n<body>\n")
 
