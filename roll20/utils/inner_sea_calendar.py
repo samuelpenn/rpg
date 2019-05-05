@@ -59,7 +59,7 @@ HTML=False
 
 WEEK = [ "Moonday", "Toilday", "Wealday", "Oathday", "Fireday", "Starday", "Sunday" ]
 
-MONTH = [ "Abadius", "Calistril", "Pharast", "Gozren", "Desnus", "Sarenith", "Erastus", "Arodus", "Rova", "Lamashan", "Neth", "Kuthona" ]
+MONTH = [ "Abadius", "Calistril", "Pharast", "Gozran", "Desnus", "Sarenith", "Erastus", "Arodus", "Rova", "Lamashan", "Neth", "Kuthona" ]
 
 MOON_PHASES = [ "Full Moon", "Waning Gibbous", "Third Quarter", "Waning Crescent", "New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous" ]
 MOON_UNICODE = [ "&#x1F315;", "&#x1F316", "&#x1F317", "&#x1F318", "&#x1F311", "&#x1F312", "&#x1F313", "&#x1F314" ]
@@ -178,7 +178,7 @@ def calendar(month, year):
     epocEndDay = getEpocDay(cal[month-1], month, year)
 
     if (HTML):
-        html = "<h2>" + MONTH[month - 1] + "</h2>\n"
+        html = "<h2>" + MONTH[month - 1] + " (" + str(month) + ")</h2>\n"
     else:
         html = "===== " + MONTH[month - 1] + " =====\n"
 
