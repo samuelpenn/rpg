@@ -55,6 +55,20 @@ YEAR_LENGTH = sum(MONTH_DAYS)
 LEAP_YEAR = 8
 MOON_PERIOD = 29.5
 
+MONTH_TEXT = [ "The middle of winter, and the first month of the year, named in honour of Abadar.",
+               "A late winter month named for Calistria, goddess of revenge.",
+               "An early spring month named after Pharasma, the goddess of birth and death.",
+               "A stormy spring month named for the god of the wind, Gozreh.",
+               "A mild spring month named for the goddess Desna.",
+               "The sun goddess Sarenrae gives her name to this sun-blessed summer month.",
+               "A summer month named in honour of Erastil.",
+               "Although he is no longer widely worshiped, this summer month is named for Aroden.",
+               "The beginning of autumn is named after the violent god Rovagug.",
+               "An autumn month named for Lamashtu, the goddess of monsters.",
+               "An autumn month named for Nethys, the two-faced god of magic.",
+               "The shortest day of the year comes during the winter month named for the god of darkness, Zon-Kuthon."
+               ]
+
 MOON_NAME = [ "Long", "Fated", "Rebirth", "Flood", "Blossom", "Sweet", "Lover's", "Swarm", "Harvest", "Hunter's", "Black", "Cold", "Thirteenth" ]
 
 HTML=False
@@ -218,7 +232,8 @@ def calendar(month, year):
     listOfMoons = getMoonsOfYear(year)
 
     if (HTML):
-        html = "<h2>" + MONTH[month - 1] + " (" + str(month) + ")</h2>\n"
+        html = "<div class='month'><h2>" + MONTH[month - 1] + " (" + str(month) + ")</h2>\n"
+        html += "<p>" + MONTH_TEXT[month - 1] + "</p>"
     else:
         html = "===== " + MONTH[month - 1] + " =====\n"
 
@@ -270,7 +285,7 @@ def calendar(month, year):
         html += "\n|"
 
     if (HTML):
-        print("</table>\n")
+        print("</table></div>\n")
     else:
         for d in range(0, 7):
             html += " +++++++++++ |"
@@ -286,9 +301,18 @@ def outputCSS(title):
     print("    border-collapse;\n")
     print("    font-size: large;\n")
     print("}\n")
+    print("div.month {\n")
+    print("    page-break-inside: avoid;\n")
+    print("}\n")
+    print("h2 {\n")
+    print("  margin-bottom: 0px\n");
+    print("}\n");
+    print("p {\n")
+    print("  margin: 0px\n");
+    print("}\n");
     print("td {\n")
     print("  width: 8em;\n")
-    print("  height: 5em;\n")
+    print("  height: 4em;\n")
     print("  vertical-align: top;\n")
     print("}\n")
     print("td span.phase {\n")
@@ -297,7 +321,9 @@ def outputCSS(title):
     print("}\n")
     print("td span.name {\n")
     print("  vertical-align: top;\n")
-    print("  margin-left: 0.5em;\n")
+    print("  display: block;\n")
+    print("  float: right;\n")
+    print("  clear: right;\n")
     print("  font-size: small;\n")
     print("  font-style: italic;\n")
     print("}\n")
@@ -340,6 +366,7 @@ elif (len(sys.argv) == 2):
 
     for month in range(1, 13):
         print calendar(month, argYear)
+        
 
     print "\n"
 
