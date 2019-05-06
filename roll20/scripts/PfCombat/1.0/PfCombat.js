@@ -693,38 +693,68 @@ PfCombat.getInitiatives = function(tokenList, existingOrder = null, take20 = fal
         if (exists) {
             continue;
         }
-        let flags = [];
-        if (!PfInfo.hasAbility(token, "Uncanny Dodge")) {
-            flags['status_tread'] = true;
-        }
-        flags['status_stopwatch'] = false;
-        flags['status_sentry-gun'] = false;
-        flags['status_rolling-bomb'] = take20;
-        flags['status_frozen-orb'] = false;
-        token.set(flags);
-        token.set('tint_color', take20?'ff0000':'transparent');
-
         let character_id = token.get("represents");
         if (!character_id) {
             continue;
         }
-        let init = getAttrByName(character_id, "init");
-        let dex = getAttrByName(character_id, "DEX-base");
-        // Avoid dividing by 100, since this sometimes gives arithmetic
-        // errors with too many dp.
-        if (parseInt(dex) < 10) {
-            dex = ("0" + dex);
+        let character = getObj("character", character_id);
+        let isHaunt = false;
+        let type = ("" + getAttrByName(character_id, 'npc-type')).toLowerCase();
+        log("For token " + token.get("name") + " type is " + type);
+        if (type.indexOf("haunt") > -1) {
+            isHaunt = true;
         }
 
-        let roll = (take20?20:randomInteger(20));
-        let initiative =  roll + parseInt(init);
-        initiative = "" + initiative + "." + dex + (take20?"½":"");
+        let flags = [];
+        if (isHaunt) {
+            flags['status_rolling-bomb'] = true;
+            flags['status_stopwatch'] = false;
+            flags['status_sentry-gun'] = false;
+            flags['status_frozen-orb'] = false;
+            token.set(flags);
+            token.set('tint_color', 'ff0000');
+        } else {
+            if (!PfInfo.hasAbility(token, "Uncanny Dodge")) {
+                flags['status_tread'] = true;
+            }
+            flags['status_stopwatch'] = false;
+            flags['status_sentry-gun'] = false;
+            flags['status_rolling-bomb'] = take20;
+            flags['status_frozen-orb'] = false;
+            token.set(flags);
+            token.set('tint_color', take20 ? 'ff0000' : 'transparent');
+        }
 
-        log(`getInitiatives: Adding ${token.get("name")} to track on ${initiative}.`);
-        let character = getObj("character", character_id);
-        let perms = character.get("inplayerjournals");
-        if (perms === "all" || perms.indexOf("all,") > -1 || perms.indexOf(",all") > -1) {
-            PfInfo.message("Initiative for " + character.get("name"), `<b>${character.get("name")}</b> rolled [[${roll}]], for a total of <b>${initiative}</b>`, null, null);
+        let initiative = 0;
+
+        if (isHaunt) {
+            // Haunts always go on initiative 10, and always have surprise.
+            initiative = 10;
+            let message = `<b>${character.get("name")}</b> has surprise with <b>10</b>`;
+            for (let i=1; i <= 10; i++) {
+                let n = getAttrByName(character.id, `customn${i}-name`);
+                if (n && n === "Haunt") {
+                    let notice = "" + getAttrByName(character.id, `customn${i}`);
+                    message += `<br>${notice}`;
+                }
+            }
+            PfInfo.message("Initiative for Haunt", message);
+        } else {
+            let init = getAttrByName(character_id, "init");
+            let dex = getAttrByName(character_id, "DEX-base");
+            // Avoid dividing by 100, since this sometimes gives arithmetic
+            // errors with too many dp.
+            if (parseInt(dex) < 10) {
+                dex = ("0" + dex);
+            }
+            let roll = (take20 ? 20 : randomInteger(20));
+            initiative = roll + parseInt(init);
+            initiative = "" + initiative + "." + dex + (take20 ? "½" : "");
+            log(`getInitiatives: Adding ${token.get("name")} to track on ${initiative}.`);
+            let perms = character.get("inplayerjournals");
+            if (perms === "all" || perms.indexOf("all,") > -1 || perms.indexOf(",all") > -1) {
+                PfInfo.message("Initiative for " + character.get("name"), `<b>${character.get("name")}</b> rolled [[${roll}]], for a total of <b>${initiative}</b>`, null, null);
+            }
         }
 
         inits.push({
