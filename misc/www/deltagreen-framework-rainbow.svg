@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg8"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   sodipodi:docname="deltagreen-framework-rainbow.svg"
+   inkscape:export-filename="/home/sam/bitmap.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96">
+  <defs
+     id="defs2">
+    <filter
+       inkscape:label="Rubber Stamp"
+       inkscape:menu="Overlays"
+       inkscape:menu-tooltip="Random whiteouts inside"
+       style="color-interpolation-filters:sRGB;"
+       id="filter1135">
+      <feTurbulence
+         result="result1"
+         baseFrequency="0.064"
+         numOctaves="4"
+         type="fractalNoise"
+         id="feTurbulence1119" />
+      <feGaussianBlur
+         in="SourceAlpha"
+         stdDeviation="4.9"
+         result="result91"
+         id="feGaussianBlur1121" />
+      <feComposite
+         operator="out"
+         in="SourceAlpha"
+         in2="result91"
+         id="feComposite1123" />
+      <feComposite
+         in2="result1"
+         id="feComposite1125" />
+      <feColorMatrix
+         result="result1"
+         values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 20 -9"
+         id="feColorMatrix1127" />
+      <feComposite
+         result="result1"
+         operator="in"
+         in="SourceGraphic"
+         in2="result1"
+         id="feComposite1129" />
+      <feTurbulence
+         baseFrequency="0.032"
+         numOctaves="1"
+         result="result92"
+         id="feTurbulence1131" />
+      <feDisplacementMap
+         scale="4.1"
+         yChannelSelector="G"
+         xChannelSelector="R"
+         in="result1"
+         in2="result92"
+         id="feDisplacementMap1133" />
+    </filter>
+    <filter
+       inkscape:label="Rubber Stamp"
+       inkscape:menu="Overlays"
+       inkscape:menu-tooltip="Random whiteouts inside"
+       style="color-interpolation-filters:sRGB;"
+       id="filter1153">
+      <feTurbulence
+         result="result1"
+         baseFrequency="0.064"
+         numOctaves="4"
+         type="fractalNoise"
+         id="feTurbulence1137" />
+      <feGaussianBlur
+         in="SourceAlpha"
+         stdDeviation="4.9"
+         result="result91"
+         id="feGaussianBlur1139" />
+      <feComposite
+         operator="out"
+         in="SourceAlpha"
+         in2="result91"
+         id="feComposite1141" />
+      <feComposite
+         in2="result1"
+         id="feComposite1143" />
+      <feColorMatrix
+         result="result1"
+         values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 20 -9"
+         id="feColorMatrix1145" />
+      <feComposite
+         result="result1"
+         operator="in"
+         in="SourceGraphic"
+         in2="result1"
+         id="feComposite1147" />
+      <feTurbulence
+         baseFrequency="0.032"
+         numOctaves="1"
+         result="result92"
+         id="feTurbulence1149" />
+      <feDisplacementMap
+         scale="4.1"
+         yChannelSelector="G"
+         xChannelSelector="R"
+         in="result1"
+         in2="result92"
+         id="feDisplacementMap1151" />
+    </filter>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.979899"
+     inkscape:cx="431.53999"
+     inkscape:cy="586.23199"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     inkscape:window-width="2560"
+     inkscape:window-height="1329"
+     inkscape:window-x="1680"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:snap-grids="true">
+    <inkscape:grid
+       type="xygrid"
+       id="grid911"
+       empspacing="10"
+       spacingx="2.6458333"
+       spacingy="2.6458333" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="Background"
+     sodipodi:insensitive="true">
+    <rect
+       style="opacity:1;fill:#000000;fill-opacity:1;stroke:#aade87;stroke-width:0.1;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect852"
+       width="158.75"
+       height="79.375"
+       x="26.458332"
+       y="85.333336"
+       ry="3.9620809e-06" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer4"
+     inkscape:label="Image"
+     sodipodi:insensitive="true">
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot945"
+       style="font-style:normal;font-weight:normal;font-size:10.66666698px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#333333;fill-opacity:1;stroke:none;"
+       transform="scale(0.26458333)"><flowRegion
+         id="flowRegion947"
+         style="fill:#333333;"><rect
+           id="rect949"
+           width="510"
+           height="170"
+           x="130"
+           y="652.51971"
+           style="fill:#333333;" /></flowRegion><flowPara
+         id="flowPara951" /></flowRoot>    <flowRoot
+       xml:space="preserve"
+       id="flowRoot953"
+       style="font-style:normal;font-weight:normal;font-size:2.82222223px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#333333;fill-opacity:1;stroke:none;stroke-width:0.26117122;"
+       transform="matrix(1,0,0,1.0262999,0.40090428,-2.1212224)"><flowRegion
+         id="flowRegion955"
+         style="fill:#333333;stroke-width:0.26117122;"><rect
+           id="rect957"
+           width="158.75"
+           height="79.375"
+           x="26.458332"
+           y="85.333328"
+           style="fill:#333333;stroke-width:0.26117122;" /></flowRegion><flowPara
+         id="flowPara959"
+         style="fill:#333333;stroke-width:0.26117122;">5413935160862857454683366246834780079915168946954656134622069724958434552344897160882569178043323860222489896892370237562783672789372398626589262362354871860292323896528956594563498895285758972758257720835780646453892998725127908924465192893709230804716730405190290928993894874647096019226040141421356295410848775854139351608628574546833662468347800799151689469546561346220697249584345523448971608825691780433238548718602923453892998725127908924465192893709230804716730405190290928993894874647096019226040954108487758823018989235602856150575130850835038456647239328562930572305789563582280357502392375230723650009514310474779767483715094215116814175835078584682477179196197938673880537761043929243422159178171663422325337473544987019418333320275490343298153474119907659817094765211574159120693676503431592508792488860122102343273369062781731503437343660199050736502309579577023967902379104669136925958275500367729063805079934643668685344845580458936737845546754775448164555034915243133291437349430896809852432326102992336179429878331666649560856948632325452531629222735967346289271258023265923897356415098275339353448230189892356028561505314159265358979751308508350384566478548485326757543434743747347347734738922410037641562305365752200878801473589233252352393285629305723057895635822803575023923752307236500095143104747797674837150942152672256235611681417583507858468247717919619793867388053776104392924342215917817166342232533747354498701941833332027549034329815347411990765981709476521157415912069367650343159250879248886012210234327336906278173150343734366019905073650230957957702396790237910466913692595827550036772892368598325665735229063805079934643668685344845580458936737845546754775448164555034915243133291437349430896809852432326102992361794298783299792458316642226005454667523808180910100028757239875839285723895789325723895733592893675023290577235023572375285689553444649560856948632325452531629222735967641509827533935344</flowPara></flowRoot>    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:2.82222223px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#333333;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       x="129.64583"
+       y="130.3125"
+       id="text963"><tspan
+         sodipodi:role="line"
+         id="tspan961"
+         x="129.64583"
+         y="132.80951"
+         style="stroke-width:0.26458332;fill:#333333;" /></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:2.82222223px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#333333;fill-opacity:1;stroke:none;stroke-width:0.26458332;"
+       x="68.791664"
+       y="146.1875"
+       id="text967"><tspan
+         sodipodi:role="line"
+         id="tspan965"
+         x="68.791664"
+         y="148.68451"
+         style="stroke-width:0.26458332;fill:#333333;" /></text>
+  </g>
+  <g
+     inkscape:label="Text"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot815"
+       style="font-style:normal;font-weight:normal;font-size:10.66666698px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;opacity:1;"
+       transform="matrix(0.26458333,0,0,0.26458333,-2.1166667,4.7625002)"><flowRegion
+         id="flowRegion817"
+         style=""><rect
+           id="rect819"
+           width="628.57141"
+           height="171.42857"
+           x="120"
+           y="353.94824"
+           style="" /></flowRegion><flowPara
+         id="flowPara821"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:85.33333588px;font-family:'Black Ops One';-inkscape-font-specification:'Black Ops One';"><flowSpan
+           style="fill:#ffffff;"
+           id="flowSpan856">DELTA</flowSpan><flowSpan
+           style="fill:#2d5016;"
+           id="flowSpan835">GREEN</flowSpan></flowPara></flowRoot>    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.05555534px;line-height:1.25;font-family:'Black Ops One';-inkscape-font-specification:'Black Ops One';letter-spacing:0px;word-spacing:0px;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:0.26458332;opacity:1;"
+       x="82.727417"
+       y="94.630768"
+       id="text825"><tspan
+         sodipodi:role="line"
+         id="tspan823"
+         x="82.727417"
+         y="94.630768"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.05555534px;font-family:'Black Ops One';-inkscape-font-specification:'Black Ops One, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;fill:#ff0000;stroke-width:0.26458332;">RESTRICTED</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.64444447px;line-height:1.25;font-family:'Black Ops One';-inkscape-font-specification:'Black Ops One';letter-spacing:0px;word-spacing:0px;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:0.26458332;opacity:1;"
+       x="31.876776"
+       y="129.71544"
+       id="text829"><tspan
+         sodipodi:role="line"
+         id="tspan827"
+         x="31.876776"
+         y="129.71544"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.64444447px;font-family:'Black Ops One';-inkscape-font-specification:'Black Ops One';fill:#ff0000;stroke-width:0.26458332;">TOP SECRET//ORCON//SPECIAL ACCESS REQUIRED</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.87777805px;line-height:1.25;font-family:'Black Ops One';-inkscape-font-specification:'Black Ops One';letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332;opacity:1;"
+       x="46.457451"
+       y="151.65295"
+       id="text833"><tspan
+         sodipodi:role="line"
+         id="tspan831"
+         x="46.457451"
+         y="151.65295"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9.87777805px;font-family:'Black Ops One';-inkscape-font-specification:'Black Ops One';fill:#ffffff;stroke-width:0.26458332;">FRAMEWORK RAINBOW</tspan></text>
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot858"
+       style="font-style:normal;font-weight:normal;font-size:10.66666698px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:3.77952766;opacity:1;"
+       transform="matrix(0.26458333,0,0,0.26458333,-1.5875,0)"><flowRegion
+         id="flowRegion860"
+         style="stroke-width:3.77952766;"><rect
+           id="rect862"
+           width="0.50507629"
+           height="26.769043"
+           x="305.06607"
+           y="466.93069"
+           style="stroke-width:3.77952766;" /></flowRegion><flowPara
+         id="flowPara864"
+         style="stroke-width:3.77952766;" /></flowRoot>    <flowRoot
+       xml:space="preserve"
+       id="flowRoot866"
+       style="font-style:normal;font-weight:normal;font-size:10.66666698px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:3.77952766;opacity:1;"
+       transform="matrix(0.26458333,0,0,0.26458333,-1.5875,0)"><flowRegion
+         id="flowRegion868"
+         style="stroke-width:3.77952766;"><rect
+           id="rect870"
+           width="317.69296"
+           height="85.357887"
+           x="317.69296"
+           y="717.95361"
+           style="stroke-width:3.77952766;" /></flowRegion><flowPara
+         id="flowPara872"
+         style="stroke-width:3.77952766;" /></flowRoot>    <path
+       style="fill:none;stroke:#ffffff;stroke-width:1.05833328;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;opacity:1"
+       d="m 32.168925,138.25 57.789407,0 m 32.808338,0 57.5689,0"
+       id="path971"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccc" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:1.05833328;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;opacity:1"
+       d="M 32.168926,159.41667 H 180.33557"
+       id="path971-2"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;stroke:#fe0000;stroke-width:0.47624999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;opacity:1"
+       d="M 82.439761,95.916669 H 130.06475"
+       id="path988"
+       inkscape:connector-curvature="0" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93888903px;line-height:1.25;font-family:'Black Ops One';-inkscape-font-specification:'Black Ops One';letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332;opacity:1;"
+       x="91.424736"
+       y="139.86623"
+       id="text833-0"><tspan
+         sodipodi:role="line"
+         id="tspan831-6"
+         x="91.424736"
+         y="139.86623"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.93888903px;font-family:'Black Ops One';-inkscape-font-specification:'Black Ops One';fill:#ffffff;stroke-width:0.26458332;">OPERATION</tspan></text>
+  </g>
+</svg>
