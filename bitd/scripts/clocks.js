@@ -115,6 +115,8 @@ Clocks.inc = function(token) {
     }
     log("Changing to side " + currentSide);
     Clocks.setSide(token, sides, currentSide);
+
+    Clocks.update(token, currentSide, sides.length - 1);
 };
 
 Clocks.dec = function(token) {
@@ -129,6 +131,20 @@ Clocks.dec = function(token) {
     }
     log("Changing to side " + currentSide);
     Clocks.setSide(token, sides, currentSide);
+    
+    Clocks.update(token, currentSide, sides.length - 1);
 };
 
+Clocks.BOX_STYLE="background-color: #EEEEDD; color: #000000; margin-top: 0px; " +
+                 "padding:5px; border:1px dashed black; border-radius: 10px; " +
+                 "font-weight: normal; font-style: normal; text-align: left; "+
+                 "background-image: url(http://imgsrv.roll20.net/?src=i.imgur.com/BLDFC8xg.jpg)";
+
+
+Clocks.update = function(token, side, of) {
+    let message = `Tick tock. ${side} of ${of}`;
+    
+    
+    sendChat("", `/desc Tick tock. ${token.get("name")} ${side} of ${of}`);
+}
 
