@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2017, Samuel Penn, sam@glendale.org.uk
+ * Copyright (c) 2019, Samuel Penn, sam@notasnark.net
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -49,31 +49,45 @@ on("chat:message", function(msg) {
             let token = getObj("graphic", msg.selected[0]._id);
             Clocks.info(token);
         }
+    } else if (command === "!inc") {
+        if (msg.selected && msg.selected.length > 0) {
+            let token = getObj("graphic", msg.selected[0]._id);
+            Clocks.inc(token);
+        }
+    } else if (command === "!dec") {
+        if (msg.selected && msg.selected.length > 0) {
+            let token = getObj("graphic", msg.selected[0]._id);
+            Clocks.dec(token);
+        }
     }
 });
 
 
 Clocks.info = function(token) {
     sendChat("", `Hello World ${token.get("name")} is on ${token.get("sides")}`);
-    
+
     let currentSide = Clocks.currentSide(token);
     
     sendChat("", `Current side is ${currentSide}`);
     
 };
 
-
-Clocks.currentSide = function(token) {
-    let img = token.get("imgsrc");
+Clocks.getAllSides = function(token) {
     let sides = token.get("sides").split("|");
-    
-    log("Token has " + sides.length + " sides");
-    
-    log("Current: " + img);
     for (let i=0; i < sides.length; i++) {
         sides[i] = sides[i].replace(/%3A/, ":");
         sides[i] = sides[i].replace(/%3F/, "?");
-        log("Compare to " + sides[i]);
+        sides[i] = sides[i].replace(/(max|med|original)/, "thumb");
+    }
+    return sides;
+};
+
+
+Clocks.currentSide = function(token, sides) {
+    let img = token.get("imgsrc");
+    img = img.replace(/(max|med|original)/, "thumb");
+
+    for (let i=0; i < sides.length; i++) {
         if (img == sides[i]) {
             return i;
         }
@@ -82,5 +96,39 @@ Clocks.currentSide = function(token) {
     return 0;
 };
 
+Clocks.setSide = function(token, sides, side) {
+    let img = sides[side];
+    log(token.get("imgsrc"));
+    log(img);
+    token.set("imgsrc", img);
+};
+
+Clocks.inc = function(token) {
+    let sides = Clocks.getAllSides(token);
+    let currentSide = Clocks.currentSide(token, sides);
+    
+    log("Current side is " + currentSide + " of " + sides.length);
+    if (currentSide < sides.length - 1) {
+        currentSide++;
+    } else {
+        currentSide = 0;
+    }
+    log("Changing to side " + currentSide);
+    Clocks.setSide(token, sides, currentSide);
+};
+
+Clocks.dec = function(token) {
+    let sides = Clocks.getAllSides(token);
+    let currentSide = Clocks.currentSide(token, sides);
+    
+    log("Current side is " + currentSide + " of " + sides.length);
+    if (currentSide > 0) {
+        currentSide--;
+    } else {
+        currentSide = sides.length - 1;
+    }
+    log("Changing to side " + currentSide);
+    Clocks.setSide(token, sides, currentSide);
+};
 
 
