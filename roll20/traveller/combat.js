@@ -264,12 +264,10 @@ Combat.updateHits = function(token, prev, message) {
 
     // If this token doesn't had Str and Dex set, it is a simple animal that only has 'hits'.
     let hits = 0;
-    log(strMax);
-    log(dexMax);
+    let hitsTaken = 0;
     if (strMax + dexMax == 0) {
         hits = endMax;
     }
-    log("Hits: " + hits);
 
     let prevStatus = Combat.OKAY;
     if (prev) {
@@ -287,6 +285,7 @@ Combat.updateHits = function(token, prev, message) {
         if (endCur < endPrev) {
             takenDamage = true;
             endDamaged = true;
+            hitsTaken = endPrev - endCur;
         }
         if (strCur < strPrev) {
             takenDamage = true;
@@ -310,11 +309,11 @@ Combat.updateHits = function(token, prev, message) {
         let status = Combat.getStatus(endCur, 0, 0, hits);
         Combat.setStatus(token, endCur, 0, 0, hits);
         if (status === Combat.HURT && prevStatus === Combat.OKAY) {
-            Combat.message(name, "is hurt.");
+            Combat.hurtMessage(token, hitsTaken);
         } else if (status === Combat.UNCONSCIOUS && prevStatus > Combat.UNCONSCIOUS) {
-            Combat.message(name, "falls over.");
+            Combat.unconsciousMessage(token, hitsTaken);
         } else if (status === Combat.DEAD && prevStatus > Combat.DEAD) {
-            Combat.message(name, "is killed.");
+            Combat.deadMessage(token, hitsTaken);
         }
     } else if (takenDamage && endDamaged) {
         log("updateHits: Taken damage to END");
@@ -351,19 +350,76 @@ Combat.updateHits = function(token, prev, message) {
         });
         let status = Combat.getStatus(endCur, strCur, dexCur, hits);
         if (status === Combat.HURT && prevStatus === Combat.OKAY) {
-            Combat.message(name, "is hurt.");
+            Combat.hurtMessage(token, hitsTaken);
         } else if (status === Combat.UNCONSCIOUS && prevStatus > Combat.UNCONSCIOUS) {
-            Combat.message(name, "falls over.");
+            Combat.unconsciousMessage(token, hitsTaken);
         } else if (status === Combat.DEAD && prevStatus > Combat.DEAD) {
-            Combat.message(name, "is killed.");
+            Combat.deadMessage(token, hitsTaken);
         }
     }
 };
 
-Combat.message = function(name, message) {
+Combat.hurtMessage = function(token, dmg) {
+    let messages = [ "scratched", "hurt", "injured", "a bit hurt" ];
+    let message = token.get("name") + " ";
+
+    if (dmg > 0) {
+        message += `took <b>${dmg}</b> hits and is ${messages[randomInteger(messages.length - 1)]}.`;
+    } else {
+        message += `is ${messages[randomInteger(messages.length - 1)]}.`;
+    }
+    message += "<br/><i>They are still standing.</i>";
+    Combat.message(token, message);
+};
+
+Combat.unconsciousMessage = function(token, dmg) {
+    let messages = [ "is knocked unconscious", "is knocked out", "falls over", "collapses" ];
+    let message = token.get("name") + " ";
+
+    if (dmg > 0) {
+        message += `took <b>${dmg}</b> hits and ${messages[randomInteger(messages.length - 1)]}.`;
+    } else {
+        message += ` ${messages[randomInteger(messages.length - 1)]}.`;
+    }
+    message += "<br/><i>They are now unconscious.</i>";
+    Combat.message(token, message);
+};
+
+Combat.deadMessage = function(token, dmg) {
+    let messages = [ "is killed", "is killed" ];
+    let message = token.get("name") + " ";
+
+    if (dmg > 0) {
+        message += `took <b>${dmg}</b> hits and ${messages[randomInteger(messages.length - 1)]}.`;
+    } else {
+        message += ` ${messages[randomInteger(messages.length - 1)]}.`;
+    }
+    message += "<br/><i>They are dead.</i>";
+    Combat.message(token, message);
+};
+
+
+Traveller.COMBAT_STYLE="background-color: #EEDDDD; color: #000000; padding:2px; border:1px solid black; text-align: left; font-weight: normal; font-style: normal; min-height: 80px";
+
+Combat.message2 = function(name, message) {
     let html = "<div style='" + Traveller.BOX_STYLE + "; text-align: left; padding: 3px; font-weight: normal; '>";
     html += `<b>${name}: </b>${message}`;
     html += "</div>";
     sendChat("", "/desc " + html, null);
 };
 
+Combat.message = function(token, message) {
+    let html = "<div style='" + Traveller.COMBAT_STYLE + "'>";
+
+    let name = token.get("name");
+    let image = token.get("imgsrc");
+    log(image);
+
+    html += `<img style='float:right' width='64' src='${image}'>`;
+    html += `<h3 style='display: inline-block; border-bottom: 2px solid black; margin-bottom: 2px;'>${name}</h3><br/>`;
+    html += message;
+
+    html += "</div>";
+
+    sendChat("", "/desc " + html);
+};
