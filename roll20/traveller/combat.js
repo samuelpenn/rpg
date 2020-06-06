@@ -185,8 +185,8 @@ Combat.setStatus = function(token, endCur, strCur, dexCur, hits) {
     }
     token.set({
         status_dead: showDead,
-        status_pummeled: showHurt,
-        status_skull: showDown
+        status_brown: showHurt,
+        status_red: showDown
     });
 };
 
@@ -309,6 +309,13 @@ Combat.updateHits = function(token, prev, message) {
         }
         let status = Combat.getStatus(endCur, 0, 0, hits);
         Combat.setStatus(token, endCur, 0, 0, hits);
+        if (status === Combat.HURT && prevStatus === Combat.OKAY) {
+            Combat.message(name, "is hurt.");
+        } else if (status === Combat.UNCONSCIOUS && prevStatus > Combat.UNCONSCIOUS) {
+            Combat.message(name, "falls over.");
+        } else if (status === Combat.DEAD && prevStatus > Combat.DEAD) {
+            Combat.message(name, "is killed.");
+        }
     } else if (takenDamage && endDamaged) {
         log("updateHits: Taken damage to END");
         if (endCur >= 0) {
