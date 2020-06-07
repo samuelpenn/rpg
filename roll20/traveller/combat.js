@@ -591,6 +591,7 @@ Combat.makeSkillRoll = function(token, list, skillChar, skillKey, boon, dm) {
     let skillCharMod = Combat.getValueInt(list, "mod-"+skillChar);
     let untrained = Combat.getValueInt(list, "untrained-"+skillKey);
     if (Combat.getValue(list, "untrained-"+skillKey) == "") {
+        // TODO: Jack of all Trades
         untrained = -3;
     }
     skillLevel += untrained;
@@ -617,6 +618,20 @@ Combat.makeSkillRoll = function(token, list, skillChar, skillKey, boon, dm) {
     }
 
     message += `<b>${name}${mod}:</b> [[${dice} + ${skillCharMod} + ${skillLevel} + ${dm}]]<br/>`;
+
+    // TODO: Handle specialisations. These will be shown below as modifiers.
+    log("Look for specialisations based on " + skillKey);
+    for (let i=0; i < list.length; i++) {
+        let key = list[i].get("name");
+        let m = "repeating_" + skillKey.toLowerCase() + "spec_.*skillspeciality";
+        if (key.toLowerCase().match(m)) {
+            let specName = list[i].get("current");
+            let specLevel = parseInt(list[i+1].get("current")); // Big assumption, but easy if it works.
+            message += `<i>${specName}</i> +${specLevel}<br/>`;
+        }
+    }
+
+
     message += "</div>";
 
     Combat.message(token, message);
@@ -681,26 +696,26 @@ Combat.skill = function(token, char, skill, boon, dm) {
             let key = list[i].get("name");
             let current = list[i].get("current");
 
-            if (key.toLowerCase() === skillKeyName) {
+            if (key.toLowerCase() === skillKeyName + "_show") {
                 log("Found key [" + key + "]");
+                key = key.replace(/_show/, "");
                 Combat.makeSkillRoll(token, list, char, key, boon, dm);
                 return;
             }
         }
+        log("Haven't found anything, look again for " + skillKeyName);
         // Oops, we haven't found anything. Now look for a skill the character doesn't have.
         for (let i=0; i < list.length; i++) {
             let key = list[i].get("name");
             let current = list[i].get("current");
 
-
-
             if (key.toLowerCase() === skillKeyName) {
                 log("Found key [" + key + "]");
                 Combat.makeSkillRoll(token, list, char, key, boon, dm);
                 return;
             }
         }
-
+        sendChat("", "Can't find a skill named " + skillKeyName);
 
 
     }
