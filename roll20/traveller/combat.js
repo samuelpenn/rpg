@@ -651,17 +651,6 @@ Combat.skillRollCallBack = function(token, list, mod, skillChar, skillName, skil
 };
 
 Combat.makeSkillRoll = function(token, list, skillChar, skillKey, boon, dm) {
-    let name = skillKey.replace(/([a-z])([A-Z])/g, "$1 $2");
-    let skillLevel = Combat.getValueInt(list, "skilllevel-"+skillKey);
-
-    let skillCharMod = Combat.getValueInt(list, "mod-"+skillChar);
-    let untrained = Combat.getValueInt(list, "untrained-"+skillKey);
-    if (Combat.getValue(list, "untrained-"+skillKey) == "") {
-        // TODO: Jack of all Trades
-        untrained = -3;
-    }
-    skillLevel += untrained;
-
     let dice = "2d6";
     let mod = "";
     if (boon < 0) {
@@ -679,6 +668,26 @@ Combat.makeSkillRoll = function(token, list, skillChar, skillKey, boon, dm) {
     if (mod != "") {
         mod = " (" + mod + ")";
     }
+
+    let skillCharMod = Combat.getValueInt(list, "mod-"+skillChar);
+
+    if (skillKey === null) {
+        skillChar = skillChar.substring(0, 3).toUpperCase();
+        let message = `<b>${skillChar}</b>${mod} [${skillCharMod}] [[${dice}]]`;
+        Combat.message(token, message);
+        return;
+    }
+
+    let name = skillKey.replace(/([a-z])([A-Z])/g, "$1 $2");
+    let skillLevel = Combat.getValueInt(list, "skilllevel-"+skillKey);
+
+    let untrained = Combat.getValueInt(list, "untrained-"+skillKey);
+    if (Combat.getValue(list, "untrained-"+skillKey) == "") {
+        // TODO: Jack of all Trades
+        untrained = -3;
+    }
+    skillLevel += untrained;
+
 
     message = `[[${dice} + ${skillCharMod} + ${skillLevel} + ${dm}]]`;
 
@@ -707,8 +716,23 @@ Combat.listSkillsCommand = function(playerId, tokens, args) {
         for (let i = 0; i < list.length; i++) {
             let key = list[i].get("name");
             let current = list[i].get("current");
-            log(key + ": " + current);
+
+            if (key.match(/[0-9]_show$/) || key.match(/_spec_show$/) || key.match(/JackOfAllTrades/)) {
+                continue;
+            }
+
+            if (key.match("show$")) {
+                let skillName = key.replace(/_show/, "");
+                let name = skillName.replace(/([a-z])([A-Z])/g, "$1 $2");
+                let char = Combat.getValue(list, "skillCharacteristicDM-"+skillName);
+                if (current === 1) {
+                    char = char.replace(/.*([A-Z][a-z]*).*/g, "$1");
+                    message += `[${name}](!skill ${char} ${name}) `;
+                }
+            }
         }
+
+        Combat.message(token, message);
     }
 };
 
@@ -733,7 +757,8 @@ Combat.skill = function(token, char, skill, boon, dm) {
             characterid: characterId
         });
         if (skill === "") {
-            Combat.listSkills(token, list);
+            // Just roll the characteristic.
+            Combat.makeSkillRoll(token, list, char, null, boon, dm);
             return;
         }
 

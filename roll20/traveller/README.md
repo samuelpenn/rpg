@@ -59,6 +59,15 @@ If a + or - is present, then a Boon or Bane will be used for the die roll. Boons
 can be combined with a DM. It uses 3d6k2 or 3d6kl2 as the die rolls for boons and banes,
 so Roll20 will calculate it correctly.
 
+### List Skills
+
+```
+!skills
+```
+
+You can list the skills that the character has defined on their character sheet. Only those
+skills marked to be shown will be listed. Clicking on a skill will roll it using the set
+characteristic. You can't set boons or DMs this way.
 
 ### Skill Rolls
 
