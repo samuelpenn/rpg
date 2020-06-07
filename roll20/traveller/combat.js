@@ -414,7 +414,7 @@ Combat.deadMessage = function(token, dmg) {
 Traveller.COMBAT_STYLE="background-color: #EEDDDD; color: #000000; padding:2px; border:1px solid black; text-align: left; font-weight: normal; font-style: normal; min-height: 80px";
 
 
-Combat.message = function(token, message) {
+Combat.message = function(token, message, func) {
     let html = "<div style='" + Traveller.COMBAT_STYLE + "'>";
 
     let name = token.get("name");
@@ -426,7 +426,11 @@ Combat.message = function(token, message) {
 
     html += "</div>";
 
-    sendChat("", "/desc " + html);
+    if (func) {
+        sendChat("", "/desc " + html, func);
+    } else {
+        sendChat("", "/desc " + html);
+    }
 };
 
 Combat.getValue = function(list, key) {
@@ -587,6 +591,64 @@ Combat.attack = function(token, attack, boon, dm) {
     }
 };
 
+/**
+ * Creatures a function for a callback. Need to ensure we preserve the variable state during the callback.
+ * This is called after Roll20 rolls the dice, so we can then add the speciality bonuses and display them
+ * as well.
+ */
+Combat.skillRollCallBack = function(token, list, mod, skillChar, skillName, skillKey, untrained, skillCharMod, skillLevel, dm) {
+    return function(ops) {
+        let rollresult = ops[0];
+        let diceTotal = rollresult.inlinerolls[0].results.total;
+
+        let message = "<div style='line-height: 150%'>";
+        skillChar = skillChar.substring(0, 3).toUpperCase();
+        message += `<b>${skillChar}</b> [${skillCharMod}] + <b>${skillName}</b> [${skillLevel}]<br/>`;
+        message += `<b>${skillName}${mod}:</b> [[d0 + ${diceTotal}[Dice] + ${skillCharMod}[${skillChar}] + ${skillLevel}[Skill] + ${dm}[DM]]]<br/>`;
+
+        log("Look for specialisations based on " + skillKey);
+
+        let m = "repeating_" + skillKey.toLowerCase() + "spec_.*skill";
+
+        // There are a pair of values for each speciality, the name and the level.
+        // Need to find them all, and match them up before we can output them.
+        let specs = [];
+        for (let i=0; i < list.length; i++) {
+            let key = list[i].get("name").toLowerCase();
+            if (key.match(m)) {
+                let x = key.replace(/.*_-/, "").replace(/_.*$/, "");
+                if (!specs[x]) {
+                    specs[x] = new Object();
+                    specs[x]["level"] = 0;
+                }
+                let o = specs[x];
+                if (key.indexOf("skillspeciality") > -1) {
+                    o["name"] = list[i].get("current");
+                } else if (key.indexOf("skilllevel") > -1) {
+                    o["level"] = parseInt(list[i].get("current"));
+                }
+            }
+        }
+
+        for (let spec in specs) {
+            log(spec);
+            log("Spec is " + specs[spec]["name"]);
+
+            let specName = specs[spec]["name"];
+            let specLevel = specs[spec]["level"];
+            let s = specLevel;
+            if (s >= 0) {
+                s = `+${specLevel}`;
+            }
+            message += `<i>${specName} [${s}]</i>: [[d0 + ${diceTotal}[Dice] + ${skillCharMod}[${skillChar}] + ${skillLevel + specLevel}[Skill] + ${dm}[DM]]]<br/>`;
+        }
+
+        message += "</div>";
+
+        Combat.message(token, message);
+    };
+
+};
 
 Combat.makeSkillRoll = function(token, list, skillChar, skillKey, boon, dm) {
     let name = skillKey.replace(/([a-z])([A-Z])/g, "$1 $2");
@@ -599,9 +661,6 @@ Combat.makeSkillRoll = function(token, list, skillChar, skillKey, boon, dm) {
         untrained = -3;
     }
     skillLevel += untrained;
-
-    let message = "<div style='line-height: 150%'>";
-    message += `Rolls <b>${skillChar.substring(0, 3).toUpperCase()}</b> + <b>${name}</b>${(untrained<0)?" (untrained)":""}<br/>`;
 
     let dice = "2d6";
     let mod = "";
@@ -621,24 +680,9 @@ Combat.makeSkillRoll = function(token, list, skillChar, skillKey, boon, dm) {
         mod = " (" + mod + ")";
     }
 
-    message += `<b>${name}${mod}:</b> [[${dice} + ${skillCharMod} + ${skillLevel} + ${dm}]]<br/>`;
+    message = `[[${dice} + ${skillCharMod} + ${skillLevel} + ${dm}]]`;
 
-    // TODO: Handle specialisations. These will be shown below as modifiers.
-    log("Look for specialisations based on " + skillKey);
-    for (let i=0; i < list.length; i++) {
-        let key = list[i].get("name");
-        let m = "repeating_" + skillKey.toLowerCase() + "spec_.*skillspeciality";
-        if (key.toLowerCase().match(m)) {
-            let specName = list[i].get("current");
-            let specLevel = parseInt(list[i+1].get("current")); // Big assumption, but easy if it works.
-            message += `<i>${specName}</i> +${specLevel}<br/>`;
-        }
-    }
-
-
-    message += "</div>";
-
-    Combat.message(token, message);
+    sendChat("", message, Combat.skillRollCallBack(token, list, mod, skillChar, name, skillKey, untrained, skillCharMod, skillLevel, dm));
 };
 
 
@@ -696,6 +740,7 @@ Combat.skill = function(token, char, skill, boon, dm) {
         log(`[${token.get("name")} with [${skill}]`);
 
         let skillKeyName = skill.toLowerCase().replace(/ /g, "");
+
         for (let i=0; i < list.length; i++) {
             let key = list[i].get("name");
             let current = list[i].get("current");
@@ -707,7 +752,9 @@ Combat.skill = function(token, char, skill, boon, dm) {
                 return;
             }
         }
+
         log("Haven't found anything, look again for " + skillKeyName);
+
         // Oops, we haven't found anything. Now look for a skill the character doesn't have.
         for (let i=0; i < list.length; i++) {
             let key = list[i].get("name");
