@@ -458,12 +458,16 @@ Combat.listAttacks = function(token, list) {
             log(id);
             let name = current;
             let dm = Combat.getValue(list, "weapon_DM-" + id);
-            let dmMod = Combat.getValue(list, dm.replace(/[^a-zA-Z_-]*/g, ""));
-            let skill = Combat.getValue(list, "weapon_skill-" + id);
+            let dmMod = Combat.getValueInt(list, dm.replace(/[^a-zA-Z_-]*/g, ""));
+            let skill = Combat.getValueInt(list, "weapon_skill-" + id);
             let dmg = Combat.getValue(list, "weapon_damage-" + id);
             let range = Combat.getValue(list, "weapon_range-" + id);
 
-            message += `<b>${name}</b> / ${dmMod} + ${skill} / ${dmg} / ${range}m<br/>`;
+            let s = dmMod + skill;
+            if (s >= 0) {
+                s = `+${s}`;
+            }
+            message += `[${name} : ${s} / ${dmg} / ${range}m](!attack ${name})<br/>`;
         }
     }
     Combat.message(token, message);
