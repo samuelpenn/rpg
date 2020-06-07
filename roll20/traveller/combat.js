@@ -53,6 +53,18 @@ on("chat:message", function(msg) {
         let tokens = Combat.getSelectedTokens(msg, false);
         Combat.healCommand(tokens);
     }
+    if (command === "!attack" || command === "!attacks") {
+        let tokens = Combat.getSelectedTokens(msg, false);
+        Combat.attackCommand(playerId, tokens, args);
+    }
+    if (command === "!skill") {
+        let tokens = Combat.getSelectedTokens(msg, false);
+        Combat.skillCommand(playerId, tokens, args);
+    }
+    if (command === "!skills") {
+        let tokens = Combat.getSelectedTokens(msg, false);
+        Combat.listSkillsCommand(playerId, tokens, args);
+    }
 
 });
 
@@ -186,7 +198,7 @@ Combat.setStatus = function(token, endCur, strCur, dexCur, hits) {
     token.set({
         status_dead: showDead,
         status_brown: showHurt,
-        status_red: showDown
+        status_skull: showDown
     });
 };
 
@@ -401,19 +413,12 @@ Combat.deadMessage = function(token, dmg) {
 
 Traveller.COMBAT_STYLE="background-color: #EEDDDD; color: #000000; padding:2px; border:1px solid black; text-align: left; font-weight: normal; font-style: normal; min-height: 80px";
 
-Combat.message2 = function(name, message) {
-    let html = "<div style='" + Traveller.BOX_STYLE + "; text-align: left; padding: 3px; font-weight: normal; '>";
-    html += `<b>${name}: </b>${message}`;
-    html += "</div>";
-    sendChat("", "/desc " + html, null);
-};
 
 Combat.message = function(token, message) {
     let html = "<div style='" + Traveller.COMBAT_STYLE + "'>";
 
     let name = token.get("name");
     let image = token.get("imgsrc");
-    log(image);
 
     html += `<img style='float:right' width='64' src='${image}'>`;
     html += `<h3 style='display: inline-block; border-bottom: 2px solid black; margin-bottom: 2px;'>${name}</h3><br/>`;
@@ -422,4 +427,326 @@ Combat.message = function(token, message) {
     html += "</div>";
 
     sendChat("", "/desc " + html);
+};
+
+Combat.getValue = function(list, key) {
+    log("getValue: [" + key + "]");
+    for (let i=0; i < list.length; i++) {
+        if (list[i].get("name") == key) {
+            return list[i].get("current");
+        }
+    }
+    return "";
+};
+
+Combat.getValueInt = function(list, key) {
+    let value = Combat.getValue(list, key);
+    if (value === null || value === "") {
+        return 0;
+    }
+    return parseInt(value) || 0;
+};
+
+Combat.listAttacks = function(token, list) {
+    let message = "Attacks available:<br/>";
+    for (let i=0; i < list.length; i++) {
+        let key = list[i].get("name");
+        let current = list[i].get("current");
+        if (key.indexOf("weapon_name-") === 0) {
+            log("Looking at [" + current + "]");
+            let id = key.replace(/[^0-9]*/g, "");
+            log(id);
+            let name = current;
+            let dm = Combat.getValue(list, "weapon_DM-" + id);
+            let dmMod = Combat.getValue(list, dm.replace(/[^a-zA-Z_-]*/g, ""));
+            let skill = Combat.getValue(list, "weapon_skill-" + id);
+            let dmg = Combat.getValue(list, "weapon_damage-" + id);
+            let range = Combat.getValue(list, "weapon_range-" + id);
+
+            message += `<b>${name}</b> / ${dmMod} + ${skill} / ${dmg} / ${range}m<br/>`;
+        }
+    }
+    Combat.message(token, message);
+
+};
+
+
+Combat.makeAttack = function(token, list, id, boon, dm) {
+    let name = Combat.getValue(list,"weapon_name-" + id);
+    let wpnDm = Combat.getValue(list, "weapon_DM-" + id);
+    let dmMod = parseInt(Combat.getValue(list, wpnDm.replace(/[^a-zA-Z_-]*/g, "")));
+    let skill = parseInt(Combat.getValue(list, "weapon_skill-" + id));
+    let dmg = Combat.getValue(list, "weapon_damage-" + id);
+    let range = Combat.getValue(list, "weapon_range-" + id);
+
+    let message = "<div style='line-height: 150%'>";
+    message += `Attacks with <b>${name}</b>:<br/>`;
+    message += `<b>${name}</b> / ${dmMod} + ${skill} / ${dmg}<br/>`;
+
+    let dice = "2d6";
+    let mod = "";
+    if (boon < 0) {
+        dice = "3d6kl2";
+        mod = "Bane"
+    } else if (boon > 0) {
+        dice = "3d6k2";
+        mod = "Boon"
+    }
+    if (dm > 0) {
+        mod += "+" + dm;
+    } else if (dm < 0) {
+        mod += dm;
+    }
+    if (mod != "") {
+        mod = " (" + mod + ")";
+    }
+
+    message += `<b>Attack${mod}:</b> [[${dice} + ${dmMod} + ${skill} + ${dm}]]<br/>`;
+    message += `<b>Damage:</b> [[${dmg}]]<br/>`;
+    message += `<b>Range:</b> ${range}m`;
+    message += "</div>";
+
+    Combat.message(token, message);
+};
+
+Combat.attackCommand = function(playerId, tokens, args) {
+    let boon = 0;
+    let dm = 0;
+
+    let attack = "";
+    while (args.length > 0) {
+        let arg = args.shift();
+        if (arg === "+") {
+            boon = 1;
+            log("Boon");
+        } else if (arg === "-") {
+            boon = -1;
+            log("Bane");
+        } else if (arg.match("^[+-][0-9]")) {
+            dm = parseInt(arg);
+            log("DM is [" + dm + "]");
+        } else {
+            attack += arg + " ";
+        }
+    }
+    attack = attack.trim();
+
+    sendChat("", `/desc ${tokens.length} attacks with ${attack}`);
+    for (let i=0; i < tokens.length; i++) {
+        Combat.attack(tokens[i], attack, boon, dm);
+    }
+};
+
+Combat.attack = function(token, attack, boon, dm) {
+    if (token === null) {
+        log("No token");
+        return;
+    }
+    let characterId = token.get("represents");
+    if (characterId) {
+        let character = getObj("character", characterId);
+        if (!character) {
+            log("No character");
+            return;
+        }
+
+        log("Getting list of attributes");
+        let list = findObjs({
+            type: 'attribute',
+            characterid: characterId
+        });
+        if (attack === "") {
+            Combat.listAttacks(token, list);
+            return;
+        }
+
+        log(`[${token.get("name")} with [${attack}]`);
+
+        for (let i=0; i < list.length; i++) {
+            let key = list[i].get("name");
+            let current = list[i].get("current");
+            //log(name + ": " + current);
+            if (key.indexOf("weapon_name-") === 0) {
+                log("Looking at [" + current + "]");
+                if (current.toLowerCase() == attack.toLowerCase()) {
+                    log("We have a match!");
+                    let id = key.replace(/[^0-9]*/g, "");
+                    Combat.makeAttack(token, list, id, boon, dm);
+
+
+                    return;
+                }
+            }
+        }
+
+
+    }
+};
+
+
+Combat.makeSkillRoll = function(token, list, skillChar, skillKey, boon, dm) {
+    let name = skillKey.replace(/([a-z])([A-Z])/g, "$1 $2");
+    let skillLevel = Combat.getValueInt(list, "skilllevel-"+skillKey);
+
+    let skillCharMod = Combat.getValueInt(list, "mod-"+skillChar);
+    let untrained = Combat.getValueInt(list, "untrained-"+skillKey);
+    if (Combat.getValue(list, "untrained-"+skillKey) == "") {
+        untrained = -3;
+    }
+    skillLevel += untrained;
+
+    let message = "<div style='line-height: 150%'>";
+    message += `Rolls <b>${skillChar.substring(0, 3).toUpperCase()}</b> + <b>${name}</b>${(untrained<0)?" (untrained)":""}<br/>`;
+
+    let dice = "2d6";
+    let mod = "";
+    if (boon < 0) {
+        dice = "3d6kl2";
+        mod = "Bane"
+    } else if (boon > 0) {
+        dice = "3d6k2";
+        mod = "Boon"
+    }
+    if (dm > 0) {
+        mod += "+" + dm;
+    } else if (dm < 0) {
+        mod += dm;
+    }
+    if (mod != "") {
+        mod = " (" + mod + ")";
+    }
+
+    message += `<b>${name}${mod}:</b> [[${dice} + ${skillCharMod} + ${skillLevel} + ${dm}]]<br/>`;
+    message += "</div>";
+
+    Combat.message(token, message);
+};
+
+
+Combat.listSkillsCommand = function(playerId, tokens, args) {
+    let token = tokens[0];
+
+    let characterId = token.get("represents");
+    if (characterId) {
+        let character = getObj("character", characterId);
+        if (!character) {
+            log("No character");
+            return;
+        }
+
+        log("Getting list of attributes");
+        let list = findObjs({
+            type: 'attribute',
+            characterid: characterId
+        });
+
+        let message = "Skills available:<br/>";
+        for (let i = 0; i < list.length; i++) {
+            let key = list[i].get("name");
+            let current = list[i].get("current");
+            log(key + ": " + current);
+        }
+    }
+};
+
+
+
+Combat.skill = function(token, char, skill, boon, dm) {
+    if (token === null) {
+        log("No token");
+        return;
+    }
+    let characterId = token.get("represents");
+    if (characterId) {
+        let character = getObj("character", characterId);
+        if (!character) {
+            log("No character");
+            return;
+        }
+
+        log("Getting list of attributes");
+        let list = findObjs({
+            type: 'attribute',
+            characterid: characterId
+        });
+        if (skill === "") {
+            Combat.listSkills(token, list);
+            return;
+        }
+
+        log(`[${token.get("name")} with [${skill}]`);
+
+        let skillKeyName = skill.toLowerCase().replace(/ /g, "");
+        for (let i=0; i < list.length; i++) {
+            let key = list[i].get("name");
+            let current = list[i].get("current");
+
+            if (key.toLowerCase() === skillKeyName) {
+                log("Found key [" + key + "]");
+                Combat.makeSkillRoll(token, list, char, key, boon, dm);
+                return;
+            }
+        }
+        // Oops, we haven't found anything. Now look for a skill the character doesn't have.
+        for (let i=0; i < list.length; i++) {
+            let key = list[i].get("name");
+            let current = list[i].get("current");
+
+
+
+            if (key.toLowerCase() === skillKeyName) {
+                log("Found key [" + key + "]");
+                Combat.makeSkillRoll(token, list, char, key, boon, dm);
+                return;
+            }
+        }
+
+
+
+    }
+};
+
+Combat.skillCommand = function(playerId, tokens, args) {
+    log("====== skillCommand ======");
+    let boon = 0;
+    let dm = 0;
+    let char = "";
+    let skill = "";
+
+    let chars = [ "Intellect", "Education", "Social", "Strength", "Dexterity", "Endurance" ];
+    char = args.shift().toLowerCase();
+    let found = false;
+    for (let i = 0; i < chars.length; i++) {
+        if (chars[i].toLowerCase().indexOf(char) == 0) {
+            char = chars[i];
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        log("Not found matching characteristic");
+        return;
+    }
+
+    while (args.length > 0) {
+        let arg = args.shift();
+        if (arg === "+") {
+            boon = 1;
+            log("Boon");
+        } else if (arg === "-") {
+            boon = -1;
+            log("Bane");
+        } else if (arg.match("^[+-][0-9]")) {
+            dm = parseInt(arg);
+            log("DM is [" + dm + "]");
+        } else {
+            skill += arg + " ";
+        }
+    }
+    skill = skill.trim();
+
+    sendChat("", `/desc ${tokens.length} uses skill ${skill}`);
+    for (let i=0; i < tokens.length; i++) {
+        Combat.skill(tokens[i], char, skill, boon, dm);
+    }
 };
