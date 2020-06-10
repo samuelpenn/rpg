@@ -689,7 +689,7 @@ Combat.makeSkillRoll = function(token, list, skillChar, skillKey, boon, dm) {
     skillLevel += untrained;
 
 
-    message = `[[${dice} + ${skillCharMod} + ${skillLevel} + ${dm}]]`;
+    message = `[[${dice}]]`;
 
     sendChat("", message, Combat.skillRollCallBack(token, list, mod, skillChar, name, skillKey, untrained, skillCharMod, skillLevel, dm));
 };
