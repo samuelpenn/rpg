@@ -342,6 +342,7 @@ Combat.updateHits = function(token, prev, message) {
             return;
         }
         // END is now negative.
+        let overkill = 0;
         let dmg = parseInt(0 - endCur);
         endCur = 0;
         if (dmg < strCur && (strCur < dexCur || dmg >= dexCur)) {
@@ -359,6 +360,7 @@ Combat.updateHits = function(token, prev, message) {
                 strCur = 0;
             }
             if (dexCur < 0) {
+                overkill = dexCur;
                 dexCur = 0;
             }
         }
@@ -374,7 +376,7 @@ Combat.updateHits = function(token, prev, message) {
         } else if (status === Combat.UNCONSCIOUS && prevStatus > Combat.UNCONSCIOUS) {
             Combat.unconsciousMessage(token, hitsTaken);
         } else if (status === Combat.DEAD && prevStatus > Combat.DEAD) {
-            Combat.deadMessage(token, hitsTaken);
+            Combat.deadMessage(token, hitsTaken, overkill);
         }
     }
 };
@@ -405,16 +407,41 @@ Combat.unconsciousMessage = function(token, dmg) {
     Combat.message(token, message);
 };
 
-Combat.deadMessage = function(token, dmg) {
-    let messages = [ "is killed", "is killed" ];
+Combat.deadMessage = function(token, dmg, overkill) {
     let message = token.get("name") + " ";
 
-    if (dmg > 0) {
-        message += `took <b>${dmg}</b> hits and ${messages[randomInteger(messages.length - 1)]}.`;
+    let roll = randomInteger(6) + randomInteger(6);
+    if (overkill > -3) {
+        roll += 4;
+    } else if (overkill > -6) {
+        roll +=2;
+    } else if (overkill > -9) {
+        roll += 0;
     } else {
-        message += ` ${messages[randomInteger(messages.length - 1)]}.`;
+        roll += parseInt(overkill / 5);
     }
-    message += "<br/><i>They are dead.</i>";
+    log(roll);
+    if (roll < 2) {
+        message += "is killed instantly and finally.";
+    } else if (roll <= 3) {
+        message += "is mortally wounded and will die in [[1D3]] rounds.";
+    } else if (roll <= 5) {
+        message += "will die in [[2D6]] rounds unless given medical (10+) assistance. They will suffer " +
+                  "a permanent major injury, such as loss of a limb or eye.";
+    } else if (roll <= 7) {
+        message += "will die in [[1D6]] minutes unless given medical (8+) assistance. If they survive, " +
+            "they will lose 1D from any one of STR, DEX or END, and D3 from the others.";
+    } else if (roll <= 9) {
+        message += "will survive if given basic medical (6+) assistance within [[3D6]] minutes. " +
+            "If they do not receive proper medical treatment whilst recovering, they will permanently lose " +
+            "D3 points from both STR and END.";
+    } else if (roll <= 11) {
+        message += "will survive despite their injuries and will make a full recovery if medical (4+) " +
+            "attention is successfully provided in [[1D6]] hours.";
+    } else {
+        message += "is terribly hurt but will somehow cling to life and begin to recover even if " +
+            "medical attention is not provided. They will recover consciousness in [[1D6]] hours.";
+    }
     Combat.message(token, message);
 };
 
