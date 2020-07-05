@@ -69,6 +69,10 @@ on("chat:message", function(msg) {
         let tokens = Combat.getSelectedTokens(msg, false);
         Combat.reactCommand(playerId, tokens, args);
     }
+    if (command === "!name") {
+        let tokens = Combat.getSelectedTokens(msg, false);
+        Combat.nameCommand(playerId, tokens);
+    }
 
 });
 
@@ -934,4 +938,85 @@ Combat.getReact = function(token) {
         return parseInt(reacts);
     }
     return 0;
+};
+
+/**
+ * Gets a list of all the names on the current page, which is determined by the
+ * token that is passed. The occurrences of each name is counted, and returned
+ * as hash map with the count.
+ *
+ * @param token Token to use in order to determine the current page.
+ */
+Combat.getCurrentNames = function(token) {
+    let nameList = {};
+
+    if (!token || !token.get("_pageid")) {
+        return nameList;
+    }
+
+    let tokens = findObjs({
+        _pageid: token.get("_pageid"),
+        _type: "graphic"
+    });
+    for (let i=0; i < tokens.length; i++) {
+        let t = tokens[i];
+        if (t && t.get("name")) {
+            let name = t.get("name");
+            if (!nameList[name]) {
+                nameList[name] = 1;
+            } else {
+                nameList[name] ++;
+            }
+        }
+    }
+
+    return nameList;
+};
+
+
+Combat.name = function(nameList, token) {
+    let currentName = token.get("name");
+    let name = null;
+
+    if (currentName.indexOf("#") !== -1) {
+        // Is already a numbered mook. Is it a duplicate?
+        if (nameList[currentName] > 1) {
+            currentName = currentName.replace(/ #.*/, "");
+        }
+    }
+
+    if (currentName.indexOf("#") === -1) {
+        for (let suffix = 1; suffix < 1000; suffix ++) {
+            name = currentName + " #" + suffix;
+            if (!nameList[name]) {
+                log(`${currentName} -> ${name}`);
+                token.set("name", name);
+                nameList[name] = 1;
+
+                // Is this a multi-sided token?
+                let sides = token.get("sides").split("|");
+                log(sides.length);
+                log(token.get("currentside") + " or " + token.get("currentSide"));
+                if (sides.length > 0) {
+                    let side = (suffix - 1) % sides.length;
+                    log(side);
+                    token.set("currentSide", side);
+                    token.set("imgsrc", decodeURIComponent(sides[side]).replace(/max/, "thumb"));
+                }
+                break;
+            }
+        }
+    }
+};
+
+Combat.nameCommand = function(playerId, tokens) {
+    if (!playerIsGM(playerId)) {
+        log("Player is not the GM");
+        return;
+    }
+
+    let nameList = Combat.getCurrentNames(tokens[0]);
+    for (let i=0; i < tokens.length; i++) {
+        Combat.name(nameList, tokens[i]);
+    }
 };

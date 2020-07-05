@@ -101,3 +101,38 @@ So:
   * "combat" will match to "Gun Combat"
   * "sur" will match to "Survival"
 
+### Reactions
+
+You can mark a token as having 'reacted' this turn.
+
+```
+!react
+!react 0
+```
+
+The first will add (if it doesn't already exist) a blue dot on the token with a value
+of 1, or increment the value if it is there already. Passing an integer as a parameter
+will set the marker to the value give - zero will clear it.
+
+This is applied as a penalty to all skill and attack checks made using the API commands
+above.
+
+You can use `!react` whenever the token takes a dodge, parry or similar reaction action.
+You can then use `!react 0` to reset the count after it's finished its turn.
+
+### Names
+
+You can automatically name tokens if you have a lot of them. For example, if 6 security
+guards turn up to see who has been causing explosions, rather than have six copies of
+a token called "Security" you can use this command to rename them.
+
+```
+!name
+```
+
+This will give each token a unique name, using a #1, #2, #3 suffix etc. Select all the
+tokens that you want to rename, and run the command.
+
+If the token is a multi-sided token, then each one will be changed to be a different
+side. If there aren't enough sides, then the sequence will be repeated.
+
