@@ -65,6 +65,10 @@ on("chat:message", function(msg) {
         let tokens = Combat.getSelectedTokens(msg, false);
         Combat.listSkillsCommand(playerId, tokens, args);
     }
+    if (command === "!react") {
+        let tokens = Combat.getSelectedTokens(msg, false);
+        Combat.reactCommand(playerId, tokens, args);
+    }
 
 });
 
@@ -494,9 +498,13 @@ Combat.makeAttack = function(token, list, id, boon, dm) {
         dmg += " + " + dmMod;
     }
 
+    let reactPenalty = Combat.getReact(token);
     let message = "<div style='line-height: 150%'>";
     message += `Attacks with <b>${name}</b>:<br/>`;
     message += `<b>${name}</b> / ${dmMod} + ${skill} / ${dmg}<br/>`;
+    if (reactPenalty > 0) {
+        message += `<i>Penalty from reactions -${reactPenalty}</i><br/>`;
+    }
 
     let dice = "2d6";
     let mod = "";
@@ -516,7 +524,7 @@ Combat.makeAttack = function(token, list, id, boon, dm) {
         mod = " (" + mod + ")";
     }
 
-    message += `<b>Attack${mod}:</b> [[${dice} + ${dmMod} + ${skill} + ${dm}]]<br/>`;
+    message += `<b>Attack${mod}:</b> [[${dice} + ${dmMod} + ${skill} + ${dm} - ${reactPenalty}]]<br/>`;
     message += `<b>Damage:</b> [[${dmg}]]<br/>`;
     message += `<b>Range:</b> ${range}m`;
     message += "</div>";
@@ -625,11 +633,15 @@ Combat.skillRollCallBack = function(token, list, mod, skillChar, skillName, skil
     return function(ops) {
         let rollresult = ops[0];
         let diceTotal = rollresult.inlinerolls[0].results.total;
+        let reactPenalty = Combat.getReact(token);
 
         let message = "<div style='line-height: 150%'>";
         skillChar = skillChar.substring(0, 3).toUpperCase();
         message += `<b>${skillChar}</b> [${skillCharMod}] + <b>${skillName}</b> [${skillLevel}]<br/>`;
-        message += `<b>${skillName}${mod}:</b> [[d0 + ${diceTotal}[Dice] + ${skillCharMod}[${skillChar}] + ${skillLevel}[Skill] + ${dm}[DM]]]<br/>`;
+        if (reactPenalty > 0) {
+            message += `<i>Penalty from reactions -${reactPenalty}</i><br/>`;
+        }
+        message += `<b>${skillName}${mod}:</b> [[d0 + ${diceTotal}[Dice] + ${skillCharMod}[${skillChar}] + ${skillLevel}[Skill] + ${dm}[DM] - ${reactPenalty}[React]]]<br/>`;
 
         log("Look for specialisations based on " + skillKey);
 
@@ -712,7 +724,6 @@ Combat.makeSkillRoll = function(token, list, skillChar, skillKey, boon, dm) {
         untrained = -3;
     }
     skillLevel += untrained;
-
 
     message = `[[${dice}]]`;
 
@@ -888,4 +899,39 @@ Combat.skillCommand = function(playerId, tokens, args) {
     for (let i=0; i < tokens.length; i++) {
         Combat.skill(tokens[i], char, skill, boon, dm);
     }
+};
+
+Combat.reactCommand = function(playerId, tokens, args) {
+    log("====== reactCommand ======");
+    let value = null;
+    if (args.length > 0) {
+        value = parseInt(args.shift());
+    }
+
+    for (let i=0; i < tokens.length; i++) {
+        Combat.react(tokens[i], value);
+    }
+};
+
+Combat.react = function(token, value) {
+    let reacts = token.get("status_blue");
+    log("Reactions: " + reacts);
+
+    if (value != null) {
+        reacts = parseInt(value);
+    } else if (reacts) {
+        reacts = parseInt(reacts) + 1;
+    } else {
+        reacts = 1;
+    }
+    token.set("status_blue", (reacts > 0)?reacts:false);
+};
+
+// Gets the current penalty from dodging and other reactions.
+Combat.getReact = function(token) {
+    let reacts = token.get("status_blue");
+    if (reacts && parseInt(reacts) > 0) {
+        return parseInt(reacts);
+    }
+    return 0;
 };
