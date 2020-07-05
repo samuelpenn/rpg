@@ -51,7 +51,9 @@ character is currently selected, then it does it for all of them.
 !attack pistol +2 -
 ```
 
-Make an attack with the named weapon. The matching is case insensitive.
+Make an attack with the named weapon. The matching is case insensitive, and will try
+partial matches if an exact match is not found. An exact match is preferred over a
+'begins with' match, which is preferred over a 'contains in' match.
 
 If a positive/negative modifier is present, this will be used as a DM to the roll.
 
@@ -87,4 +89,15 @@ Intellect. Note that EDU will match before END, since more skills probably use E
 As with attack rolls, you can apply DMs and Boon/Bane suffixes.
 
 If a skill has specialities, all the specialities will be show as well, with their totals.
+
+When matching skill names, the following order is tried:
+  * Look for an exact match first.
+  * Then look for a match for the first part of the skill name (starts with).
+  * Then look for a match in any part of the skill name (contains in).
+  
+So:
+  * "i" will match to "Investigate", and "x" will match to "Explosives"
+  * "gun" will match to "Gunner", not "Gun Combat"
+  * "combat" will match to "Gun Combat"
+  * "sur" will match to "Survival"
 

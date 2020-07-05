@@ -45,7 +45,7 @@ on("ready", function() {
  */
 on("chat:message", function(msg) {
     if (msg.type !== "api") return;
-    let args = msg.content.split(" ");
+    let args = msg.content.replace(/ +/, " ").split(" ");
     let command = args.shift();
     let playerId = msg.playerid;
 
@@ -480,12 +480,19 @@ Combat.listAttacks = function(token, list) {
 
 
 Combat.makeAttack = function(token, list, id, boon, dm) {
+    log("makeAttack: [" + id + "]");
     let name = Combat.getValue(list,"weapon_name-" + id);
     let wpnDm = Combat.getValue(list, "weapon_DM-" + id);
+    let addDmToDmg = (wpnDm.indexOf("Strength") > -1);
     let dmMod = parseInt(Combat.getValue(list, wpnDm.replace(/[^a-zA-Z_-]*/g, "")));
     let skill = parseInt(Combat.getValue(list, "weapon_skill-" + id));
     let dmg = Combat.getValue(list, "weapon_damage-" + id);
     let range = Combat.getValue(list, "weapon_range-" + id);
+
+    if (addDmToDmg) {
+        // If using Strength, add Strength DM to damage.
+        dmg += " + " + dmMod;
+    }
 
     let message = "<div style='line-height: 150%'>";
     message += `Attacks with <b>${name}</b>:<br/>`;
@@ -518,6 +525,7 @@ Combat.makeAttack = function(token, list, id, boon, dm) {
 };
 
 Combat.attackCommand = function(playerId, tokens, args) {
+    log("attackCommand:");
     let boon = 0;
     let dm = 0;
 
@@ -545,6 +553,7 @@ Combat.attackCommand = function(playerId, tokens, args) {
     }
 };
 
+
 Combat.attack = function(token, attack, boon, dm) {
     if (token === null) {
         log("No token");
@@ -570,24 +579,40 @@ Combat.attack = function(token, attack, boon, dm) {
 
         log(`[${token.get("name")} with [${attack}]`);
 
+        // Look for the best weapon match:
+        //   If there is an exact match, use the first one found.
+        //   Otherwise use the first begins with match we find.
+        //   Otherwise use the first contains in match we find.
+        // If you have attacks defind: "Laser Pistol", "Laser Rifle", "Laser", then
+        //   "laser" will match to "Laser"
+        //   "las" will match to "Laser Pistol"
+        //   "rifle" will match to "Laser Rifle"
+        //   "r" will match to "Laser Pistol"
+        let idx = -1;
         for (let i=0; i < list.length; i++) {
             let key = list[i].get("name");
             let current = list[i].get("current");
             //log(name + ": " + current);
             if (key.indexOf("weapon_name-") === 0) {
                 log("Looking at [" + current + "]");
-                if (current.toLowerCase() == attack.toLowerCase()) {
-                    log("We have a match!");
-                    let id = key.replace(/[^0-9]*/g, "");
-                    Combat.makeAttack(token, list, id, boon, dm);
-
-
-                    return;
+                if (current.toLowerCase() === attack.toLowerCase()) {
+                    log("We have an exact match [" + key + "]!");
+                    idx = parseInt(key.replace(/[^0-9]*/g, ""));
+                    break;
+                } else if (idx < 1000 && current.toLowerCase().indexOf(attack.toLowerCase()) == 0) {
+                    log("We have a begin match [" + key + "]!");
+                    idx = 1000 + parseInt(key.replace(/[^0-9]*/g, ""));
+                } else if (idx < 0 && current.toLowerCase().indexOf(attack.toLowerCase()) > -1) {
+                    log("We have a contains match [" + key + "]!");
+                    idx = parseInt(key.replace(/[^0-9]*/g, ""));
                 }
             }
         }
-
-
+        if (idx > -1) {
+            Combat.makeAttack(token, list, idx % 1000, boon, dm);
+        } else {
+            Combat.message(token, "Cannot find attack <b>" + attack + "</b>");
+        }
     }
 };
 
@@ -766,21 +791,44 @@ Combat.skill = function(token, char, skill, boon, dm) {
 
         let skillKeyName = skill.toLowerCase().replace(/ /g, "");
 
+        // Search for a matching skill, looking at skills in order, in preference of:
+        //   Exact match is preferred over
+        //   Begins with match, which is preferred over
+        //   Contains in match
+        // So a search for "i" will find "Investigate" (not "Admin"), and "Combat" will
+        // find "Gun Combat", but "Gun" will find "Gunner", and "x" finds "Explosives"
+        let foundKey = null;
+        let startMatch = false;
         for (let i=0; i < list.length; i++) {
             let key = list[i].get("name");
             let current = list[i].get("current");
 
-            if (key.toLowerCase() === skillKeyName + "_show") {
-                log("Found key [" + key + "]");
-                key = key.replace(/_show/, "");
-                Combat.makeSkillRoll(token, list, char, key, boon, dm);
-                return;
+            if (key.indexOf("_show") === -1 || key.match("[0-9]")) {
+                // Get rid of anything that isn't a basic skill
+                continue;
             }
+            if (key.toLowerCase() === skillKeyName + "_show") {
+                log("Found exact match [" + key + "]");
+                foundKey = key.replace(/_show/, "");
+                break;
+            } else if (!startMatch && key.toLowerCase().indexOf(skillKeyName) === 0) {
+                log("Found start match [" + key + "]");
+                foundKey = key.replace(/_show/, "");
+                startMatch = true;
+            } else if (foundKey === null && key.toLowerCase().indexOf(skillKeyName) > -1) {
+                log("Found contains match [" + key + "]");
+                foundKey = key.replace(/_show/, "");
+            }
+        }
+        if (foundKey != null) {
+            Combat.makeSkillRoll(token, list, char, foundKey, boon, dm);
+            return;
         }
 
         log("Haven't found anything, look again for " + skillKeyName);
 
         // Oops, we haven't found anything. Now look for a skill the character doesn't have.
+        // Not sure that we need this anymore. Leaving it here just in case.
         for (let i=0; i < list.length; i++) {
             let key = list[i].get("name");
             let current = list[i].get("current");
