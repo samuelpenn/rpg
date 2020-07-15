@@ -500,7 +500,7 @@ Combat.listAttacks = function(token, list) {
             let dmMod = Combat.getValueInt(list, dm.replace(/[^a-zA-Z_-]*/g, ""));
             let skill = Combat.getValueInt(list, "weapon_skill-" + id);
             let dmg = Combat.getValue(list, "weapon_damage-" + id);
-            let range = Combat.getValue(list, "weapon_range-" + id);
+            let range = Combat.getValueInt(list, "weapon_range-" + id);
 
             let s = dmMod + skill;
             if (s >= 0) {
@@ -520,13 +520,14 @@ Combat.makeAttack = function(token, list, id, boon, dm) {
     let wpnDm = Combat.getValue(list, "weapon_DM-" + id);
     let addDmToDmg = (wpnDm.indexOf("Strength") > -1);
     let dmMod = parseInt(Combat.getValue(list, wpnDm.replace(/[^a-zA-Z_-]*/g, "")));
+    let strMod = parseInt(Combat.getValue(list, "mod-Strength"));
     let skill = parseInt(Combat.getValue(list, "weapon_skill-" + id));
     let dmg = Combat.getValue(list, "weapon_damage-" + id);
-    let range = Combat.getValue(list, "weapon_range-" + id);
+    let range = Combat.getValueInt(list, "weapon_range-" + id);
 
-    if (addDmToDmg) {
+    if (range === 0) {
         // If using Strength, add Strength DM to damage.
-        dmg += " + " + dmMod;
+        dmg += " + " + strMod;
     }
 
     let reactPenalty = Combat.getReact(token);
@@ -555,9 +556,19 @@ Combat.makeAttack = function(token, list, id, boon, dm) {
         mod = " (" + mod + ")";
     }
 
+
+
     message += `<b>Attack${mod}:</b> [[${dice} + ${dmMod} + ${skill} + ${dm} - ${reactPenalty}]]<br/>`;
     message += `<b>Damage:</b> [[${dmg}]]<br/>`;
-    message += `<b>Range:</b> ${range}m`;
+    if (range === 0) {
+        message += `<b>Range:</b> Melee (+${strMod} STR)`;
+    } else {
+        let short = parseInt(range / 4);
+        let medium = parseInt(range);
+        let long = parseInt(range * 2);
+        let extreme = parseInt(range * 4);
+        message += `<b>Range:</b> ${short}m (+1) / <b>${medium}m</b> / ${long}m (-2) / ${extreme}m (-4)`;
+    }
     message += "</div>";
 
     Combat.message(token, message);
