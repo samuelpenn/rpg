@@ -84,7 +84,7 @@ on("chat:message", function(msg) {
 });
 
 
-Traveller.BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px solid black; border-radius: 5px 5px 10px 10px;";
+Traveller.BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px solid black; border-radius: 5px 5px 10px 10px; padding: 3px;";
 Traveller.TITLE_STYLE="background-color: black; color: #FFFFFF; padding: 1px; font-style: normal; text-align: center; border-radius: 5px 5px 0px 0px;";
 Traveller.TEXT_STYLE="padding: 5px; text-align: left; font-weight: normal; font-style: normal";
 
