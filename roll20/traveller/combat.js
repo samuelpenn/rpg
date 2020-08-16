@@ -171,7 +171,7 @@ Combat.healCommand = function (tokens) {
                         bar3_value: endMax
                     });
                 }
-                Combat.setStatus(token, endMax, strMax, dexMax, (strMax + dexMax == 0)?endMax:0);
+                Combat.setStatus(token, endMax, strMax, dexMax, (strMax + dexMax === 0)?endMax:0);
             }
         }
     }
@@ -275,7 +275,6 @@ Combat.updateHits = function(token, prev, message) {
     let endDamaged = false;
     let strDamaged = false;
     let dexDamaged = false;
-    let name = token.get("name");
 
     let endMax = Combat.getInt(token, "bar3_max");
     let strMax = Combat.getInt(token, "bar1_max");
@@ -288,13 +287,13 @@ Combat.updateHits = function(token, prev, message) {
     // If this token doesn't had Str and Dex set, it is a simple animal that only has 'hits'.
     let hits = 0;
     let hitsTaken = 0;
-    if (strMax + dexMax == 0) {
+    if (strMax + dexMax === 0) {
         hits = endMax;
     }
 
     let prevStatus = Combat.OKAY;
     if (prev) {
-        if (endCur == prev["bar3_value"] && endMax == prev["bar3_max"] && strCur == prev["bar1_value"] && dexCur == prev["bar2_value"]) {
+        if (endCur === prev["bar3_value"] && endMax === prev["bar3_max"] && strCur === prev["bar1_value"] && dexCur === prev["bar2_value"]) {
             // Whatever has changed is nothing to do with us.
             log("updateHits: Nothing changed");
             return;
@@ -312,11 +311,9 @@ Combat.updateHits = function(token, prev, message) {
         }
         if (strCur < strPrev) {
             takenDamage = true;
-            strDamaged = true;
         }
         if (dexCur < dexPrev) {
             takenDamage = true;
-            dexDamaged = true;
         }
         prevStatus = Combat.getStatus(endPrev, strPrev, dexPrev, hits);
     }
@@ -581,7 +578,7 @@ Combat.makeAttack = function(playerId, token, list, id, boon, dm) {
     } else if (dm < 0) {
         mod += dm;
     }
-    if (mod != "") {
+    if (mod !== "") {
         mod = " (" + mod + ")";
     }
 
@@ -728,7 +725,7 @@ Combat.skillRollCallBack = function(playerId, token, list, mod, skillChar, skill
             if (key.match(m)) {
                 let x = key.replace(/.*_-/, "").replace(/_.*$/, "");
                 if (!specs[x]) {
-                    specs[x] = new Object();
+                    specs[x] = {};
                     specs[x]["level"] = 0;
                 }
                 let o = specs[x];
@@ -741,7 +738,6 @@ Combat.skillRollCallBack = function(playerId, token, list, mod, skillChar, skill
         }
 
         for (let spec in specs) {
-            log(spec);
             log("Spec is " + specs[spec]["name"]);
 
             let specName = specs[spec]["name"];
@@ -894,7 +890,7 @@ Combat.skill = function(playerId, token, char, skill, boon, dm) {
             type: 'attribute',
             characterid: characterId
         });
-        if (skill === "" || skill === null) {
+        if (!skill === "" || skill === null) {
             // Just roll the characteristic.
             log("No skill");
             Combat.makeSkillRoll(playerId, token, list, char, null, boon, dm);
@@ -964,6 +960,10 @@ Combat.skillCommand = function(playerId, tokens, args) {
     let dm = 0;
     let char = "";
     let skill = "";
+
+    if (args.length < 1) {
+        return;
+    }
 
     let chars = [ "Intellect", "Education", "Social", "Strength", "Dexterity", "Endurance" ];
     char = args.shift().toLowerCase();
