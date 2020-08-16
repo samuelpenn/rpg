@@ -73,7 +73,10 @@ on("chat:message", function(msg) {
         let tokens = Combat.getSelectedTokens(msg, false);
         Combat.nameCommand(playerId, tokens);
     }
-
+    if (command === "!set") {
+        let tokens = Combat.getSelectedTokens(msg, false);
+        Combat.setCommand(playerId, tokens, args);
+    }
 });
 
 /**
@@ -798,8 +801,15 @@ Combat.makeSkillRoll = function(playerId, token, list, skillChar, skillKey, boon
 
     let untrained = Combat.getValueInt(list, "untrained-"+skillKey);
     if (Combat.getValue(list, "untrained-"+skillKey) == "") {
-        // TODO: Jack of all Trades
+        // Jack of all Trades reduces the penalty for not having a skill.
+        let jack = Combat.getValueInt(list, "skilllevel-JackOfAllTrades");
         untrained = -3;
+        if (parseInt(jack) > 0) {
+            untrained += parseInt(jack);
+            if (untrained > 0) {
+                untrained = 0;
+            }
+        }
     }
     skillLevel += untrained;
 
@@ -866,8 +876,6 @@ Combat.listSkillsCommand = function(playerId, tokens, args) {
     }
 };
 
-
-
 Combat.skill = function(playerId, token, char, skill, boon, dm) {
     if (token === null) {
         log("No token");
@@ -907,7 +915,6 @@ Combat.skill = function(playerId, token, char, skill, boon, dm) {
         let startMatch = false;
         for (let i=0; i < list.length; i++) {
             let key = list[i].get("name");
-            let current = list[i].get("current");
 
             if (key.indexOf("_show") === -1 || key.match("[0-9]")) {
                 // Get rid of anything that isn't a basic skill
@@ -995,6 +1002,48 @@ Combat.skillCommand = function(playerId, tokens, args) {
     for (let i=0; i < tokens.length; i++) {
         Combat.skill(playerId, tokens[i], char, skill, boon, dm);
     }
+};
+
+Combat.setCommand = function(playerId, tokens, args) {
+    log("====== setCommand ======");
+
+    for (let i=0; i < tokens.length; i++) {
+        let token = tokens[i];
+
+        let characterId = token.get("represents");
+        if (!characterId) {
+            log("No character");
+            return;
+        }
+
+        let character = getObj("character", characterId);
+        if (!character) {
+            log("No character");
+            return;
+        }
+
+        log("Getting list of attributes");
+        let list = findObjs({
+            type: 'attribute',
+            characterid: characterId
+        });
+
+        if (args.length === 0) {
+            let str = Combat.getValueInt(list, "base-Strength");
+            let dex = Combat.getValueInt(list, "base-Dexterity");
+            let end = Combat.getValueInt(list, "base-Endurance");
+
+            token.set({
+                bar3_value: end,
+                bar3_max: end,
+                bar1_value: str,
+                bar1_max: str,
+                bar2_value: dex,
+                bar2_max: dex
+            });
+        }
+    }
+
 };
 
 Combat.reactCommand = function(playerId, tokens, args) {
