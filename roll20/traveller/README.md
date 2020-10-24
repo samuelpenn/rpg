@@ -136,3 +136,14 @@ tokens that you want to rename, and run the command.
 If the token is a multi-sided token, then each one will be changed to be a different
 side. If there aren't enough sides, then the sequence will be repeated.
 
+## Physics
+
+The file physics.js includes some commands which are not specific to Traveller, but
+possibly useful when playing it.
+
+```
+!physics planet <radius> <density>
+!physics planet <radius> <density> <orbit>
+!physics thrust <thrust> <distance>
+```
+

@@ -28,7 +28,7 @@
 
 
 var Physics = Physics || {};
-Physics.VERSION = "0.2";
+Physics.VERSION = "0.3";
 Physics.DEBUG = true;
 
 Physics.AU = 149597870700;
@@ -62,7 +62,7 @@ on("chat:message", function(msg) {
     let command = args.shift();
     let playerId = msg.playerid;
 
-    if (command === "!physics" || command === "!phy") {
+    if ("!physics".startsWith(command) && command.length > 3) {
         Physics.physicsCommand(playerId, args);
     }
 });
@@ -119,14 +119,46 @@ Physics.physicsCommand = function (playerId, args) {
     log("physicsCommand:");
     if (args === null || args.length === 0) {
         // No commands.
-        Physics.message("!physics help", "!physics <planet|orbit>")
+        let html = "!physics &lt;planet|thrust&gt; &lt;args...&gt;<br/>";
+        html += "<span style='display: inline-block; width: 2em'> </span>planet &lt;radius&gt; &lt;density&gt; [&lt;orbit&gt;]<br/>";
+        html += "<span style='display: inline-block; width: 2em'> </span>thrust &lt;thrust&gt; &lt;distance&gt;<br/>";
+        html += "<br/>";
+        html += "See the website at <a hre='https://www.notasnark.net/traveller/roll20'>https://www.notasnark.net/traveller/roll20</a> for details.";
+
+        Physics.message("!physics help", html)
     } else {
         let cmd = args.shift();
 
         if ("planet".startsWith(cmd)) {
             Physics.planetCommand(playerId, args);
+        } else if ("thrust".startsWith(cmd)) {
+            Physics.thrustCommand(playerId, args);
         }
     }
+};
+
+Physics.getNumber = function(number) {
+    if (!number || number === "") {
+        return 0;
+    }
+    return parseFloat(number.replace(/[^0-9.\-]/g, ""));
+};
+
+Physics.getThrust = function (thrust) {
+    if (!thrust || thrust === "") {
+        return Physics.g;
+    }
+    if ((""+thrust).match(/^[0-9.\-]+$/)) {
+        return parseFloat(thrust);
+    }
+    thrust = ("" + thrust).toLowerCase();
+    let number = parseFloat(thrust.replace(/[^0-9.\-]/g, ""));
+
+    if (thrust.match("g$")) {
+        number *= Physics.g;
+    }
+
+    return parseFloat(number);
 };
 
 
@@ -136,11 +168,11 @@ Physics.getDistance = function (distance) {
     if (!distance || distance === "") {
         return Physics.EARTH_RADIUS;
     }
-    if ((""+distance).match(/^[0-9.-]+$/)) {
+    if ((""+distance).match(/^[0-9.\-]+$/)) {
         return parseFloat(distance) * 1000;
     }
     distance = ("" + distance).toLowerCase();
-    let number = parseFloat(distance.replace(/[^0-9.-]/g, ""));
+    let number = parseFloat(distance.replace(/[^0-9.\-]/g, ""));
 
     if (distance.match("mkm$")) {
         number *= 1000000000;
@@ -168,11 +200,11 @@ Physics.getDensity = function (density) {
     if (!density || density === "") {
         return Physics.EARTH_DENSITY;
     }
-    if ((""+density).match(/^[0-9.-]+$/)) {
+    if ((""+density).match(/^[0-9.\-]+$/)) {
         return parseFloat(density);
     }
     density = ("" + density).toLowerCase();
-    let number = parseFloat(density.replace(/[^0-9.-]/g, ""));
+    let number = parseFloat(density.replace(/[^0-9.\-]/g, ""));
 
     if (density.match("e$")) {
         number *= Physics.EARTH_DENSITY;
@@ -232,8 +264,26 @@ Physics.printTime = function (number) {
         time += parseInt(number) + "s";
     }
 
-
     return time;
+};
+
+// Takes a distance in metres.
+Physics.printDistance = function (number) {
+    number = parseInt(number);
+
+    let units = "m";
+    if (number > Physics.AU * 2) {
+        units = "AU";
+        number = (1.0 * number) / Physics.AU;
+    } else if (number > 2_000_000_000) {
+        units = "Mkm";
+        number = (1.0 * number) / 1_000_000_000;
+    } else if (number >= 10_000) {
+        units = "km";
+        number = number / 1_000;
+    }
+
+    return Physics.printNumber(number) + units;
 };
 
 // Print out details on a planet.
@@ -315,5 +365,53 @@ Physics.planetCommand = function (playerId, args) {
     Physics.message(title, html);
 };
 
+Physics.printVelocity = function(title, velocity) {
+    let html = "";
 
+    html += `<b>${title}</b>: ${Physics.printNumber(velocity / 1000)}km/s`;
+    if (velocity >= Physics.C) {
+        html += " <i>(!)</i><br/>";
+    } else if (velocity > Physics.C / 10) {
+        html += ` (${(velocity / Physics.C).toFixed(2)}c)<br/>`;
+        let td = Math.sqrt( 1 - (velocity * velocity) / (Physics.C * Physics.C));
+        html += `<b>Time dilation</b>: ${td.toFixed(3)}<br/>`;
+    } else {
+        html += "<br/>";
+    }
+
+    return html;
+}
+
+Physics.thrustCommand = function(playerId, args) {
+    let thrust = Physics.getThrust(args.shift());
+    let distance = Physics.getDistance(args.shift());
+
+    time = parseInt(2 * Math.sqrt(distance / thrust ));
+    let maxv = thrust * time / 2;
+
+    let title = "Travel Times";
+
+    let html = "";
+    html += `<b>Thrust</b>: ${Physics.printNumber(thrust)}m/s² (${Physics.printNumber(thrust / Physics.g)}g) <br/>`;
+    html += `<b>Distance</b>: ${Physics.printDistance(distance)}<br/>`;
+
+    html += `<b>Time</b>: ${Physics.printTime(time)}<br/>`;
+    html += Physics.printVelocity("Max Velocity", maxv);
+
+    // But what if we don't want to stop, and just thrust until impact?
+    time = parseInt(Math.sqrt(2 * distance / thrust));
+    maxv = thrust * time;
+
+    html += "<br/>";
+    html += `<b>Time to impact</b>: ${Physics.printTime(time)}<br/>`;
+    html += Physics.printVelocity("Velocity to impact", maxv);
+
+    Physics.message(title, html);
+};
+
+Physics.rocketCommand = function(playerId, args) {
+    let wet = Physics.getNumber(args.shift());
+    let dry = Physics.getNumber(args.shift());
+    let isp = Physics.getNumber(args.shift());
+}
 
