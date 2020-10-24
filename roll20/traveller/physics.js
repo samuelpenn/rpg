@@ -28,8 +28,9 @@
 
 
 var Physics = Physics || {};
-Physics.VERSION = "0.1";
+Physics.VERSION = "0.2";
 Physics.DEBUG = true;
+
 Physics.AU = 149597870700;
 Physics.G = 6.6743e-11;
 Physics.C = 299792458;
@@ -43,6 +44,7 @@ Physics.SOL_MASS = 1.989e30;
 Physics.SOL_RADIUS = 696340000;
 Physics.MOON_DENSITY = 3.34;
 Physics.JUPITER_DENSITY = 1.33;
+Physics.JUPITER_RADIUS = 69911000;
 Physics.SOL_DENSITY = 1.41;
 
 on("ready", function() {
@@ -66,7 +68,7 @@ on("chat:message", function(msg) {
 });
 
 
-Physics.STYLE="background-color: #EEDDDD; color: #000000; padding:2px; border:1px solid black; text-align: left; font-weight: normal; font-style: normal; min-height: 80px";
+Physics.STYLE="background-color: #eeeeee; color: #000000; padding:2px; border:1px solid black; border-radius: 5px; text-align: left; font-weight: normal; font-style: normal; min-height: 80px";
 
 
 Physics.whisper = function(token, message, func) {
@@ -148,7 +150,9 @@ Physics.getDistance = function (distance) {
         number *= 1;
     } else if (distance.match("au$")) {
         number *= Physics.AU;
-    } else if (distance.match("er$")) {
+    } else if (distance.match("j$")) {
+        number *= Physics.JUPITER_RADIUS;
+    } else if (distance.match("e$")) {
         number *= Physics.EARTH_RADIUS;
     } else if (distance.match("ed$")) {
         number *= Physics.EARTH_RADIUS * 2;
@@ -186,7 +190,7 @@ Physics.getDensity = function (density) {
 Physics.printNumber = function (number) {
     number = parseFloat(number);
 
-    if (number > 1e12) {
+    if (number > 1e12 || number < 1e-3) {
         return number.toExponential(2);
     } else if (number > 99) {
         return Number(parseInt(number)).toLocaleString();
@@ -278,19 +282,34 @@ Physics.planetCommand = function (playerId, args) {
         let velocity = Math.sqrt(Physics.G * mass / orbit);
         let circumference = 2 * Math.PI * orbit;
         let time = circumference / velocity;
+        let evo = Math.sqrt(mass * Physics.G * 2 / orbit);
+        let og = mass * Physics.G / (orbit * orbit);
 
         let orbitDistance = Physics.printNumber(orbit / 1000) + "km";
         if (orbit > Physics.AU * 2) {
             orbitDistance = Physics.printNumber(orbit / Physics.AU) + "AU";
         } else if (orbit > 10000000000) {
             orbitDistance = Physics.printNumber(orbit / 1000000000) + "Mkm";
+        } else if (orbit > 100000000) {
+            orbitDistance = Physics.printNumber(orbit / 1000000) + "Kkm";
         }
         title = `Planet (${orbitDistance} orbit)`;
 
         html += "<br/>";
-        html += `<b>Orbit Velocity</b>: ${Physics.printNumber(velocity)}m/s<br/>`;
-        html += `<b>Orbit Period</b>: ${Physics.printTime(time)}<br/>`;
-
+        if (evo >= Physics.C) {
+            html += `<i>No orbits possible</i><br/>`;
+        } else {
+            html += `<b>Orbit Velocity</b>: ${Physics.printNumber(velocity)}m/s<br/>`;
+            html += `<b>Orbit Period</b>: ${Physics.printTime(time)}<br/>`;
+            html += `<b>Escape Velocity</b>: ${Physics.printNumber(evo)}m/s²<br/>`;
+            if (evo > Physics.C / 100) {
+                html += `&nbsp;<i><b>Escape Velocity</b>: ${Physics.printNumber(evo / Physics.C)}c</i><br/>`;
+            }
+            html += `<b>Gravity</b>: ${Physics.printNumber(og)}m/s²<br/>`;
+            if (og > 0.1) {
+                html += `&nbsp;<i><b>Gravity</b>: ${Physics.printNumber(og / Physics.g)}g</i><br/>`;
+            }
+        }
     }
 
     Physics.message(title, html);
