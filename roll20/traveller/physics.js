@@ -28,7 +28,7 @@
 
 
 var Physics = Physics || {};
-Physics.VERSION = "0.3";
+Physics.VERSION = "0.4";
 Physics.DEBUG = true;
 
 Physics.AU = 149597870700;
@@ -133,6 +133,8 @@ Physics.physicsCommand = function (playerId, args) {
             Physics.planetCommand(playerId, args);
         } else if ("thrust".startsWith(cmd)) {
             Physics.thrustCommand(playerId, args);
+        } else if ("rocket".startsWith(cmd)) {
+            Physics.rocketCommand(playerId, args);
         }
     }
 };
@@ -219,15 +221,18 @@ Physics.getDensity = function (density) {
     return parseFloat(number);
 };
 
-Physics.printNumber = function (number) {
+Physics.printNumber = function (number, precision) {
     number = parseFloat(number);
+    if (precision === null || precision === undefined || precision < 0) {
+        precision = 2;
+    }
 
     if (number > 1e12 || number < 1e-3) {
-        return number.toExponential(2);
+        return number.toExponential(precision);
     } else if (number > 99) {
         return Number(parseInt(number)).toLocaleString();
     } else {
-        return number.toPrecision(2);
+        return number.toPrecision(precision);
     }
 };
 
@@ -413,5 +418,28 @@ Physics.rocketCommand = function(playerId, args) {
     let wet = Physics.getNumber(args.shift());
     let dry = Physics.getNumber(args.shift());
     let isp = Physics.getNumber(args.shift());
-}
+
+    if (dry <= 0 || wet <= 0 || isp <= 0) {
+        Physics.message("Rocket Equation", "Invalid values.")
+        return;
+    }
+    let ratio = wet / dry;
+    let log = Math.log(ratio);
+    let deltaVee = log * isp * Physics.g;
+
+    html = "";
+    html += `<b>Wet Mass</b>: ${wet.toLocaleString()}<br/>`;
+    html += `<b>Dry Mass</b>: ${dry.toLocaleString()}<br/>`;
+    html += `<b>Mass Ratio</b>: ${Physics.printNumber(ratio)}<br/>`;
+    html += `<b>I<sub>sp</sub></b>: ${Physics.printNumber(isp)}<br/>`;
+    if (deltaVee >= 10000) {
+        html += `<b>Δv</b>: ${Number((deltaVee / 1000.0).toPrecision(4)).toLocaleString()} kms<sup>-1</sup><br/>`;
+    } else {
+        html += `<b>Δv</b>: ${Physics.printNumber(deltaVee)} ms<sup>-1</sup><br/>`;
+    }
+
+    Physics.message("Rocket Equation", html);
+
+};
+
 

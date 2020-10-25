@@ -741,6 +741,11 @@ Combat.skillRollCallBack = function(playerId, token, list, mod, skillChar, skill
             log("Spec is " + specs[spec]["name"]);
 
             let specName = specs[spec]["name"];
+
+            if (!specName) {
+                continue;
+            }
+
             let specLevel = specs[spec]["level"];
             let s = specLevel;
             if (s >= 0) {
