@@ -28,7 +28,7 @@
 
 
 var Physics = Physics || {};
-Physics.VERSION = "0.4";
+Physics.VERSION = "0.5";
 Physics.DEBUG = true;
 
 Physics.AU = 149597870700;
@@ -318,7 +318,7 @@ Physics.planetCommand = function (playerId, args) {
     if (ev >= Physics.C) {
         html += `<i><b>Escape Velocity</b>: No escape.</i><br/>`;
     } else {
-        html += `<b>Escape Velocity</b>: ${Physics.printNumber(ev)}m/s²<br/>`;
+        html += `<b>Escape Velocity</b>: ${Physics.printNumber(ev)}m/s<br/>`;
         if (ev > Physics.C / 100) {
             html += `&nbsp;<i><b>Escape Velocity</b>: ${Physics.printNumber(ev / Physics.C)}c</i><br/>`;
         }
@@ -356,7 +356,7 @@ Physics.planetCommand = function (playerId, args) {
         } else {
             html += `<b>Orbit Velocity</b>: ${Physics.printNumber(velocity)}m/s<br/>`;
             html += `<b>Orbit Period</b>: ${Physics.printTime(time)}<br/>`;
-            html += `<b>Escape Velocity</b>: ${Physics.printNumber(evo)}m/s²<br/>`;
+            html += `<b>Escape Velocity</b>: ${Physics.printNumber(evo)}m/s<br/>`;
             if (evo > Physics.C / 100) {
                 html += `&nbsp;<i><b>Escape Velocity</b>: ${Physics.printNumber(evo / Physics.C)}c</i><br/>`;
             }
