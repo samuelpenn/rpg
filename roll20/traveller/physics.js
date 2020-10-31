@@ -46,6 +46,7 @@ Physics.MOON_DENSITY = 3.34;
 Physics.JUPITER_DENSITY = 1.33;
 Physics.JUPITER_RADIUS = 69911000;
 Physics.SOL_DENSITY = 1.41;
+Physics.EARTH_YEAR = 31557600;
 
 on("ready", function() {
     log(`==== Physics Version ${Physics.VERSION} ====`);
@@ -246,6 +247,15 @@ Physics.printNumber = function (number, precision) {
 Physics.printTime = function (number) {
     let time = "";
 
+    if (number >= Physics.EARTH_YEAR) {
+        let years = parseInt (number / Physics.EARTH_YEAR);
+        if (years > 100) {
+            time += Physics.printNumber(years) + "y ";
+        } else {
+            time += years + "y ";
+        }
+        number %= Physics.EARTH_YEAR;
+    }
     if (number >= 86400) {
         let days = parseInt(number / 86400);
         if (days > 100) {
