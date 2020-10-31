@@ -28,7 +28,7 @@
 
 
 var Physics = Physics || {};
-Physics.VERSION = "0.5";
+Physics.VERSION = "0.6";
 Physics.DEBUG = true;
 
 Physics.AU = 149597870700;
@@ -133,6 +133,8 @@ Physics.physicsCommand = function (playerId, args) {
             Physics.planetCommand(playerId, args);
         } else if ("thrust".startsWith(cmd)) {
             Physics.thrustCommand(playerId, args);
+        } else if ("ethrust".startsWith(cmd)) {
+            Physics.eThrustCommand(playerId, args);
         } else if ("rocket".startsWith(cmd)) {
             Physics.rocketCommand(playerId, args);
         }
@@ -184,6 +186,10 @@ Physics.getDistance = function (distance) {
         number *= 1;
     } else if (distance.match("au$")) {
         number *= Physics.AU;
+    } else if (distance.match("ly$")) {
+        number *= Physics.C * 86400 * 365.25;
+    } else if (distance.match("pc$")) {
+        number *= Physics.C * 86400 * 365.25 * 3.2616;
     } else if (distance.match("j$")) {
         number *= Physics.JUPITER_RADIUS;
     } else if (distance.match("e$")) {
@@ -385,13 +391,13 @@ Physics.printVelocity = function(title, velocity) {
     }
 
     return html;
-}
+};
 
 Physics.thrustCommand = function(playerId, args) {
     let thrust = Physics.getThrust(args.shift());
     let distance = Physics.getDistance(args.shift());
 
-    time = parseInt(2 * Math.sqrt(distance / thrust ));
+    let time = parseInt(2 * Math.sqrt(distance / thrust ));
     let maxv = thrust * time / 2;
 
     let title = "Travel Times";
@@ -413,6 +419,50 @@ Physics.thrustCommand = function(playerId, args) {
 
     Physics.message(title, html);
 };
+
+// Thrust calculations using relativity.
+Physics.eThrustCommand = function(playerId, args) {
+    let thrust = Physics.getThrust(args.shift());
+    let distance = Physics.getDistance(args.shift());
+
+
+    let f = Math.acosh( 1 + (thrust / 2) * distance / Math.pow(Physics.C,2 ));
+    // Passage of time as perceived by the ship
+    let myTime = parseInt ( 2 * ( Physics.C / thrust) * f);
+    // Passage of time as perceived by the outside universe
+    let unTime = parseInt(2 * ( Physics.C / thrust) * Math.sinh(f));
+
+
+    //let maxv = thrust * time / 2;
+
+    let title = "Travel Times";
+
+    let html = "";
+    html += `<b>Thrust</b>: ${Physics.printNumber(thrust)}m/s² (${Physics.printNumber(thrust / Physics.g)}g) <br/>`;
+    html += `<b>Distance</b>: ${Physics.printDistance(distance)}<br/>`;
+
+    if (unTime * 0.999 > myTime) {
+        html += `<b>Universe Time</b>: ${Physics.printTime(unTime)}<br/>`;
+        html += `<b>My Time</b>: ${Physics.printTime(myTime)}<br/>`;
+    } else {
+        html += `<b>Time</b>: ${Physics.printTime(unTime)}<br/>`;
+    }
+
+    /*
+    html += Physics.printVelocity("Max Velocity", maxv);
+
+    // But what if we don't want to stop, and just thrust until impact?
+    time = parseInt(Math.sqrt(2 * distance / thrust));
+    maxv = thrust * time;
+
+    html += "<br/>";
+    html += `<b>Time to impact</b>: ${Physics.printTime(time)}<br/>`;
+    html += Physics.printVelocity("Velocity to impact", maxv);
+    */
+
+    Physics.message(title, html);
+};
+
 
 Physics.rocketCommand = function(playerId, args) {
     let wet = Physics.getNumber(args.shift());
