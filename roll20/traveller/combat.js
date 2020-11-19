@@ -895,7 +895,7 @@ Combat.skill = function(playerId, token, char, skill, boon, dm) {
             type: 'attribute',
             characterid: characterId
         });
-        if (!skill === "" || skill === null) {
+        if (skill === "" || skill === null) {
             // Just roll the characteristic.
             log("No skill");
             Combat.makeSkillRoll(playerId, token, list, char, null, boon, dm);
@@ -954,8 +954,6 @@ Combat.skill = function(playerId, token, char, skill, boon, dm) {
             }
         }
         sendChat("", "Can't find a skill named " + skillKeyName);
-
-
     }
 };
 
