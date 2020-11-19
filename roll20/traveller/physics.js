@@ -28,7 +28,7 @@
 
 
 var Physics = Physics || {};
-Physics.VERSION = "0.6";
+Physics.VERSION = "0.7";
 Physics.DEBUG = true;
 
 Physics.AU = 149597870700;
@@ -46,7 +46,8 @@ Physics.MOON_DENSITY = 3.34;
 Physics.JUPITER_DENSITY = 1.33;
 Physics.JUPITER_RADIUS = 69911000;
 Physics.SOL_DENSITY = 1.41;
-Physics.EARTH_YEAR = 31557600;
+Physics.STANDARD_DAY = 86400;
+Physics.STANDARD_YEAR = Physics.STANDARD_DAY * 365;
 
 on("ready", function() {
     log(`==== Physics Version ${Physics.VERSION} ====`);
@@ -246,42 +247,55 @@ Physics.printNumber = function (number, precision) {
 // Takes time in seconds.
 Physics.printTime = function (number) {
     let time = "";
+    let count = 0;
 
-    if (number >= Physics.EARTH_YEAR) {
-        let years = parseInt (number / Physics.EARTH_YEAR);
+    if (number > Physics.STANDARD_YEAR * 100) {
+        count++;
+    }
+
+    if (number > Physics.STANDARD_YEAR * 10) {
+        count++;
+    }
+
+    if (number >= Physics.STANDARD_YEAR) {
+        let years = parseInt (number / Physics.STANDARD_YEAR);
         if (years > 100) {
             time += Physics.printNumber(years) + "y ";
         } else {
             time += years + "y ";
         }
-        number %= Physics.EARTH_YEAR;
+        number %= Physics.STANDARD_YEAR;
+        count++;
     }
-    if (number >= 86400) {
-        let days = parseInt(number / 86400);
+    if (count > 0 || number >= Physics.STANDARD_DAY) {
+        let days = parseInt(number / Physics.STANDARD_DAY);
         if (days > 100) {
             time += Physics.printNumber(days) + "d ";
         } else {
             time += days + "d ";
         }
-        number %= 86400;
+        number %= Physics.STANDARD_DAY;
+        count++;
     }
-    if (time.length > 4) {
-        return time;
-    }
-    if (number >= 3600) {
+    if (count > 2) return time;
+
+    if (count > 0 || number >= 3600) {
         time += parseInt(number / 3600) + "h ";
         number %= 3600;
+        count++;
     }
-    if (time.length > 5) {
-        return time;
-    }
-    if (number >= 60) {
+    if (count > 2) return time;
+
+    if (count > 0 || number >= 60) {
         time += parseInt( number / 60) + "m ";
         number %= 60;
+        count++;
     }
+    if (count > 2) return time;
+
     if (time === "") {
         time += Physics.printNumber(number) + "s";
-    } else if (time.length < 5) {
+    } else {
         time += parseInt(number) + "s";
     }
 
@@ -438,9 +452,9 @@ Physics.eThrustCommand = function(playerId, args) {
 
     let f = Math.acosh( 1 + (thrust / 2) * distance / Math.pow(Physics.C,2 ));
     // Passage of time as perceived by the ship
-    let myTime = parseInt ( 2 * ( Physics.C / thrust) * f);
+    let shipTime = parseInt ( 2 * ( Physics.C / thrust) * f);
     // Passage of time as perceived by the outside universe
-    let unTime = parseInt(2 * ( Physics.C / thrust) * Math.sinh(f));
+    let restTime = parseInt(2 * ( Physics.C / thrust) * Math.sinh(f));
 
 
     //let maxv = thrust * time / 2;
@@ -451,12 +465,23 @@ Physics.eThrustCommand = function(playerId, args) {
     html += `<b>Thrust</b>: ${Physics.printNumber(thrust)}m/s² (${Physics.printNumber(thrust / Physics.g)}g) <br/>`;
     html += `<b>Distance</b>: ${Physics.printDistance(distance)}<br/>`;
 
-    if (unTime * 0.999 > myTime) {
-        html += `<b>Universe Time</b>: ${Physics.printTime(unTime)}<br/>`;
-        html += `<b>My Time</b>: ${Physics.printTime(myTime)}<br/>`;
-    } else {
-        html += `<b>Time</b>: ${Physics.printTime(unTime)}<br/>`;
+    html += `<b>Time</b>: ${Physics.printTime(restTime)}<br/>`;
+    if (restTime * 0.999 > shipTime) {
+        html += `<b>Ship Time</b>: ${Physics.printTime(shipTime)}<br/>`;
     }
+
+
+    f = Math.acosh( 1 + (thrust) * distance / Math.pow(Physics.C,2 ));
+    // Passage of time as perceived by the ship
+    shipTime = parseInt ( ( Physics.C / thrust) * f);
+    // Passage of time as perceived by the outside universe
+    restTime = parseInt(( Physics.C / thrust) * Math.sinh(f));
+    html += "<br/>";
+    html += `<b>Time to impact</b>: ${Physics.printTime(restTime)}<br/>`;
+    if (restTime * 0.999 > shipTime) {
+        html += `<b>Ship Time to impact</b>: ${Physics.printTime(shipTime)}<br/>`;
+    }
+
 
     /*
     html += Physics.printVelocity("Max Velocity", maxv);
