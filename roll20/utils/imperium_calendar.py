@@ -65,10 +65,6 @@ WEEK = [ "Wonday", "Tuday", "Thirday", "Forday", "Fiday", "Sixday", "Senday" ]
 
 def getMonthInYear(epocDay):
     cal = MONTH_DAYS
-    isLeapYear = (getYear(epocDay) % 8) == 0
-    if (isLeapYear):
-        cal = LEAP_DAYS
-
     dayInYear = getDayInYear(epocDay)
 
     month = 0
@@ -80,9 +76,6 @@ def getMonthInYear(epocDay):
 
 def getDayInMonth(epocDay):
     cal = MONTH_DAYS
-    isLeapYear = (getYear(epocDay) % 8) == 0
-    if (isLeapYear):
-        cal = LEAP_DAYS
 
     dayInYear = getDayInYear(epocDay)
 
@@ -98,12 +91,9 @@ def getDayInMonth(epocDay):
 # day of the year in 1 AR. 1/1/1 is epoc day 1 (epoc day 0 does not exist).
 def getEpocDay(day, month, year):
     cal = MONTH_DAYS
-    isLeapYear = (year % 8) == 0
-    if (isLeapYear):
-        cal = LEAP_DAYS
 
-    epocDay = (YEAR_LENGTH + ( 1.0 / LEAP_YEAR)) * (year - 1)
-    epocDay += sum(cal[:month-1])
+    epocDay = (YEAR_LENGTH) * (year - 1)
+    epocDay += cal * (month - 1)
     epocDay += day
 
     return int(epocDay);
@@ -264,7 +254,7 @@ if (len(args.dates) == 3):
     argMonth = int(args.dates[1])
     argYear = int(args.dates[0])
 
-    print getNamedDayOfWeek(argDay, argMonth, argYear) + " - " + getMoonPhase(argDay, argMonth, argYear)
+    print( getNamedDayOfWeek(argDay, argMonth, argYear) )
 elif (len(args.dates) == 2):
     argMonth = int(args.dates[1])
     argYear = int(args.dates[0])
@@ -272,7 +262,7 @@ elif (len(args.dates) == 2):
     if (HTML):
         outputCSS(MONTH[argMonth - 1] + " " + str(argYear) + " AR")
 
-    print calendar(argMonth)
+    print( calendar(argMonth) )
 
     if (HTML):
         outputEnd()
@@ -282,14 +272,14 @@ elif (len(args.dates) == 1):
     if (HTML):
         outputCSS(str(argYear) + " AR")
     else:
-        print "====== " + str(argYear) + " AR ======\n"
+        print( "====== " + str(argYear) + " AR ======\n" )
 
 
-    for month in range(1, 13):
-        print calendar(month)
+    for month in range(1, 14):
+        print( calendar(month) )
         
 
-    print "\n"
+    print( "\n" )
 
     if (HTML):
         outputEnd()
