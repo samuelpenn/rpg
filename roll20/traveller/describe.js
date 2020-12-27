@@ -44,6 +44,7 @@
 
 var Traveller = Traveller || {};
 Traveller.VERSION = "1.0";
+Traveller.COMBAT_STYLE="background-color: #EEDDDD; color: #000000; padding:2px; border:1px solid black; text-align: left; font-weight: normal; font-style: normal; min-height: 80px";
 
 on("ready", function() {
     log(`==== Traveller Version ${Traveller.VERSION} ====`);
@@ -79,14 +80,21 @@ on("chat:message", function(msg) {
         let id = args.shift();
 
         Traveller.describe(msg, player, id);        
-    }
+    } else if (command === "!show") {
+        if (args.length === 0) {
+            Traveller.error(player, "!show expects a parameter, e.g. !describe &#64;{selected|token_id}");
+            return;
+        }
+        let id = args.shift();
 
+        Traveller.show(msg, player, id);
+    }
 });
 
 
-Traveller.BOX_STYLE="background-color: #EEEEDD; color: #000000; padding:0px; border:1px solid black; border-radius: 5px 5px 10px 10px; padding: 3px;";
-Traveller.TITLE_STYLE="background-color: black; color: #FFFFFF; padding: 1px; font-style: normal; text-align: center; border-radius: 5px 5px 0px 0px;";
-Traveller.TEXT_STYLE="padding: 5px; text-align: left; font-weight: normal; font-style: normal";
+Traveller.BOX_STYLE="background-color: #AAAAAA; color: #000000; padding:0px; border:2px solid black; border-radius: 0px 0px 10px 10px; padding: 0px;";
+Traveller.TITLE_STYLE="background-color: black; color: #FFFFFF; padding: 8px; font-style: normal; font-size: x-large; text-align: center; border-radius: 0px 0px 0px 0px;";
+Traveller.TEXT_STYLE="padding: 5px; text-align: left; font-weight: normal; font-style: normal; font-size: large;";
 
 
 Traveller.getHTML = function(title, image, text, extra) {
@@ -97,9 +105,9 @@ Traveller.getHTML = function(title, image, text, extra) {
     }
 
     if (image) {
-        html += "<img src='" + image + "' width='100%'/>";
+        html += "<img style='border: 2px solid black; margin: -2px; margin-bottom: 2px;' src='" + image + "' width='100%'/>";
     }
-    html += "<div style='text-align: left; font-weight: normal;'>" + text + "</div>";
+    html += `<div style='${Traveller.TEXT_STYLE}'>${text}</div>`;
     if (extra) {
         html += extra;
     }
@@ -164,6 +172,40 @@ Traveller.convertLinks = function(text) {
     }
 
     return text;
+};
+
+Traveller.show = function(msg, player, target_id) {
+    let target = getObj("graphic", target_id);
+    if (target) {
+        let title = target.get("name");
+        let gmOnly = false;
+        log("Title: " + title);
+
+        let character_id = target.get("represents");
+        let character = getObj("character", character_id);
+        if (!character) {
+            return;
+        }
+        let image = character.get("avatar");
+
+        let text = unescape(target.get("gmnotes"));
+
+        if (text.match("<br>--<br>")) {
+            text = text.replace(/.*<br>--<br>/, "");
+        } else if (text.match("<p[^>]*>--</p>")) {
+            text = text.replace(/.*<p[^>]*>--<\/p>/, "");
+        } else {
+            text = "";
+        }
+
+        let description = Traveller.getHTML(title, image, text);
+
+        if (playerIsGM(player.get("id"))) {
+            Traveller.message(player, description, title);
+        } else {
+            Traveller.whisperTo(player, player, description, title);
+        }
+    }
 };
 
 Traveller.describe = function(msg, player, target_id) {
@@ -285,7 +327,7 @@ Traveller.message = function(player, message, title, func) {
     if (message) {
         let html = "<div style='" + Traveller.BOX_STYLE + "'>";
         if (title) {
-            html += `<h3>${title}</h3>`;
+            html += `<div style='${Traveller.TITLE_STYLE}'<h3>${title}</h3></div>`;
         }
         html += message;
         html += "</div>";
