@@ -448,7 +448,7 @@ Combat.deadMessage = function(token, dmg, overkill) {
 };
 
 
-Traveller.COMBAT_STYLE="background-color: #EEDDDD; color: #000000; padding:2px; border:1px solid black; text-align: left; font-weight: normal; font-style: normal; min-height: 80px";
+//Traveller.COMBAT_STYLE="background-color: #EEDDDD; color: #000000; padding:2px; border:1px solid black; text-align: left; font-weight: normal; font-style: normal; min-height: 80px";
 
 
 Combat.whisper = function(token, message, func) {
@@ -798,21 +798,29 @@ Combat.makeSkillRoll = function(playerId, token, list, skillChar, skillKey, boon
     }
 
     let name = skillKey.replace(/([a-z])([A-Z])/g, "$1 $2");
-    let skillLevel = Combat.getValueInt(list, "skilllevel-"+skillKey);
+    let skillLevel = 0;
+    let untrained = 0;
+    if (skillKey.match(/^repeating_otherspec/)) {
+        // This is an 'other' skill, not a standard ski..
+        name = Combat.getValue(list, skillKey + "_skillName-Other");
+        skillLevel = Combat.getValueInt(list, skillKey + "_skilllevel-Other");
+    } else {
+        skillLevel = Combat.getValueInt(list, "skilllevel-" + skillKey);
 
-    let untrained = Combat.getValueInt(list, "untrained-"+skillKey);
-    if (Combat.getValue(list, "untrained-"+skillKey) == "") {
-        // Jack of all Trades reduces the penalty for not having a skill.
-        let jack = Combat.getValueInt(list, "skilllevel-JackOfAllTrades");
-        untrained = -3;
-        if (parseInt(jack) > 0) {
-            untrained += parseInt(jack);
-            if (untrained > 0) {
-                untrained = 0;
+        untrained = Combat.getValueInt(list, "untrained-" + skillKey);
+        if (Combat.getValue(list, "untrained-" + skillKey) == "") {
+            // Jack of all Trades reduces the penalty for not having a skill.
+            let jack = Combat.getValueInt(list, "skilllevel-JackOfAllTrades");
+            untrained = -3;
+            if (parseInt(jack) > 0) {
+                untrained += parseInt(jack);
+                if (untrained > 0) {
+                    untrained = 0;
+                }
             }
         }
+        skillLevel += untrained;
     }
-    skillLevel += untrained;
 
     message = `[[${dice}]]`;
 
@@ -853,6 +861,8 @@ Combat.listSkillsCommand = function(playerId, tokens, args) {
             let key = list[i].get("name");
             let current = list[i].get("current");
 
+            log(key + ": " + current);
+
             if (key.match(/[0-9]_show$/) || key.match(/_spec_show$/) || key.match(/JackOfAllTrades/)) {
                 continue;
             }
@@ -866,6 +876,15 @@ Combat.listSkillsCommand = function(playerId, tokens, args) {
                     char = char.replace(/.*([A-Z][a-z]*).*/g, "$1");
                     message += `[${name}-${mod}](!skill ${char} ${name}) `;
                 }
+            } else if (key.match("skillName-Other$")) {
+                log("Found other skill " + current);
+                let skillName = current;
+                let skillKey = key.replace(/_skillName.*/, "");
+                let name = current;
+                let char = Combat.getValue(list, skillKey + "_skillCharacteristicDM-Other");
+                let mod = Combat.getValue(list, skillKey + "_skilllevel-Other")
+                char = char.replace(/.*([A-Z][a-z]*).*/g, "$1");
+                message += `[${name}-${mod}](!skill ${char} ${name}) `;
             }
         }
 
@@ -914,9 +933,26 @@ Combat.skill = function(playerId, token, char, skill, boon, dm) {
         // find "Gun Combat", but "Gun" will find "Gunner", and "x" finds "Explosives"
         let foundKey = null;
         let startMatch = false;
+        let other = false;
         for (let i=0; i < list.length; i++) {
             let key = list[i].get("name");
 
+            if (key.indexOf("skillName-Other") > -1) {
+                let value = list[i].get("current");
+                let prefix = key.replace(/_skillName-Other/, "");
+                log(`Looking at other ${value}`);
+                if (value.toLowerCase() === skillKeyName) {
+                    log(`Key other skill`);
+                    other = true;
+                    foundKey = prefix;
+                    break;
+                } else if (!startMatch && value.toLowerCase().indexOf(skillKeyName) === 0) {
+                    foundKey = prefix;
+                    startMatch = true;
+                } else if (foundKey === null && value.toLowerCase().indexOf(skillKeyName) > -1) {
+                    foundKey = prefix;
+                }
+            }
             if (key.indexOf("_show") === -1 || key.match("[0-9]")) {
                 // Get rid of anything that isn't a basic skill
                 continue;
@@ -953,7 +989,7 @@ Combat.skill = function(playerId, token, char, skill, boon, dm) {
                 return;
             }
         }
-        sendChat("", "Can't find a skill named " + skillKeyName);
+        sendChat("", `Can't find a skill named '${skillKeyName}'`);
     }
 };
 
@@ -979,7 +1015,7 @@ Combat.skillCommand = function(playerId, tokens, args) {
         }
     }
     if (!found) {
-        log("Not found matching characteristic");
+        sendChat("", `Not found matching characteristic '${char}'`);
         return;
     }
     log("Found [" + char + "]");
