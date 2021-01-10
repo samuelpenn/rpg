@@ -768,6 +768,7 @@ Combat.skillRollCallBack = function(playerId, token, list, mod, skillChar, skill
 Combat.makeSkillRoll = function(playerId, token, list, skillChar, skillKey, boon, dm) {
     let dice = "2d6";
     let mod = "";
+    let misc = 0;
     if (boon < 0) {
         dice = "3d6kl2";
         mod = "Bane"
@@ -804,9 +805,10 @@ Combat.makeSkillRoll = function(playerId, token, list, skillChar, skillKey, boon
         // This is an 'other' skill, not a standard ski..
         name = Combat.getValue(list, skillKey + "_skillName-Other");
         skillLevel = Combat.getValueInt(list, skillKey + "_skilllevel-Other");
+        misc = Combat.getValueInt(list, skillKey + "_skillmodifier-Other");
     } else {
         skillLevel = Combat.getValueInt(list, "skilllevel-" + skillKey);
-
+        misc = Combat.getValueInt(list, "skillmodifier-" + skillKey);
         untrained = Combat.getValueInt(list, "untrained-" + skillKey);
         if (Combat.getValue(list, "untrained-" + skillKey) == "") {
             // Jack of all Trades reduces the penalty for not having a skill.
@@ -821,6 +823,7 @@ Combat.makeSkillRoll = function(playerId, token, list, skillChar, skillKey, boon
         }
         skillLevel += untrained;
     }
+    skillLevel += misc;
 
     message = `[[${dice}]]`;
 
@@ -936,6 +939,7 @@ Combat.skill = function(playerId, token, char, skill, boon, dm) {
         let other = false;
         for (let i=0; i < list.length; i++) {
             let key = list[i].get("name");
+            log(key);
 
             if (key.indexOf("skillName-Other") > -1) {
                 let value = list[i].get("current");

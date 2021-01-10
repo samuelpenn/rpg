@@ -174,6 +174,10 @@ Traveller.convertLinks = function(text) {
     return text;
 };
 
+/**
+ * Displays limited information about a character. Displays the token name, avatar and any information up
+ * to a <hr> line. If there is no <hr> line, then no text is displayed.
+ */
 Traveller.show = function(msg, player, target_id) {
     let target = getObj("graphic", target_id);
     if (target) {
@@ -188,6 +192,28 @@ Traveller.show = function(msg, player, target_id) {
         }
         let image = character.get("avatar");
 
+        character.get("bio", function(bio) {
+            let text = "";
+            if (!bio || bio === "null") {
+                text = "";
+            } else {
+                log(bio);
+
+                if (bio.indexOf("<hr>") > -1) {
+                    text = bio.replace(/<hr>.*/, "");
+                }
+            }
+            let description = Traveller.getHTML(title, image, text);
+
+            if (playerIsGM(player.get("id"))) {
+                Traveller.message(player, description, title);
+            } else {
+                Traveller.whisperTo(player, player, description, title);
+            }
+            return;
+        });
+
+/*
         let text = unescape(target.get("gmnotes"));
 
         if (text.match("<br>--<br>")) {
@@ -205,6 +231,8 @@ Traveller.show = function(msg, player, target_id) {
         } else {
             Traveller.whisperTo(player, player, description, title);
         }
+*/
+
     }
 };
 
@@ -213,10 +241,14 @@ Traveller.describe = function(msg, player, target_id) {
     if (target) {
         let title = target.get("name");
         let gmOnly = false;
+        let rumour = false;
         log("Title: " + title);
         if (title) {
             if (title.startsWith("~")) {
                 gmOnly = true;
+            }
+            if (title.toLowerCase().startsWith("rumour")) {
+                rumour = true;
             }
             if (title.split(":").length > 1) {
                 title = title.split(":")[1];
@@ -250,6 +282,12 @@ Traveller.describe = function(msg, player, target_id) {
                 text = text.replace(/<br>--<br>.*/, "");
                 text = text.replace(/<p[^>]*>--<\/p>.*/, "");
                 text = Traveller.convertLinks(text);
+                
+                if (rumour) {
+                    title = "<span style='font-size: medium'>" + title + "</span>";
+                    text = "<span style='font-size: 60pt; float: left; margin-top: 16pt; margin-bottom: -8pt; padding-bottom: -8pt;'>❝</span>" + text +
+                        "<span style='font-size: 60pt; text-align: right; margin-top: 16pt; float: right;' >❞</span><br/><br/>";
+                }
 
                 let description = Traveller.getHTML(title, null, text);
                 if (!gmOnly && playerIsGM(player.get("id"))) {
