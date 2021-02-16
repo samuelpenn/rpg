@@ -1,0 +1,67 @@
+#!/bin/bash
+
+COLOUR="white"
+WIDTH="140"
+
+while getopts ":c:w:" opt
+do
+    case "${opt}" in
+        c)
+            COLOUR=${OPTARG}
+            ;;
+        w)
+            WIDTH=${OPTARG}
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [ -z "$1" ]
+then
+    echo "Must specify source file"
+    exit 1
+fi
+
+if [ ! -f "/usr/local/share/tokens/${COLOUR}-frame.png" ]
+then
+    echo "Colour of '${COLOUR}' doesn't exist"
+    msg="Try one of: "
+    for c in /usr/local/share/tokens/*-frame.png
+    do
+        col=$(echo $c | sed -e 's#.*\/##g' -e 's#-.*##g')
+	echo -n "${msg} ${col}"
+	msg=","
+    done
+    echo "."
+    exit 2
+fi
+
+for SRC in $*
+do
+    if [ ! -f "$SRC" ]
+    then
+        echo "File '${SRC}' does not exist"
+        continue
+    fi
+    DEST=$(echo ${SRC} | sed 's/\.jpe*g/\.png/')
+    if [ -d "tokens" ]
+    then
+        DEST="tokens/${DEST}"
+    fi
+    if [ "${SRC}" = "${DEST}" ]
+    then
+        echo "Source and Destination are both ${SRC}."
+        continue
+    fi
+    echo $SRC "-> $DEST"
+
+    TMP="/tmp/mktokens.png"
+    convert -scale 400x400 "${SRC}" /usr/local/share/tokens/mask.png -alpha Off -compose CopyOpacity -composite "${TMP}"
+    convert -scale ${WIDTH}x${WIDTH} ${TMP} /usr/local/share/tokens/${COLOUR}-frame.png -composite "${DEST}"
+    rm -f "$TMP"
+done
+
+exit 0
+
+
+
