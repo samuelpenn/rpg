@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: UTF-8 -*-
 #
 # Simple program to calculate the day of the week and moon phase given an Inner Sea date.
 # Assumes that 1 AR was on a Moonday, and that it was a full moon.
@@ -84,6 +85,9 @@ MONTH = [ "Abadius", "Calistril", "Pharast", "Gozran", "Desnus", "Sarenith", "Er
 
 MOON_PHASES = [ "Full Moon", "Waning Gibbous", "Third Quarter", "Waning Crescent", "New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous" ]
 MOON_UNICODE = [ "&#x1F315;", "&#x1F316", "&#x1F317", "&#x1F318", "&#x1F311", "&#x1F312", "&#x1F313", "&#x1F314" ]
+
+MOON_UNICODE = [ "🌕", "🌖", "🌗", "🌘", "🌑", "🌒", "🌓", "🌔" ]
+
 PHASE_LENGTH = [ 3, 4, 4, 4, 2, 4, 4, 4 ]
 BRIGHTNESS = [ 3, 2, 2, 1, 0, 1, 2, 2 ]
 
@@ -282,14 +286,15 @@ def calendar(month, year):
                 html += "| "
             else:
                 phase = "{{ " + str(getMoonPhaseIndex(getDayInMonth(today), month, year)) + ".png?24&nolink}}"
-                html += "|" + str(getDayInMonth(today)) + phase + "\\\\ \\\\ "
+                phase = MOON_UNICODE[getMoonPhaseIndex(getDayInMonth(today), month, year)]
+                html += "|  " + str(getDayInMonth(today)) + " " + phase + "\\\\ \\\\ "
 
             if getEpocDayOfWeek(today) == 7:
                 html += "|\n"
 
             today += 1
 
-        html += "\n|"
+        html += "|\n|"
 
     if (HTML):
         print("</table></div>\n")
