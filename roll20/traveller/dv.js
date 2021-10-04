@@ -136,6 +136,9 @@ DV.command = function (playerId, msg, args) {
             let tokens = DV.getSelectedTokens(msg, false);
             DV.thrustCommand(playerId, tokens, args);
         }
+        if ("move".startsWith(cmd)) {
+            DV.moveCommand(playerId);
+        }
     }
 };
 
@@ -197,7 +200,8 @@ DV.getSelectedTokens = function (msg, forceExplicit) {
 };
 
 DV.ZOOM = 3;
-DV.SCALE = 1000;
+DV.SCALE = 10;          // Kilometres per 'square'
+DV.TURN_SECONDS = 360;  // Seconds in a turn.
 
 DV.getVector = function(token) {
     let vector = [];
@@ -338,7 +342,7 @@ DV.infoCommand = function (playerId, tokens, args) {
 
         let html = "<b>X:</b> " + parseInt(vector["x"] / 1000)  + "km<br/>";
         html += "<b>Y:</b> " + parseInt(vector["y"] / 1000) + "km<br/>";
-        html += "<b>Angle:</b> " + parseInt(token.get("rotation")) + "<br/>";
+        html += "<b>Angle:</b> " + parseInt(token.get("rotation")) + "°<br/>";
         html += "<b>Xv:</b> " + parseInt( vector["xv"]) + "m/s<br/>";
         html += "<b>Yv:</b> " + parseInt( vector["yv"]) + "m/s<br/>";
 
@@ -363,6 +367,7 @@ DV.turnCommand = function (playerId, tokens, args) {
 
     }
 };
+
 
 // Taken from here:
 // https://github.com/djmoorehead/roll20-api-scripts/blob/master/Radar/Radar.js
@@ -467,9 +472,6 @@ DV.scaleCommand = function (playerId, tokens, args) {
             });
         }
     });
-
-
-
 }
 
 /**
@@ -480,7 +482,6 @@ DV.scaleCommand = function (playerId, tokens, args) {
  * @param args
  */
 DV.thrustCommand = function(playerId, tokens, args) {
-    // Get the focus ship, move it to centre.
     let focusToken = tokens[0];
     if (!focusToken) {
         return;
@@ -490,5 +491,31 @@ DV.thrustCommand = function(playerId, tokens, args) {
 
     log("Accl: " + accl);
 
+    let xv = focusVector["xv"];
+    let yv = focusVector["yv"];
 
+    let rad = parseFloat(focusVector["angle"]) * 0.0174533;
+    xv += accl * Math.sin(rad) * DV.TURN_SECONDS;
+    yv -= accl * Math.cos(rad) * DV.TURN_SECONDS;
+    focusVector["xv"] = parseInt(xv);
+    focusVector["yv"] = parseInt(yv);
+    DV.setVector(focusToken, focusVector);
+}
+
+DV.moveCommand = function(playerId) {
+    let allTokens = findObjs({
+        _pageid: Campaign().get("playerpageid"),
+        _type: "graphic"
+    });
+
+    _.each(allTokens, function(token) {
+        if (token.get("name").startsWith("!")) {
+            log("Moving " + token.get("name"));
+            let vector = DV.getVector(token);
+            vector["x"] += vector["xv"] * DV.TURN_SECONDS;
+            vector["y"] += vector["yv"] * DV.TURN_SECONDS;
+
+            DV.setVector(token, vector);
+        }
+    });
 }
