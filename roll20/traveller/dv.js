@@ -127,6 +127,15 @@ DV.command = function (playerId, msg, args) {
             let tokens = DV.getSelectedTokens(msg, false);
             DV.turnCommand(playerId, tokens, args);
         }
+
+        if ("scale".startsWith(cmd)) {
+            DV.scaleCommand(playerId, null, args);
+        }
+
+        if ("thrust".startsWith(cmd)) {
+            let tokens = DV.getSelectedTokens(msg, false);
+            DV.thrustCommand(playerId, tokens, args);
+        }
     }
 };
 
@@ -227,7 +236,6 @@ DV.setVector = function(token, vector) {
 // Print out details on a planet.
 DV.focusCommand = function (playerId, tokens, args) {
     let pageId = Campaign().get("playerpageid");
-
     let page = getObj("page", pageId);
 
     let width = parseInt(page.get("width"));
@@ -290,9 +298,7 @@ DV.focusCommand = function (playerId, tokens, args) {
         }
     });
 
-
 };
-
 
 DV.getValue = function(list, key) {
     // noinspection JSUnresolvedFunction
@@ -330,9 +336,11 @@ DV.infoCommand = function (playerId, tokens, args) {
 
         let vector = DV.getVector(token);
 
-        let html = "<b>X:</b> " + vector["x"] + "<br/>";
-        html += "<b>Y:</b> " + vector["y"] + "<br/>";
-        html += "<b>Angle:</b> " + parseInt(token.get("rotation"));
+        let html = "<b>X:</b> " + parseInt(vector["x"] / 1000)  + "km<br/>";
+        html += "<b>Y:</b> " + parseInt(vector["y"] / 1000) + "km<br/>";
+        html += "<b>Angle:</b> " + parseInt(token.get("rotation")) + "<br/>";
+        html += "<b>Xv:</b> " + parseInt( vector["xv"]) + "m/s<br/>";
+        html += "<b>Yv:</b> " + parseInt( vector["yv"]) + "m/s<br/>";
 
         DV.message(token.get("name"), html);
     }
@@ -356,4 +364,131 @@ DV.turnCommand = function (playerId, tokens, args) {
     }
 };
 
+// Taken from here:
+// https://github.com/djmoorehead/roll20-api-scripts/blob/master/Radar/Radar.js
+DV.buildCircle = function(rad) {
+    let circlePoints;
+    let steps, stepSize;
+    let deg2rad = Math.PI/180;
 
+    steps = Math.min(Math.max(Math.round( (Math.PI*2*Math.sqrt((2*rad*rad)/2))/35),4),20);
+
+    const at = (theta) => ({x: Math.cos(theta)*rad, y: Math.sin(theta)*rad});
+
+    //Build a full circle
+    stepSize = Math.PI/(2*steps);
+
+    let acc=[[],[],[],[]];
+    let th=0;
+    _.times(steps+1,()=>{
+        let pt=at(th);
+        acc[0].push([pt.x,pt.y]);
+        acc[1].push([-pt.x,pt.y]);
+        acc[2].push([-pt.x,-pt.y]);
+        acc[3].push([pt.x,-pt.y]);
+        th+=stepSize;
+    });
+    acc = acc[0].concat(
+        acc[1].reverse().slice(1),
+        acc[2].slice(1),
+        acc[3].reverse().slice(1)
+    );
+
+    //Some js wizardry from TheAaron with the array map function. I couldn't make it work without returning the outer (1st & last) square brackets
+    //So, we will take this string, strip the last "]", then append the grid points to the path
+    circlePoints = JSON.stringify(acc.map((v,i)=>([(i?'L':'M'),rad+v[0],rad+v[1]])));
+    circlePoints = circlePoints.substring(0, circlePoints.length - 1);
+
+    return circlePoints + "]";
+}
+
+DV.scaleCommand = function (playerId, tokens, args) {
+    let scale = parseInt(args[0]);
+    DV.SCALE = scale * 1000;
+
+    let pageId = Campaign().get("playerpageid");
+    let page = getObj("page", pageId);
+
+    let width = parseInt(page.get("width"));
+    let height = parseInt(page.get("height"));
+
+    let cx = parseInt(width * 35);
+    let cy = parseInt(height * 35);
+
+    log("scaleCommand:");
+    let allPaths = findObjs({
+        _pageid: Campaign().get("playerpageid"),
+        _type: "path"
+    });
+
+    // Delete existing paths.
+    _.each(allPaths, function(p) {
+        p.remove();
+    });
+
+    let allText = findObjs({
+        _pageid: Campaign().get("playerpageid"),
+        _type: "text"
+    });
+
+    // Delete existing text.
+    _.each(allText, function(p) {
+        p.remove();
+    });
+
+    let zones = [ 1, 10, 1250, 10000, 25000, 50000, 100000, 200000, 500000 ];
+
+    zones.forEach(function(distance) {
+        let radius = (70 * (1000 * distance / DV.SCALE));
+        if (radius >= 70 && radius < cx * 4) {
+            let circlePoints = DV.buildCircle(radius);
+            createObj("path", {
+                "_pageid": pageId,
+                "fill": "transparent",
+                "stroke": "#000000",
+                "rotation": 0,
+                "layer": "map",
+                "stroke_width": 5,
+                "_path": circlePoints,
+                "width": radius * 2,
+                "height": radius * 2,
+                "top": cy,
+                "left": cx
+            });
+
+            createObj("text", {
+               "_pageid": pageId,
+               "layer": "map",
+               "text": distance + "km",
+               "top": cy - radius,
+                "left": cx,
+                "font_size": 48,
+                "font_family": "Arial"
+            });
+        }
+    });
+
+
+
+}
+
+/**
+ * Accelerate a ship along its current facing using the specified acceleration.
+ *
+ * @param playerId
+ * @param tokens
+ * @param args
+ */
+DV.thrustCommand = function(playerId, tokens, args) {
+    // Get the focus ship, move it to centre.
+    let focusToken = tokens[0];
+    if (!focusToken) {
+        return;
+    }
+    let focusVector = DV.getVector(focusToken);
+    let accl = parseInt(args[0]);
+
+    log("Accl: " + accl);
+
+
+}
