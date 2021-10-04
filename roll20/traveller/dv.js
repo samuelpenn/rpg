@@ -259,7 +259,8 @@ DV.focusCommand = function (playerId, tokens, args) {
     focusToken.set({
         "left": cx,
         "top": cy,
-        "rotation": 0
+        "rotation": 0,
+        "status_flying-flag": true
     });
 
     let allTokens = findObjs({
@@ -285,7 +286,7 @@ DV.focusCommand = function (playerId, tokens, args) {
             let py = dx * Math.sin(rad) + dy * Math.cos(rad);
 
             px = cx + 70 * (px / DV.SCALE);
-            py = cy + 70 * (py / DV.SCALE);
+            py = cy - 70 * (py / DV.SCALE);
 
             let ta = parseInt(token.get("rotation")) - angle;
             //ta = parseInt(ta % 360);
@@ -296,7 +297,8 @@ DV.focusCommand = function (playerId, tokens, args) {
             token.set({
                 "left": px,
                 "top": py,
-                "rotation": a
+                "rotation": a,
+                "status_flying-flag": false
             })
 
         }
@@ -342,7 +344,7 @@ DV.infoCommand = function (playerId, tokens, args) {
 
         let html = "<b>X:</b> " + parseInt(vector["x"] / 1000)  + "km<br/>";
         html += "<b>Y:</b> " + parseInt(vector["y"] / 1000) + "km<br/>";
-        html += "<b>Angle:</b> " + parseInt(token.get("rotation")) + "°<br/>";
+        html += "<b>Angle:</b> " + parseInt(token.get("rotation")) + "° (" + parseInt(vector["angle"]) + "°)<br/>";
         html += "<b>Xv:</b> " + parseInt( vector["xv"]) + "m/s<br/>";
         html += "<b>Yv:</b> " + parseInt( vector["yv"]) + "m/s<br/>";
 
@@ -408,8 +410,10 @@ DV.buildCircle = function(rad) {
 }
 
 DV.scaleCommand = function (playerId, tokens, args) {
-    let scale = parseInt(args[0]);
-    DV.SCALE = scale * 1000;
+    if (args.length > 0) {
+        let scale = parseInt(args[0]);
+        DV.SCALE = scale * 1000;
+    }
 
     let pageId = Campaign().get("playerpageid");
     let page = getObj("page", pageId);
@@ -494,9 +498,9 @@ DV.thrustCommand = function(playerId, tokens, args) {
     let xv = focusVector["xv"];
     let yv = focusVector["yv"];
 
-    let rad = parseFloat(focusVector["angle"]) * 0.0174533;
+    let rad = parseFloat(focusVector["angle"]) * -0.0174533;
     xv += accl * Math.sin(rad) * DV.TURN_SECONDS;
-    yv -= accl * Math.cos(rad) * DV.TURN_SECONDS;
+    yv += accl * Math.cos(rad) * DV.TURN_SECONDS;
     focusVector["xv"] = parseInt(xv);
     focusVector["yv"] = parseInt(yv);
     DV.setVector(focusToken, focusVector);
