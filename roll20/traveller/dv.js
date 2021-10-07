@@ -54,6 +54,29 @@ on("chat:message", function(msg) {
 
 DV.STYLE="background-color: #eeeeee; color: #000000; padding:2px; border:1px solid black; border-radius: 5px; text-align: left; font-weight: normal; font-style: normal; min-height: 80px";
 
+DV.number = function(number) {
+    let formatter = new Intl.NumberFormat('en-GB', { });
+
+    return formatter.format(parseInt(number));
+}
+
+DV.distance = function(metres) {
+    let formatter = new Intl.NumberFormat('en-GB', {
+    });
+    let result = metres;
+
+    if (Math.abs(metres) < 10000) {
+        result = formatter.format(metres) + "m";
+    } else if (Math.abs(metres) < 1000000000) {
+        let km = parseInt(metres / 1000);
+        result = formatter.format(km) + "km";
+    } else {
+        let mkm = parseInt(metres / 1000000000);
+        result = formatter.format(mkm) + " Mkm";
+    }
+
+    return result;
+}
 
 DV.whisper = function(token, message, func) {
     let html = "<div style='" + DV.STYLE + "'>";
@@ -129,7 +152,8 @@ DV.command = function (playerId, msg, args) {
         }
 
         if ("scale".startsWith(cmd)) {
-            DV.scaleCommand(playerId, null, args);
+            let tokens = DV.getSelectedTokens(msg, false);
+            DV.scaleCommand(playerId, tokens, args);
         }
 
         if ("thrust".startsWith(cmd)) {
@@ -237,6 +261,25 @@ DV.setVector = function(token, vector) {
     })
 };
 
+DV.getFocusToken = function(allTokens) {
+    let pageId = Campaign().get("playerpageid");
+    let page = getObj("page", pageId);
+
+    if (allTokens === null || allTokens === undefined) {
+        allTokens = findObjs({
+            _pageid: Campaign().get("playerpageid"),
+            _type: "graphic"
+        });
+    }
+    for (let t=0; t < allTokens.length; t++) {
+        let token = allTokens[t];
+        if (token.get("name").startsWith("!") && token.get("status_flying-flag")) {
+            return token;
+        }
+    }
+    return null;
+}
+
 // Print out details on a planet.
 DV.focusCommand = function (playerId, tokens, args) {
     let pageId = Campaign().get("playerpageid");
@@ -249,9 +292,19 @@ DV.focusCommand = function (playerId, tokens, args) {
     let cy = parseInt(height * 35);
 
     // Get the focus ship, move it to centre.
-    let focusToken = tokens[0];
-    if (!focusToken) {
-        return;
+    let focusToken = null;
+
+    let allTokens = findObjs({
+        _pageid: Campaign().get("playerpageid"),
+        _type: "graphic"
+    });
+    if (tokens != null && tokens.length > 0) {
+        focusToken = tokens[0];
+        if (!focusToken) {
+            return;
+        }
+    } else {
+        focusToken = DV.getFocusToken(allTokens);
     }
     let focusVector = DV.getVector(focusToken);
     let angle = parseInt(focusVector["angle"]);
@@ -263,10 +316,6 @@ DV.focusCommand = function (playerId, tokens, args) {
         "status_flying-flag": true
     });
 
-    let allTokens = findObjs({
-        _pageid: Campaign().get("playerpageid"),
-        _type: "graphic"
-    });
     _.each(allTokens, function(token) {
         if (token.get("name").startsWith("!") && token.get("name") !== focusToken.get("name")) {
             log("Moving " + token.get("name"));
@@ -280,7 +329,7 @@ DV.focusCommand = function (playerId, tokens, args) {
             log("    Distance to this ship is " + distance);
             log("    Rotating by " + focusVector["angle"]);
 
-            let rad = parseFloat(focusVector["angle"]) * -0.0174533;
+            let rad = parseFloat(focusVector["angle"]) * 0.0174533;
             log("rads are " + rad);
             let px = dx * Math.cos(rad) - dy * Math.sin(rad);
             let py = dx * Math.sin(rad) + dy * Math.cos(rad);
@@ -337,20 +386,43 @@ DV.setCommand = function (playerId, tokens, args) {
 };
 
 DV.infoCommand = function (playerId, tokens, args) {
+    let allObjs = findObjs({
+        _pageid: Campaign().get("playerpageid"),
+        _type: "graphic"
+    });
+    let focus = null;
+    _.each(allObjs, function (token) {
+        if (token.get("name").startsWith("!") && token.get("status_flying-flag")) {
+            focus = token;
+        }
+    });
+    if (focus) {
+        DV.message(null, "Info centred on " + focus.get("name"));
+    } else {
+        return;
+    }
+    let focusVector = DV.getVector(focus);
+
+    if (tokens.length == 0) {
+
+    }
+
     for (let i=0; i < tokens.length; i++) {
         let token = tokens[i];
 
         let vector = DV.getVector(token);
+        let x = vector["x"] - focusVector["x"];
+        let y = vector["y"] - focusVector["y"];
 
-        let html = "<b>X:</b> " + parseInt(vector["x"] / 1000)  + "km<br/>";
-        html += "<b>Y:</b> " + parseInt(vector["y"] / 1000) + "km<br/>";
+        let html = "<b>X:</b> " + DV.distance(x) + "<br/>";
+        html += "<b>Y:</b> " + DV.distance(y) + "<br/>";
         html += "<b>Angle:</b> " + parseInt(token.get("rotation")) + "° (" + parseInt(vector["angle"]) + "°)<br/>";
-        html += "<b>Xv:</b> " + parseInt( vector["xv"]) + "m/s<br/>";
-        html += "<b>Yv:</b> " + parseInt( vector["yv"]) + "m/s<br/>";
+        html += "<b>Xv:</b> " + parseInt( vector["xv"] / 1000) + "km/s<br/>";
+        html += "<b>Yv:</b> " + parseInt( vector["yv"] / 1000) + "km/s<br/>";
 
         DV.message(token.get("name"), html);
     }
-}
+};
 
 
 DV.turnCommand = function (playerId, tokens, args) {
@@ -410,11 +482,7 @@ DV.buildCircle = function(rad) {
 }
 
 DV.scaleCommand = function (playerId, tokens, args) {
-    if (args.length > 0) {
-        let scale = parseInt(args[0]);
-        DV.SCALE = scale * 1000;
-    }
-
+    log("scaleCommand:");
     let pageId = Campaign().get("playerpageid");
     let page = getObj("page", pageId);
 
@@ -424,26 +492,70 @@ DV.scaleCommand = function (playerId, tokens, args) {
     let cx = parseInt(width * 35);
     let cy = parseInt(height * 35);
 
-    log("scaleCommand:");
+    if (args.length > 0) {
+        let scale = parseInt(args[0]);
+        DV.SCALE = scale * 1000;
+    } else {
+        log("Working out auto scale");
+        let allObjs = tokens;
+
+        if (!tokens || tokens.length == 0) {
+            allObjs = findObjs({
+                _pageid: Campaign().get("playerpageid"),
+                _type: "graphic"
+            });
+        }
+        log("Number of objects: " + allObjs.length);
+        let focusToken = DV.getFocusToken(allObjs);
+
+        if (!focusToken) {
+            log("Nothing to scale against");
+            return;
+        }
+
+        let vector = DV.getVector(focusToken);
+        let focusX = vector["x"];
+        let focusY = vector["y"];
+        let maxD = 0;
+
+        for (let i=0; i < allObjs.length; i++) {
+            let token = allObjs[i];
+            if (token.get("name").startsWith("!")) {
+                let vector = DV.getVector(token);
+                let x = vector["x"] - focusX;
+                let y = vector["y"] - focusY;
+                let d = Math.sqrt(x * x + y * y);
+                if (d > maxD) {
+                    maxD = d;
+                    log(token.get("name") + ": Set maximum distance to " + DV.number(maxD));
+                }
+            }
+        }
+        DV.SCALE = parseInt(maxD / (width / 3));
+        if (DV.SCALE < 100) {
+            DV.SCALE = 100;
+        }
+        log("Auto scale set to be " + DV.SCALE);
+        DV.message("Scale", "Auto scale set to be " + DV.SCALE);
+    }
+
+    // Delete existing paths.
     let allPaths = findObjs({
         _pageid: Campaign().get("playerpageid"),
         _type: "path"
     });
+    for (let p=0; p < allPaths.length; p++) {
+        allPaths[p].remove();
+    }
 
-    // Delete existing paths.
-    _.each(allPaths, function(p) {
-        p.remove();
-    });
-
+    // Delete existing text.
     let allText = findObjs({
         _pageid: Campaign().get("playerpageid"),
         _type: "text"
     });
-
-    // Delete existing text.
-    _.each(allText, function(p) {
-        p.remove();
-    });
+    for (let p=0; p < allText.length; p++) {
+        allText[p].remove();
+    }
 
     let zones = [ 1, 10, 1250, 10000, 25000, 50000, 100000, 200000, 500000 ];
 
@@ -468,7 +580,7 @@ DV.scaleCommand = function (playerId, tokens, args) {
             createObj("text", {
                "_pageid": pageId,
                "layer": "map",
-               "text": distance + "km",
+               "text": DV.number(distance) + "km",
                "top": cy - radius,
                 "left": cx,
                 "font_size": 48,
@@ -476,6 +588,7 @@ DV.scaleCommand = function (playerId, tokens, args) {
             });
         }
     });
+    DV.focusCommand(playerId, null, null);
 }
 
 /**
@@ -498,7 +611,7 @@ DV.thrustCommand = function(playerId, tokens, args) {
     let xv = focusVector["xv"];
     let yv = focusVector["yv"];
 
-    let rad = parseFloat(focusVector["angle"]) * -0.0174533;
+    let rad = parseFloat(focusVector["angle"]) * 0.0174533;
     xv += accl * Math.sin(rad) * DV.TURN_SECONDS;
     yv += accl * Math.cos(rad) * DV.TURN_SECONDS;
     focusVector["xv"] = parseInt(xv);
@@ -522,4 +635,5 @@ DV.moveCommand = function(playerId) {
             DV.setVector(token, vector);
         }
     });
+    DV.focusCommand(playerId, null, null);
 }
