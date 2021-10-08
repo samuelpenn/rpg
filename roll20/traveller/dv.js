@@ -316,8 +316,10 @@ DV.focusCommand = function (playerId, tokens, args) {
         "status_flying-flag": true
     });
 
-    _.each(allTokens, function(token) {
+    for (let i=0; i < allTokens.length; i++) {
+        let token = allTokens[i];
         if (token.get("name").startsWith("!") && token.get("name") !== focusToken.get("name")) {
+            let name = token.get("name");
             log("Moving " + token.get("name"));
             let vector = DV.getVector(token);
             let dx = vector["x"] - focusVector["x"];
@@ -326,11 +328,7 @@ DV.focusCommand = function (playerId, tokens, args) {
 
             // Get the distance to the other ship.
             let distance = Math.pow(Math.pow(dx, 2) + Math.pow(dy, 2), 0.5);
-            log("    Distance to this ship is " + distance);
-            log("    Rotating by " + focusVector["angle"]);
-
             let rad = parseFloat(focusVector["angle"]) * 0.0174533;
-            log("rads are " + rad);
             let px = dx * Math.cos(rad) - dy * Math.sin(rad);
             let py = dx * Math.sin(rad) + dy * Math.cos(rad);
 
@@ -349,9 +347,36 @@ DV.focusCommand = function (playerId, tokens, args) {
                 "rotation": a,
                 "status_flying-flag": false
             })
+            let tint = token.get("aura1_color");
+
+            let vx = dx;// + vector["xv"] * DV.TURN_SECONDS;
+            let vy = dy;// + vector["yv"] * DV.TURN_SECONDS;
+
+            let vpx = vx * Math.cos(rad) - vy * Math.sin(rad);
+            let vpy = vx * Math.sin(rad) + vy * Math.cos(rad);
+            vpx = cx + 70 * (vpx / DV.SCALE);
+            vpy = cy - 70 * (vpy / DV.SCALE);
+
+            log(name + " is at " + px + "," + py + " moving to " + vpx + "," + vpy);
+
+            let radius = 15;
+            let circlePoints = DV.buildCircle(radius);
+            createObj("path", {
+                "_pageid": pageId,
+                "fill": tint,
+                "stroke": "#FF0000",
+                "rotation": 0,
+                "layer": "map",
+                "stroke_width": 3,
+                "_path": circlePoints,
+                "width": radius * 2,
+                "height": radius * 2,
+                "top": vpy,
+                "left": vpx
+            });
 
         }
-    });
+    };
 
 };
 
@@ -481,6 +506,10 @@ DV.buildCircle = function(rad) {
     return circlePoints + "]";
 }
 
+DV.buildLine = function(x0, y0, x1, y1) {
+
+}
+
 DV.scaleCommand = function (playerId, tokens, args) {
     log("scaleCommand:");
     let pageId = Campaign().get("playerpageid");
@@ -557,7 +586,7 @@ DV.scaleCommand = function (playerId, tokens, args) {
         allText[p].remove();
     }
 
-    let zones = [ 1, 10, 1250, 10000, 25000, 50000, 100000, 200000, 500000 ];
+    let zones = [ 1, 10, 30, 100, 300, 1250, 3000, 10000, 25000, 50000, 100000, 200000, 500000 ];
 
     zones.forEach(function(distance) {
         let radius = (70 * (1000 * distance / DV.SCALE));
@@ -625,7 +654,8 @@ DV.moveCommand = function(playerId) {
         _type: "graphic"
     });
 
-    _.each(allTokens, function(token) {
+    for (let i=0; i < allTokens.length; i++) {
+        let token = allTokens[i];
         if (token.get("name").startsWith("!")) {
             log("Moving " + token.get("name"));
             let vector = DV.getVector(token);
@@ -634,6 +664,6 @@ DV.moveCommand = function(playerId) {
 
             DV.setVector(token, vector);
         }
-    });
+    };
     DV.focusCommand(playerId, null, null);
 }
