@@ -567,7 +567,10 @@ DV.scaleCommand = function (playerId, tokens, args) {
         log("Auto scale set to be " + DV.SCALE);
         DV.message("Scale", "Auto scale set to be " + DV.SCALE);
     }
-
+    page.set({
+        "scale_units": "km",
+        "scale_number": parseInt(DV.SCALE / 700)
+    });
     // Delete existing paths.
     let allPaths = findObjs({
         _pageid: Campaign().get("playerpageid"),
