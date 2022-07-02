@@ -77,6 +77,9 @@ on("chat:message", function(msg) {
         let tokens = Combat.getSelectedTokens(msg, false);
         Combat.setCommand(playerId, tokens, args);
     }
+    if (command === "!gunner") {
+        Combat.gunnerCommand(args);
+    }
 });
 
 /**
@@ -1204,3 +1207,69 @@ Combat.nameCommand = function(playerId, tokens) {
         Combat.name(nameList, tokens[i]);
     }
 };
+
+Combat.gunnerMessage = function(title, message, func) {
+    let html = "<div style='" + Traveller.COMBAT_STYLE + "'>";
+
+    if (title) {
+        html += `<h3 style='display: inline-block; border-bottom: 2px solid black; margin-bottom: 2px;'>${title}</h3><br/>`;
+    }
+    html += message;
+    html += "</div>";
+
+    if (func) {
+        sendChat("", "/desc " + html, func);
+    } else {
+        sendChat("", "/desc " + html);
+    }
+};
+
+Combat.attackMsgCallback = function(guns, armour) {
+    return function(ops) {
+        let rollresult = ops[0];
+
+        let totalDamage = 0;
+        let text = "";
+        for (let g=0; g < guns; g++) {
+            let attack = rollresult.inlinerolls[g * 2].results.total;
+            let damage = rollresult.inlinerolls[g * 2 + 1].results.total;
+
+            text += `<h4>Gun ${g+1}</h4><p>`;
+            if (attack >= 8) {
+                let dmg = damage + (attack - 8) - armour;
+                if (dmg > 0) {
+                    text += `Hits and does ${dmg} damage<br/>`;
+                    totalDamage += dmg;
+                } else {
+                    text += `Hits and does no damage<br/>`;
+                }
+            } else {
+                text += `Misses<br/>`;
+            }
+            text += `</p>`;
+        }
+        text += `<br/>Total damage is ${totalDamage}`;
+
+        Combat.gunnerMessage(`Firing ${guns} guns`, text);
+    };
+
+}
+
+Combat.gunnerCommand = function(args) {
+    if (args.length < 4) {
+        sendChat("", `args: guns attack damage armour`);
+        return;
+    }
+    let guns = args.shift();
+    let attackDice = args.shift();
+    let damageDice = args.shift();
+    let armour = parseInt(args.shift());
+
+    let msg = "";
+    for (let g=0; g < guns; g++) {
+        msg += `[[${attackDice}]] [[${damageDice}]]<br/>`;
+    }
+    sendChat("", msg, Combat.attackMsgCallback(guns, armour));
+
+
+}
