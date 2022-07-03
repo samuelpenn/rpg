@@ -1228,6 +1228,13 @@ Combat.attackMsgCallback = function(guns, attackDice, damageDice, armour) {
     return function(ops) {
         let rollresult = ops[0];
 
+        // The order in which the dice data is presented is random.
+        // Have to read the array indices out of the message template, so that we
+        // know which array index has the value we want. Yuk.
+        let content = String(ops[0].content);
+        content = content.replace(/[^0-9]+/g, ' ').trim();
+        let order = content.split(" ");
+
         let totalDamage = 0;
         let totalCriticals = [];
         let text = "";
@@ -1237,13 +1244,16 @@ Combat.attackMsgCallback = function(guns, attackDice, damageDice, armour) {
         text += `<b>Damage Dice:</b> ${damageDice}<br/>`;
         text += `</p>`;
 
+        log("Result Count: " + rollresult.inlinerolls.length);
         for (let g=0; g < guns; g++) {
-            let attack = rollresult.inlinerolls[g * 2].results.total;
-            let damage = rollresult.inlinerolls[g * 2 + 1].results.total;
+            let attack = rollresult.inlinerolls[parseInt(order[g*2])].results.total;
+            let damage = rollresult.inlinerolls[parseInt(order[g*2 + 1])].results.total;
 
             text += `<h4>Gun ${g+1}</h4><p>`;
             let effect = attack - 8;
             if (effect >= 0) {
+                log("    EFFECT: " + effect);
+                log("    DAMAGE: " + damage);
                 let critical = false;
                 if (effect >= 6) {
                     critical = true;
@@ -1296,6 +1306,7 @@ Combat.gunnerCommand = function(args) {
     for (let g=0; g < guns; g++) {
         msg += `[[${attackDice}]] [[${damageDice}]]<br/>`;
     }
+    log(msg);
     sendChat("", msg, Combat.attackMsgCallback(guns, attackDice, damageDice, armour));
 
 
