@@ -1224,31 +1224,58 @@ Combat.gunnerMessage = function(title, message, func) {
     }
 };
 
-Combat.attackMsgCallback = function(guns, armour) {
+Combat.attackMsgCallback = function(guns, attackDice, damageDice, armour) {
     return function(ops) {
         let rollresult = ops[0];
 
         let totalDamage = 0;
+        let totalCriticals = [];
         let text = "";
+
+        text += `<p><b>Target Armour:</b> ${armour}<br/>`;
+        text += `<b>Attack Dice:</b> ${attackDice}<br/>`;
+        text += `<b>Damage Dice:</b> ${damageDice}<br/>`;
+        text += `</p>`;
+
         for (let g=0; g < guns; g++) {
             let attack = rollresult.inlinerolls[g * 2].results.total;
             let damage = rollresult.inlinerolls[g * 2 + 1].results.total;
 
             text += `<h4>Gun ${g+1}</h4><p>`;
-            if (attack >= 8) {
-                let dmg = damage + (attack - 8) - armour;
+            let effect = attack - 8;
+            if (effect >= 0) {
+                let critical = false;
+                if (effect >= 6) {
+                    critical = true;
+                }
+                let dmg = damage + effect - armour;
                 if (dmg > 0) {
-                    text += `Hits and does ${dmg} damage<br/>`;
+                    if (critical) {
+                        let severity = Math.min(6, effect - 5);
+                        if (totalCriticals[severity]) {
+                            totalCriticals[severity]++;
+                        } else {
+                            totalCriticals[severity] = 1;
+                        }
+                        text += `<span style="color: red">Hits [+${effect}] and does ${dmg} damage, severity ${severity}</span><br/>`;
+                    } else {
+                        text += `Hits [+${effect}] and does ${dmg} damage<br/>`;
+                    }
                     totalDamage += dmg;
                 } else {
-                    text += `Hits and does no damage<br/>`;
+                    text += `Hits [+${effect}] and does no damage<br/>`;
                 }
             } else {
                 text += `Misses<br/>`;
             }
             text += `</p>`;
         }
-        text += `<br/>Total damage is ${totalDamage}`;
+        text += `<br/><b>Total damage is ${totalDamage}</b><br/>`;
+        for (let sev=1; sev <= 6; sev++) {
+            if (totalCriticals[sev] && totalCriticals[sev] > 0) {
+                text += `<br/><b>Severity ${sev} Criticals: ${totalCriticals[sev]}</b><br/>`;
+            }
+        }
 
         Combat.gunnerMessage(`Firing ${guns} guns`, text);
     };
@@ -1269,7 +1296,7 @@ Combat.gunnerCommand = function(args) {
     for (let g=0; g < guns; g++) {
         msg += `[[${attackDice}]] [[${damageDice}]]<br/>`;
     }
-    sendChat("", msg, Combat.attackMsgCallback(guns, armour));
+    sendChat("", msg, Combat.attackMsgCallback(guns, attackDice, damageDice, armour));
 
 
 }
