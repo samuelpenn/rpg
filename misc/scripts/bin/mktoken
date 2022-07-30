@@ -1,11 +1,15 @@
 #!/bin/bash
 
 COLOUR="white"
-WIDTH="140"
+WIDTH="400"
+STYLE=""
 
-while getopts ":c:w:" opt
+while getopts ":c:w:s:" opt
 do
     case "${opt}" in
+        s)
+            STYLE=${OPTARG}/
+            ;;
         c)
             COLOUR=${OPTARG}
             ;;
@@ -22,7 +26,9 @@ then
     exit 1
 fi
 
-if [ ! -f "/usr/local/share/tokens/${COLOUR}-frame.png" ]
+frame="/usr/local/share/tokens/${STYLE}${COLOUR}.png"
+echo $frame
+if [ ! -f "$frame" ]
 then
     echo "Colour of '${COLOUR}' doesn't exist"
     msg="Try one of: "
@@ -43,8 +49,11 @@ do
         echo "File '${SRC}' does not exist"
         continue
     fi
-    DEST=$(echo ${SRC} | sed 's/\.jpe*g/\.png/')
-    if [ -d "tokens" ]
+    DEST=$(echo ${SRC} | sed 's/\.jpe*g/\.webp/')
+    if [ -d "Tokens" ]
+    then
+        DEST="Tokens/${DEST}"
+    elif [ -d "tokens" ]
     then
         DEST="tokens/${DEST}"
     fi
@@ -57,7 +66,7 @@ do
 
     TMP="/tmp/mktokens.png"
     convert -scale 400x400 "${SRC}" /usr/local/share/tokens/mask.png -alpha Off -compose CopyOpacity -composite "${TMP}"
-    convert -scale ${WIDTH}x${WIDTH} ${TMP} /usr/local/share/tokens/${COLOUR}-frame.png -composite "${DEST}"
+    convert -scale ${WIDTH}x${WIDTH} ${TMP} $frame -composite "${DEST}"
     rm -f "$TMP"
 done
 
