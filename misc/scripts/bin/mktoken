@@ -2,13 +2,13 @@
 
 COLOUR="white"
 WIDTH="400"
-STYLE=""
+STYLE="ring"
 
 while getopts ":c:w:s:" opt
 do
     case "${opt}" in
         s)
-            STYLE=${OPTARG}/
+            STYLE=${OPTARG}
             ;;
         c)
             COLOUR=${OPTARG}
@@ -26,17 +26,31 @@ then
     exit 1
 fi
 
-frame="/usr/local/share/tokens/${STYLE}${COLOUR}.png"
-echo $frame
+if [ ! -d "/usr/local/share/tokens/${STYLE}" ]
+then
+    echo "Style '$STYLE' doesn't exist"
+    msg="Try one of: "
+    for s in $(find /usr/local/share/tokens/* -type d)
+    do
+        echo -n "${msg} $(basename ${s})"
+        msg=","
+    done
+    echo "."
+    exit 2
+fi
+
+
+frame="/usr/local/share/tokens/${STYLE}/${COLOUR}.png"
 if [ ! -f "$frame" ]
 then
     echo "Colour of '${COLOUR}' doesn't exist"
     msg="Try one of: "
-    for c in /usr/local/share/tokens/*-frame.png
+    for c in /usr/local/share/tokens/${STYLE}/*.png
     do
-        col=$(echo $c | sed -e 's#.*\/##g' -e 's#-.*##g')
-	echo -n "${msg} ${col}"
-	msg=","
+        c=$(basename $c)
+        col=$(echo $c | sed -e 's#.png##g')
+        echo -n "${msg} ${col}"
+        msg=","
     done
     echo "."
     exit 2
