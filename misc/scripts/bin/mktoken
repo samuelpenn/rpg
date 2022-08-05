@@ -63,7 +63,7 @@ do
         echo "File '${SRC}' does not exist"
         continue
     fi
-    DEST=$(echo ${SRC} | sed 's/\.jpe*g/\.webp/')
+    DEST=$(echo ${SRC} | sed -e 's/\.png/\.webp/' -e 's/\.jpe*g/\.webp/')
     if [ -d "Tokens" ]
     then
         DEST="Tokens/${DEST}"
