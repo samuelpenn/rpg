@@ -119,7 +119,7 @@ def calendar(month):
     cal = MONTH_DAYS
 
     if (HTML):
-        html = "<div class='month'><h2>Month " + month + "</h2>\n"
+        html = "<div class='month'><h2>Month " + str(month) + "</h2>\n"
         if (args.images):
             html += "<img src='" + args.images + "/" + str(month) + ".jpg'/>";
     else:
@@ -140,20 +140,11 @@ def calendar(month):
     today = startOfMonth
     
     if (HTML):
-        while today <= epocEndDay:
-            if getEpocDayOfWeek(today) == 1:
-                html += "<tr>\n"
+        while today < (startOfMonth + 28):
 
-            if today < epocStartDay:
-                html += "<td></td>\n"
-            else:
-                phase="<span class='phase'>" + MOON_UNICODE[getMoonPhaseIndex(getDayInMonth(today), month, year)] + "</span>"
-                moonDay = ""
-                if (today in listOfMoons):
-                    moonDay = "<span class='name'>" + listOfMoons[today] + " Moon</span>"
-                html += "<td>" + str(getDayInMonth(today)) + phase + moonDay + "</td>\n"
+            html += ("<td> {day:03d} ".format( day = today) + "</td>\n")
 
-            if getEpocDayOfWeek(today) == 7:
+            if (today - 1) % 7 == 0:
                 html += "</tr>\n"
 
             today += 1
@@ -198,7 +189,7 @@ def outputCSS(title):
     print("  margin: 0px\n");
     print("}\n");
     print("td {\n")
-    print("  width: 8em;\n")
+    print("  width: 7em;\n")
     print("  height: 4.5em;\n")
     print("  vertical-align: top;\n")
     print("}\n")
@@ -260,7 +251,7 @@ elif (len(args.dates) == 2):
     argYear = int(args.dates[0])
 
     if (HTML):
-        outputCSS(MONTH[argMonth - 1] + " " + str(argYear) + " AR")
+        outputCSS(MONTH[argMonth - 1] + " " + str(argYear) + " IC")
 
     print( calendar(argMonth) )
 
@@ -270,9 +261,11 @@ elif (len(args.dates) == 1):
     argYear = int(args.dates[0])
 
     if (HTML):
-        outputCSS(str(argYear) + " AR")
+        outputCSS(str(argYear) + " IC")
+
+        print("<table><tr><th>Holiday</th></tr><tr><td>1</td></tr></table>");
     else:
-        print( "====== " + str(argYear) + " AR ======\n" )
+        print( "====== " + str(argYear) + " IC ======\n" )
 
 
     for month in range(1, 14):
