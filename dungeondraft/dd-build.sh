@@ -105,7 +105,11 @@ EOF
 
 done
 
-# Increment the minor version number
+dungeondraft-pack -overwrite -editpack "$PACK_NAME" releases
+
+# Increment the minor version number after building the package.
+# This means the version represents the next version to be built.
+# This allows the version to be manually set before a build.
 PACK="$PACK_NAME/pack.json"
 if [ -w "$PACK" ]
 then
@@ -118,8 +122,6 @@ then
     echo "Installing $newversion"
     sed -i "s/\"$version\"/\"$newversion\"/" $PACK
 fi
-
-dungeondraft-pack -overwrite -editpack "$PACK_NAME" releases
 
 pushd releases
 mv "$BUILD_PACK" "$RELEASE_PACK"
