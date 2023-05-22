@@ -105,6 +105,13 @@ EOF
 
 done
 
+if [ -f "releases/$RELEASE_PACK" ]
+then
+    find src -cnewer "releases/$RELEASE_PACK" -type f > changes
+    sort -u changelog changes > changelog.1
+    mv changelog.1 changelog
+fi
+
 dungeondraft-pack -overwrite -editpack "$PACK_NAME" releases
 
 # Increment the minor version number after building the package.

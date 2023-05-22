@@ -15,7 +15,7 @@ else
     die "Unable to find .env file"
 fi
 
-RELEASE_PACK=$(echo $DEST_NAME | sed 's/-/_/g').dungeondraft_pack
+RELEASE_PACK=$(echo $PACK_NAME | sed 's/-/_/g').dungeondraft_pack
 
 if [ ! -f "releases/${RELEASE_PACK}" ]
 then
